@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<LangVersion>10</LangVersion>
+		<OutputType>Library</OutputType>
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="ArtworkDatabaseInfoFilterScheme.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="MessagePack" Version="2.3.85" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0" />
+		<PackageReference Include="Selenium.WebDriver" Version="4.1.0" />
+		<PackageReference Include="ValueTaskSupplement" Version="1.1.0" />
+		<PackageReference Include="WebDriverManager" Version="2.12.3" />
+		<PackageReference Include="ZString" Version="2.4.4" />
+		<PackageReference Include="RuntimeT4Generator" Version="0.3.20">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="StringLiteralGenerator" Version="2.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Cysharp.Text" />
+		<Using Include="MessagePack" />
+		<Using Include="MessagePack.Formatters" />
+		<Using Include="Microsoft.Extensions.Options" />
+		<Using Include="RuntimeT4Generator" />
+		<Using Include="System.Buffers" />
+		<Using Include="System.Diagnostics" />
+		<Using Include="System.Diagnostics.CodeAnalysis" />
+		<Using Include="System.Runtime.InteropServices" />
+		<Using Include="System.Runtime.CompilerServices" />
+		<Using Include="System.Text.Json" />
+		<Using Include="System.Text.Json.Serialization" />
+	</ItemGroup>
+
+	<ProjectExtensions><VisualStudio><UserProperties artworkdatabaseinfofilterscheme_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
+
+</Project>

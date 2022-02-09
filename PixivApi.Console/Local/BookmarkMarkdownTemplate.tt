@@ -1,0 +1,42 @@
+<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#
+var relativeFolder = Path.GetRelativePath(Environment.CurrentDirectory, RelativePath);
+foreach (ref var artwork in Artworks.AsSpan())
+{#>
+# <#= artwork.Title #>
+
+<#if (artwork.User.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> [<#= artwork.User.Name #>](https://www.pixiv.net/users/<#= artwork.User.Id #>) 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= artwork.CreateDate.Year #>-<#= artwork.CreateDate.Month #>-<#= artwork.CreateDate.Day #>
+
+<#
+    for (uint i = 0; i < artwork.PageCount; ++i)
+    {
+        if (i + 1U == artwork.PageCount && artwork.ExtraInfo is { HideLast: true })
+        {
+            break;
+        }
+        if (artwork.ExtraInfo is { PageExtraInfoDictionary: { Count: > 0 } dictionary } && dictionary.TryGetValue(i, out var pageExtraInfo) && pageExtraInfo.HideReason != HideReason.NotHidden)
+        {
+            continue;
+        }
+#>
+![<#= artwork.Title #> - <#= i #>](<# WritePath(ref builder, artwork.GetOriginalUrl(i)); #> "<#= artwork.Id #>")
+<#
+    }
+    if (!string.IsNullOrWhiteSpace(artwork.Caption)) {#>
+
+<#= artwork.Caption #>
+<#
+    }
+    
+    if (artwork.Tags.Length != 0)
+    {#>
+
+<#
+        foreach (var tag in artwork.Tags)
+        {#> **<#= tag.Name #>**<#}
+    }
+#>
+
+
+<#}#>

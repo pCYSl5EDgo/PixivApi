@@ -1,0 +1,6 @@
+*.json
+*.user
+.vs/
+.vscode/
+bin/
+obj/

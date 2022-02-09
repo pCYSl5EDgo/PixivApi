@@ -1,0 +1,241 @@
+﻿{
+  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixvApi/main/PixivApi.Core/ArtworkDatabaseInfoFilterScheme.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A filter json file",
+  "properties": {
+    "title": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "partial-title": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "ignore-partial-title": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "id": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "ignore-id": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    },
+    "type": {
+      "enum": [
+        "illust",
+        "manga",
+        "ugoira"
+      ]
+    },
+    "tag-filter": {
+      "type": "object",
+      "properties": {
+        "exact": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "partial": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ignore-exact": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ignore-partial": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "exact-or": {
+          "type": "boolean"
+        },
+        "partial-or": {
+          "type": "boolean"
+        },
+        "ignore-exact-or": {
+          "type": "boolean"
+        },
+        "ignore-partial-or": {
+          "type": "boolean"
+        }
+      }
+    },
+    "user-filter": {
+      "type": "object",
+      "properties": {
+        "database": {
+          "type": "string"
+        },
+        "follow": {
+          "type": "boolean"
+        },
+        "only-registered": {
+          "type": "boolean"
+        },
+        "show-hidden": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "ignore-id": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "file-filter": {
+      "type": "object",
+      "properties": {
+        "original": {
+          "type": "object",
+          "properties": {
+            "exist": {
+              "type": "boolean"
+            },
+            "folder": {
+              "type": "string"
+            }
+          }
+        },
+        "thumbnail": {
+          "type": "object",
+          "properties": {
+            "exist": {
+              "type": "boolean"
+            },
+            "folder": {
+              "type": "string"
+            }
+          }
+        },
+        "or": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "culture": {
+      "type": "string"
+    },
+    "total-view": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer"
+        },
+        "max": {
+          "type": "integer"
+        }
+      }
+    },
+    "total-bookmarks": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer"
+        },
+        "max": {
+          "type": "integer"
+        }
+      }
+    },
+    "page-count": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer"
+        },
+        "max": {
+          "type": "integer"
+        }
+      }
+    },
+    "since": {
+      "type": "string",
+      "format": "date"
+    },
+    "until": {
+      "type": "string",
+      "format": "date"
+    },
+    "r18": {
+      "type": "boolean"
+    },
+    "partial-title-or": {
+      "type": "boolean"
+    },
+    "ignore-partial-title-or": {
+      "type": "boolean"
+    },
+    "bookmark": {
+      "type": "boolean"
+    },
+    "ignore-case": {
+      "type": "boolean"
+    },
+    "count": {
+      "type": "integer"
+    },
+    "offset": {
+      "type": "integer"
+    },
+    "order": {
+      "enum": [
+        "r",
+        "reverse-id",
+        "i",
+        "id",
+        "b/v",
+        "v/b",
+        "b/vri",
+        "v/bri",
+        "rb",
+        "b",
+        "bookmarks",
+        "rv",
+        "reverse-view",
+        "v",
+        "view",
+        "uri",
+        "u",
+        "user",
+        "ru",
+        "reverse-user",
+        "ruri",
+        "rbri",
+        "bri",
+        "rvri",
+        "vri"
+      ]
+    }
+  },
+  "title": "ArtworkDatabaseInfoFilter",
+  "type": "object"
+}

@@ -1,0 +1,5 @@
+﻿[*.cs]
+
+dotnet_diagnostic.CA1848.severity = suggestion
+
+dotnet_diagnostic.CA2253.severity = warning
