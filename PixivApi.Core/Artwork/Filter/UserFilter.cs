@@ -5,15 +5,14 @@ public sealed class UserFilter : IAsyncInitailizable, IFilter<UserDatabaseInfo>
     [JsonPropertyName("database")] public string? Database;
     [JsonPropertyName("follow")] public bool? IsFollowed;
     [JsonPropertyName("only-registered")] public bool OnlyRegistered = false;
-    [JsonPropertyName("id")] public ulong[]? Ids;
-    [JsonPropertyName("ignore-id")] public ulong[]? IgnoreIds;
+    [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;
     [JsonPropertyName("show-hidden")] public bool ShowHiddenUsers = false;
 
     public bool Filter(ulong userId)
     {
         if (InfoDictionary is null)
         {
-            return true;
+            return IdFilter is null || IdFilter.Filter(userId);
         }
 
         if (!InfoDictionary.TryGetValue(userId, out var user))
@@ -45,33 +44,7 @@ public sealed class UserFilter : IAsyncInitailizable, IFilter<UserDatabaseInfo>
             return false;
         }
 
-        var userId = user.User.Id;
-        if (Ids is { Length: > 0 })
-        {
-            foreach (var id in Ids)
-            {
-                if (userId == id)
-                {
-                    goto OK;
-                }
-            }
-
-            return false;
-        OK:;
-        }
-
-        if (IgnoreIds is { Length: > 0 })
-        {
-            foreach (var id in IgnoreIds)
-            {
-                if (userId == id)
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        return IdFilter is null || IdFilter.Filter(user.User.Id);
     }
 
     private Dictionary<ulong, UserDatabaseInfo>? InfoDictionary;
@@ -88,7 +61,7 @@ public sealed class UserFilter : IAsyncInitailizable, IFilter<UserDatabaseInfo>
             Database += IOUtility.UserDatabaseFileExtension;
         }
 
-        if (!System.IO.File.Exists(Database))
+        if (!File.Exists(Database))
         {
             if (string.IsNullOrWhiteSpace(directory))
             {

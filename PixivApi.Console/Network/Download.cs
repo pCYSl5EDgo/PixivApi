@@ -123,6 +123,7 @@ partial class NetworkClient
         {
             if ((downloadByteCount >> 30) >= gigaByteCount)
             {
+                cancellationTokenSource.Cancel();
                 return;
             }
 
@@ -141,7 +142,7 @@ partial class NetworkClient
             {
                 return;
             }
-            
+
             var anyDownload = false;
             foreach (var page in metaPages)
             {
@@ -166,8 +167,16 @@ partial class NetworkClient
         }
 
         artworkCollection = artworkCollection.Where(artwork => artwork.PageCount != 0 && artwork.Visible && !artwork.IsMuted);
-        await Parallel.ForEachAsync(artworkCollection, token, DownloadEach).ConfigureAwait(false);
-        logger.LogInformation($"Item: {downloadItemCount}, File: {downloadFileCount}, Already: {alreadyCount}, Transfer: {ShowByte(downloadByteCount)}");
+        try
+        {
+            await Parallel.ForEachAsync(artworkCollection, token, DownloadEach).ConfigureAwait(false);
+        }
+        finally
+        {
+            await LocalClient.ClearAsync(logger, config, false, token).ConfigureAwait(false);
+            logger.LogInformation($"Item: {downloadItemCount}, File: {downloadFileCount}, Already: {alreadyCount}, Transfer: {ShowByte(downloadByteCount)}");
+        }
+
         return 0;
 
         static string ShowByte(ulong byteCount)

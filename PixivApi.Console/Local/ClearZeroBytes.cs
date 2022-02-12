@@ -3,13 +3,13 @@ namespace PixivApi;
 partial class LocalClient
 {
     [Command("clear-0-bytes", "")]
-    public async ValueTask ClearZeroBytes(
+    public ValueTask ClearZeroBytes(
         bool pipe = false
-    )
+    ) => ClearAsync(logger, configSettings, pipe, Context.CancellationToken);
+
+    internal static async ValueTask ClearAsync(ILogger logger, ConfigSettings configSettings, bool pipe, CancellationToken token)
     {
         System.Collections.Concurrent.ConcurrentBag<FileInfo> files = new();
-        var token = Context.CancellationToken;
-
         ValueTask Collect(string path, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();

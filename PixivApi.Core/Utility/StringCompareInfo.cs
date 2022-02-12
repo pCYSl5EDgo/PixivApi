@@ -1,27 +1,37 @@
 ﻿using System.Globalization;
+
 namespace PixivApi;
 
-public readonly struct StringCompareInfo
+public class StringCompareInfo : IEqualityComparer<string>
 {
     private readonly CompareInfo? compareInfo;
     private readonly CompareOptions compareOptions;
     private readonly StringComparison stringComparison;
 
-    public StringCompareInfo(string? culture, bool ignoreCase)
+    public StringCompareInfo(CultureInfo? cultureInfo, bool ignoreCase)
     {
-        compareInfo = culture switch
-        {
-            null => CultureInfo.CurrentCulture.CompareInfo,
-            "" => CultureInfo.InvariantCulture.CompareInfo,
-            "ordinal" => null,
-            _ => CultureInfo.GetCultureInfo(culture, true).CompareInfo,
-        };
-
+        compareInfo = cultureInfo?.CompareInfo;
         compareOptions = ignoreCase ? CompareOptions.IgnoreCase : CompareOptions.None;
         stringComparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
     }
 
-    public bool Equals(string arg0, string arg1) => compareInfo is null ? arg0.Equals(arg1, stringComparison) : compareInfo.Compare(arg0, arg1, compareOptions) == 0;
-    
-    public bool Contains(string arg0, string arg1) => compareInfo is null ? arg0.Contains(arg1, stringComparison) : compareInfo.IndexOf(arg0, arg1, compareOptions) != -1;
+    public StringCompareInfo(string? culture, bool ignoreCase) : this(culture switch
+    {
+        null => CultureInfo.CurrentCulture,
+        "" => CultureInfo.InvariantCulture,
+        "ordinal" => null,
+        _ => CultureInfo.GetCultureInfo(culture, true),
+    }, ignoreCase)
+    {
+    }
+
+    public bool Equals(string? x, string? y) => ReferenceEquals(x, y) || (x is not null && y is not null && (compareInfo is null ? x.Equals(y, stringComparison) : compareInfo.Compare(x, y, compareOptions) == 0));
+
+    public bool Contains(string container, string value) => compareInfo is null ? container.Contains(value, stringComparison) : compareInfo.IndexOf(container, value, compareOptions) != -1;
+
+    public bool Equals(ReadOnlySpan<char> x, ReadOnlySpan<char> y) => compareInfo is null ? x.Equals(y, stringComparison) : compareInfo.Compare(x, y, compareOptions) == 0;
+
+    public bool Contains(ReadOnlySpan<char> container, ReadOnlySpan<char> value) => compareInfo is null ? container.Contains(value, stringComparison) : compareInfo.IndexOf(container, value, compareOptions) != -1;
+
+    public int GetHashCode([DisallowNull] string obj) => obj.Length;
 }

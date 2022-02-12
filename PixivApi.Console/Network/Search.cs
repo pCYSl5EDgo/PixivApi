@@ -18,60 +18,12 @@ partial class NetworkClient
             return -1;
         }
 
-        var filter = new ArtworkDatabaseInfoFilter()
-        {
-            TagFilter = new()
-            {
-                Partials = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
-            }
-        };
-
-        return await InternalSearchAsync(null, filter, OverwriteKind.Add, pipe);
+        return await InternalSearchAsync(text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), OverwriteKind.Add, pipe);
     }
 
-    [Command("search-filter")]
-    public async ValueTask<int> SearchFilterAsync
-    (
-        [Option(0, IOUtility.FilterDescription)] string filter,
-        [Option("o", $"output {IOUtility.ArtworkDatabaseDescription}")] string? output = null,
-        [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
-        bool pipe = false
-    )
+    private async ValueTask<int> InternalSearchAsync(string[] searchArray, OverwriteKind overwrite, bool isPipeOutput)
     {
-        if (string.IsNullOrWhiteSpace(filter))
-        {
-            if (!pipe)
-            {
-                logger.LogError("empty.");
-            }
-
-            return -1;
-        }
-
-        if (!await Connect().ConfigureAwait(false))
-        {
-            return -3;
-        }
-
-        var token = Context.CancellationToken;
-        var artworkItemFilter = await IOUtility.JsonParseAsync<ArtworkDatabaseInfoFilter>(filter, token).ConfigureAwait(false);
-        if (artworkItemFilter is null)
-        {
-            if (!pipe)
-            {
-                logger.LogError("cannot search anything.");
-            }
-
-            return -1;
-        }
-
-        output = IOUtility.FindArtworkDatabase(output, false);
-        return await InternalSearchAsync(output, artworkItemFilter, OverwriteKindExtensions.Parse(overwrite), pipe).ConfigureAwait(false);
-    }
-
-    private async ValueTask<int> InternalSearchAsync(string? output, ArtworkDatabaseInfoFilter filter, OverwriteKind overwrite, bool isPipeOutput)
-    {
-        if (CalcUrl(filter) is not string url)
+        if (CalcUrl(searchArray) is not string url)
         {
             if (!isPipeOutput)
             {
@@ -81,7 +33,7 @@ partial class NetworkClient
             return -1;
         }
 
-        output ??= CalcFileName(filter);
+        var output = CalcFileName(searchArray);
         if (string.IsNullOrWhiteSpace(output))
         {
             if (!isPipeOutput)
@@ -106,60 +58,40 @@ partial class NetworkClient
         ).ConfigureAwait(false);
         return 0;
 
-        static string? CalcUrl(ArtworkDatabaseInfoFilter filter)
+        static string CalcUrl(string[] array)
         {
-            DefaultInterpolatedStringHandler handler;
-            static void Add(out DefaultInterpolatedStringHandler handler, string[] array)
+            DefaultInterpolatedStringHandler handler = $"https://{ApiHost}/v1/search/illust?word=";
+            handler.AppendFormatted(new PercentEncoding(array[0]));
+            for (int i = 1; i < array.Length; i++)
             {
-                handler = $"https://{ApiHost}/v1/search/illust?word=";
-                handler.AppendFormatted(new PercentEncoding(array[0]));
-                for (int i = 1; i < array.Length; i++)
-                {
-                    handler.AppendLiteral("%20");
-                    handler.AppendFormatted(new PercentEncoding(array[i]));
-                }
-
-                handler.AppendLiteral("&search_target=");
+                handler.AppendLiteral("%20");
+                handler.AppendFormatted(new PercentEncoding(array[i]));
             }
 
-            if (filter.TagFilter is { IsNoFilter: false } tagFilter)
-            {
-                if (tagFilter.Partials is { Length: > 0 } partials)
-                {
-                    Add(out handler, partials);
-                    handler.AppendLiteral("partial_match_for_tags");
-                }
-                else if (tagFilter.Exacts is { Length: > 0 } exacts)
-                {
-                    Add(out handler, exacts);
-                    handler.AppendLiteral("exact_match_for_tags");
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else if (filter.PartialTitles is { Length: > 0 } partials)
-            {
-                Add(out handler, partials);
-                handler.AppendLiteral("title_and_caption");
-            }
-            else
-            {
-                return null;
-            }
-
-            handler.AppendLiteral("&sort=date_desc");
+            handler.AppendLiteral("&search_target=");
+            handler.AppendLiteral("partial_match_for_tags&sort=date_desc");
             return handler.ToStringAndClear();
         }
 
-        static string? CalcFileName(ArtworkDatabaseInfoFilter filter)
+        static string CalcFileName(string[] array)
         {
-            DefaultInterpolatedStringHandler handler;
-            static void Add(out DefaultInterpolatedStringHandler handler, string[] array)
+            DefaultInterpolatedStringHandler handler = $"search_";
+            foreach (var c in array[0])
             {
-                handler = $"search_";
-                foreach (var c in array[0])
+                if (IOUtility.PathInvalidChars.Contains(c))
+                {
+                    handler.AppendLiteral("_");
+                }
+                else
+                {
+                    handler.AppendFormatted(c);
+                }
+            }
+
+            for (int i = 1; i < array.Length; i++)
+            {
+                handler.AppendLiteral(" ");
+                foreach (var c in array[i])
                 {
                     if (IOUtility.PathInvalidChars.Contains(c))
                     {
@@ -170,50 +102,9 @@ partial class NetworkClient
                         handler.AppendFormatted(c);
                     }
                 }
-
-                for (int i = 1; i < array.Length; i++)
-                {
-                    handler.AppendLiteral(" ");
-                    foreach (var c in array[i])
-                    {
-                        if (IOUtility.PathInvalidChars.Contains(c))
-                        {
-                            handler.AppendLiteral("_");
-                        }
-                        else
-                        {
-                            handler.AppendFormatted(c);
-                        }
-                    }
-                }
-
-                handler.AppendLiteral(IOUtility.ArtworkDatabaseFileExtension);
             }
 
-            if (filter.TagFilter is { IsNoFilter: false } tagFilter)
-            {
-                if (tagFilter.Partials is { Length: > 0 } partials)
-                {
-                    Add(out handler, partials);
-                }
-                else if (tagFilter.Exacts is { Length: > 0 } exacts)
-                {
-                    Add(out handler, exacts);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else if (filter.PartialTitles is { Length: > 0 } partials)
-            {
-                Add(out handler, partials);
-            }
-            else
-            {
-                return null;
-            }
-
+            handler.AppendLiteral(IOUtility.ArtworkDatabaseFileExtension);
             return handler.ToStringAndClear();
         }
     }

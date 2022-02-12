@@ -1,5 +1,6 @@
 ﻿using System.Text.Encodings.Web;
 using System.Text.Unicode;
+
 namespace PixivApi;
 
 public static class IOUtility

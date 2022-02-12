@@ -4,9 +4,9 @@ namespace PixivApi;
 public sealed class UserDetailInfo : IEquatable<UserDetailInfo>, IComparable<UserDetailInfo>, IOverwrite<UserDetailInfo>
 {
     [Key(0), JsonPropertyName("user")] public User User;
-    [Key(1), JsonPropertyName("profile"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public UserDetailProfile? Profile;
-    [Key(2), JsonPropertyName("profile_publicity"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public UserDetailProfilePublicity? ProfilePublicity;
-    [Key(3), JsonPropertyName("workspace"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public UserDetailWorkspace? Workspace;
+    [Key(1), JsonPropertyName("profile")] public UserDetailProfile? Profile;
+    [Key(2), JsonPropertyName("profile_publicity")] public UserDetailProfilePublicity? ProfilePublicity;
+    [Key(3), JsonPropertyName("workspace")] public UserDetailWorkspace? Workspace;
 
     public bool Equals(UserDetailInfo? other) => other is not null && User.Id == other.User.Id;
 

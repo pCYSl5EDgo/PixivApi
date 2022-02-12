@@ -3,11 +3,12 @@
 [MessagePackObject]
 public sealed class FileExtraInfo : IOverwrite<FileExtraInfo>
 {
-    [Key(0), JsonPropertyName("memo"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Memo;
-    [Key(1), JsonPropertyName("tags"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string[]? Tags;
-    [Key(2), JsonPropertyName("hide")] public HideReason HideReason;
-    [Key(3), JsonPropertyName("hide-last")] public bool HideLast;
-    [Key(4), JsonPropertyName("pages"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public Dictionary<uint, FilePageExtraInfo>? PageExtraInfoDictionary;
+    [Key(0)] public string? Memo;
+    [Key(1)] public string[]? Tags;
+    [Key(2)] public HideReason HideReason;
+    [Key(3)] public bool HideLast;
+    [Key(4)] public Dictionary<uint, FilePageExtraInfo>? PageExtraInfoDictionary;
+    [Key(5)] public string[]? FakeTags;
 
     public void Overwrite(FileExtraInfo source)
     {
@@ -16,5 +17,6 @@ public sealed class FileExtraInfo : IOverwrite<FileExtraInfo>
         HideReason = source.HideReason;
         HideLast = source.HideLast;
         OverwriteExtensions.Overwrite(ref PageExtraInfoDictionary, source.PageExtraInfoDictionary);
+        OverwriteExtensions.Overwrite(ref FakeTags, source.FakeTags);
     }
 }

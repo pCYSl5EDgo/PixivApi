@@ -41,25 +41,9 @@ public static partial class AccessTokenUtility
         return GetToken(json, RefreshToken());
     }
 
-    private static async ValueTask<(string CodeVerfier, string? Code)> FirstAuthAsync(CancellationToken token)
+    private static string? ProcessLog(ChromeDriver driver)
     {
-        SetUpChromeDriver();
-
-        var chromeOptions = new ChromeOptions();
-        chromeOptions.SetLoggingPreference("performance", OpenQA.Selenium.LogLevel.All);
         string? code = null;
-
-        using var driver = new ChromeDriver(chromeOptions);
-        var (verifier, challenge) = GeneratePkce();
-
-        var url = $"https://app-api.pixiv.net/web/v1/login?code_challenge={challenge}&code_challenge_method=S256&client=pixiv-android";
-        driver.Navigate().GoToUrl(url);
-        var wait = TimeSpan.FromSeconds(1);
-        do
-        {
-            await Task.Delay(wait, token).ConfigureAwait(false);
-        } while (!driver.Url.StartsWith("https://accounts.pixiv.net/post-redirect"));
-
         var logs = driver.Manage().Logs.GetLog("performance");
         foreach (var log in logs)
         {
@@ -74,9 +58,9 @@ public static partial class AccessTokenUtility
                 }
 
                 code = GetCode(documentUrl)!;
-                if (code is null)
+                if (code is not null)
                 {
-                    continue;
+                    break;
                 }
             }
             catch
@@ -85,7 +69,32 @@ public static partial class AccessTokenUtility
         }
 
         driver.Close();
-        return (verifier, code);
+        return code;
+    }
+
+    private static (ChromeDriver Driver, string Verifier) SetUpChromeDriverAndNavigateToLoginPage()
+    {
+        new DriverManager().SetUpDriver(new ChromeConfig());
+        var chromeOptions = new ChromeOptions();
+        chromeOptions.SetLoggingPreference("performance", OpenQA.Selenium.LogLevel.All);
+
+        var driver = new ChromeDriver(chromeOptions);
+        var (verifier, challenge) = GeneratePkce();
+
+        var url = $"https://app-api.pixiv.net/web/v1/login?code_challenge={challenge}&code_challenge_method=S256&client=pixiv-android";
+        driver.Navigate().GoToUrl(url);
+        return (driver, verifier);
+    }
+
+    private static async ValueTask<(string CodeVerfier, string? Code)> FirstAuthAsync(CancellationToken token)
+    {
+        var (driver, verifier) = SetUpChromeDriverAndNavigateToLoginPage();
+        var wait = TimeSpan.FromSeconds(1);
+        do
+        {
+            await Task.Delay(wait, token).ConfigureAwait(false);
+        } while (!driver.Url.StartsWith("https://accounts.pixiv.net/post-redirect"));
+        return (verifier, ProcessLog(driver));
     }
 
     private static string? GetCode(ReadOnlySpan<char> documentUrl)
@@ -118,11 +127,6 @@ public static partial class AccessTokenUtility
         var verifier = GenerateRandomDataBase64url(segment.AsSpan());
         var challenge = Base64UrlEncodeNoPadding(Sha256Ascii(verifier));
         return (verifier, challenge);
-    }
-
-    private static void SetUpChromeDriver()
-    {
-        new DriverManager().SetUpDriver(new ChromeConfig());
     }
 
     [StringLiteral.Utf8(@"""access_token"":")]

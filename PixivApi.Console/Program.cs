@@ -26,6 +26,7 @@ public sealed class Program
 
         var configSettings = await GetConfigSettingAsync(httpClient, cts.Token).ConfigureAwait(false);
 
+
         var builder = ConsoleApp
             .CreateBuilder(args, ConfigureOptions)
             .ConfigureHostOptions(ConfigureHostOptions)
@@ -33,6 +34,7 @@ public sealed class Program
             .ConfigureServices(ConfigureServices)
             .ConfigureServices(services => services.AddSingleton(configSettings))
             .ConfigureServices(services => services.AddSingleton(httpClient))
+            .ConfigureServices(services => services.AddSingleton(cts))
             ;
 
         var app = builder.Build();
@@ -43,19 +45,17 @@ public sealed class Program
 
     private static async ValueTask<ConfigSettings> GetConfigSettingAsync(HttpClient httpClient, CancellationToken token)
     {
-        ConfigSettings configSettings;
+        ConfigSettings? configSettings = null;
         if (File.Exists("appsettings.json"))
         {
-            configSettings = await JsonSerializer.DeserializeAsync<ConfigSettings>(File.OpenRead("appsettings.json"), default(JsonSerializerOptions), cts.Token).ConfigureAwait(false) ?? new();
-        }
-        else
-        {
-            configSettings = new();
+            configSettings = await IOUtility.JsonDeserializeAsync<ConfigSettings>("appsettings.json", token).ConfigureAwait(false);
         }
 
+        configSettings ??= new();
         if (string.IsNullOrWhiteSpace(configSettings.RefreshToken))
         {
             configSettings.RefreshToken = await AccessTokenUtility.AuthAsync(httpClient, configSettings, token).ConfigureAwait(false) ?? string.Empty;
+            await IOUtility.JsonSerializeAsync("appsettings.json", configSettings, FileMode.Create).ConfigureAwait(false);
         }
 
         return configSettings;

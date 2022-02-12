@@ -18,9 +18,11 @@ public partial struct BookmarkMarkdownTemplate
         if (!string.IsNullOrEmpty(RelativePath))
         {
             bool isLastSlash = false;
-            foreach (var c in RelativePath)
+            var enumerator = RelativePath.EnumerateRunes();
+            while (enumerator.MoveNext())
             {
-                if (c == '\\' || c == '/')
+                var c = enumerator.Current;
+                if (c.Value == '/' || c.Value == '\\')
                 {
                     builder.GetSpan(1)[0] = (byte)'/';
                     builder.Advance(1);
@@ -28,7 +30,7 @@ public partial struct BookmarkMarkdownTemplate
                 }
                 else
                 {
-                    builder.Append(c);
+                    builder.Advance(c.EncodeToUtf8(builder.GetSpan(4)));
                     isLastSlash = false;
                 }
             }

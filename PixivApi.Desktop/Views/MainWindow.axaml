@@ -16,13 +16,13 @@
 	<DockPanel>
 		<Expander ExpandDirection="Right" IsExpanded="True" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
 			<StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Orientation="Vertical">
-				<Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding GoToBookmarks}">
+				<Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding GoToViewer}" CommandParameter="bookmark">
 					<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,10">My Bookmarks</TextBlock>
 				</Button>
-				<Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding GoToFollowersArtworks}">
+				<Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding GoToViewer}" CommandParameter="followers-artworks">
 					<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,10">My Followers' Artworks</TextBlock>
 				</Button>
-				<Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding GoToRanking}">
+				<Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding GoToViewer}" CommandParameter="ranking">
 					<TextBlock HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10,10">Ranking</TextBlock>
 				</Button>
 				<Button HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Command="{Binding GoToSearch}">

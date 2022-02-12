@@ -1,44 +1,136 @@
 ﻿{
   "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/ArtworkDatabaseInfoFilterScheme.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "additionalProperties": false,
   "description": "A filter json file",
   "properties": {
-    "title": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "bookmark": {
+      "type": "boolean"
     },
-    "partial-title": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "count": {
+      "type": "integer",
+      "minimum": 0
     },
-    "ignore-partial-title": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
+    "culture": {
+      "type": "string"
     },
-    "id": {
-      "type": "array",
-      "items": {
-        "type": "integer"
-      }
+    "date": {
+      "type": "object",
+      "properties": {
+        "since": {
+          "type": "string",
+          "format": "date"
+        },
+        "until": {
+          "type": "string",
+          "format": "date"
+        }
+      },
+      "additionalProperties": false
     },
-    "ignore-id": {
-      "type": "array",
-      "items": {
-        "type": "integer"
-      }
+    "file-filter": {
+      "type": "object",
+      "properties": {
+        "original": {
+          "type": "object",
+          "properties": {
+            "exist": {
+              "type": "boolean"
+            },
+            "folder": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "exist"
+          ]
+        },
+        "thumbnail": {
+          "type": "object",
+          "properties": {
+            "exist": {
+              "type": "boolean"
+            },
+            "folder": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "exist"
+          ]
+        }
+      },
+      "additionalProperties": false
     },
-    "type": {
+    "id-filter": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        },
+        "ignore-id": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "uniqueItems": true,
+          "minItems": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "ignore-case": {
+      "type": "boolean"
+    },
+    "offset": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "order": {
       "enum": [
-        "illust",
-        "manga",
-        "ugoira"
+        "r",
+        "ri",
+        "reverse-id",
+        "i",
+        "id",
+        "rb",
+        "b",
+        "bookmarks",
+        "rv",
+        "reverse-view",
+        "v",
+        "view",
+        "u",
+        "user",
+        "ru",
+        "reverse-user"
       ]
+    },
+    "page-count": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "r18": {
+      "type": "boolean"
     },
     "tag-filter": {
       "type": "object",
@@ -47,25 +139,33 @@
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "minItems": 1,
+          "uniqueItems": true
         },
         "partial": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "minItems": 1,
+          "uniqueItems": true
         },
         "ignore-exact": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "minItems": 1,
+          "uniqueItems": true
         },
         "ignore-partial": {
           "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "minItems": 1,
+          "uniqueItems": true
         },
         "exact-or": {
           "type": "boolean"
@@ -79,7 +179,93 @@
         "ignore-partial-or": {
           "type": "boolean"
         }
-      }
+      },
+      "additionalProperties": false
+    },
+    "title-filter": {
+      "type": "object",
+      "properties": {
+        "exact": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "partial": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "ignore-exact": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "ignore-partial": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "exact-or": {
+          "type": "boolean"
+        },
+        "partial-or": {
+          "type": "boolean"
+        },
+        "ignore-exact-or": {
+          "type": "boolean"
+        },
+        "ignore-partial-or": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "total-bookmarks": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "total-view": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "type": {
+      "enum": [
+        "illust",
+        "manga",
+        "ugoira"
+      ]
     },
     "user-filter": {
       "type": "object",
@@ -96,144 +282,32 @@
         "show-hidden": {
           "type": "boolean"
         },
-        "id": {
-          "type": "array",
-          "items": {
-            "type": "integer"
-          }
-        },
-        "ignore-id": {
-          "type": "array",
-          "items": {
-            "type": "integer"
-          }
-        }
-      }
-    },
-    "file-filter": {
-      "type": "object",
-      "properties": {
-        "original": {
+        "id-filter": {
           "type": "object",
           "properties": {
-            "exist": {
-              "type": "boolean"
+            "id": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "uniqueItems": true,
+              "minItems": 1
             },
-            "folder": {
-              "type": "string"
+            "ignore-id": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "uniqueItems": true,
+              "minItems": 1
             }
-          }
-        },
-        "thumbnail": {
-          "type": "object",
-          "properties": {
-            "exist": {
-              "type": "boolean"
-            },
-            "folder": {
-              "type": "string"
-            }
-          }
-        },
-        "or": {
-          "type": "boolean",
-          "default": true
+          },
+          "additionalProperties": false
         }
-      }
-    },
-    "culture": {
-      "type": "string"
-    },
-    "total-view": {
-      "type": "object",
-      "properties": {
-        "min": {
-          "type": "integer"
-        },
-        "max": {
-          "type": "integer"
-        }
-      }
-    },
-    "total-bookmarks": {
-      "type": "object",
-      "properties": {
-        "min": {
-          "type": "integer"
-        },
-        "max": {
-          "type": "integer"
-        }
-      }
-    },
-    "page-count": {
-      "type": "object",
-      "properties": {
-        "min": {
-          "type": "integer"
-        },
-        "max": {
-          "type": "integer"
-        }
-      }
-    },
-    "since": {
-      "type": "string",
-      "format": "date"
-    },
-    "until": {
-      "type": "string",
-      "format": "date"
-    },
-    "r18": {
-      "type": "boolean"
-    },
-    "partial-title-or": {
-      "type": "boolean"
-    },
-    "ignore-partial-title-or": {
-      "type": "boolean"
-    },
-    "bookmark": {
-      "type": "boolean"
-    },
-    "ignore-case": {
-      "type": "boolean"
-    },
-    "count": {
-      "type": "integer"
-    },
-    "offset": {
-      "type": "integer"
-    },
-    "order": {
-      "enum": [
-        "r",
-        "reverse-id",
-        "i",
-        "id",
-        "b/v",
-        "v/b",
-        "b/vri",
-        "v/bri",
-        "rb",
-        "b",
-        "bookmarks",
-        "rv",
-        "reverse-view",
-        "v",
-        "view",
-        "uri",
-        "u",
-        "user",
-        "ru",
-        "reverse-user",
-        "ruri",
-        "rbri",
-        "bri",
-        "rvri",
-        "vri"
-      ]
+      },
+      "additionalProperties": false
     }
   },
   "title": "ArtworkDatabaseInfoFilter",

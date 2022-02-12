@@ -9,12 +9,14 @@ public sealed partial class NetworkClient : ConsoleAppBase
     private readonly ConfigSettings config;
     private readonly ILogger<NetworkClient> logger;
     private readonly HttpClient client;
+    private readonly CancellationTokenSource cancellationTokenSource;
 
-    public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client)
+    public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, CancellationTokenSource cancellationTokenSource)
     {
         this.config = config;
         this.logger = logger;
         this.client = client;
+        this.cancellationTokenSource = cancellationTokenSource;
     }
 
     private async ValueTask<bool> Connect()

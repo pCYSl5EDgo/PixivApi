@@ -8,7 +8,7 @@ public struct User : IEquatable<User>
     [Key(2), JsonPropertyName("account")] public string Account;
     [Key(3), JsonPropertyName("is_followed")] public bool IsFollowed;
     [Key(4), JsonPropertyName("profile_image_urls")] public ImageUrls ProfileImageUrls;
-    [Key(5), JsonPropertyName("comment"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Comment;
+    [Key(5), JsonPropertyName("comment")] public string? Comment;
 
     public bool Equals(User other) => Id == other.Id;
 

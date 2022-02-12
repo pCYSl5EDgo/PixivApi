@@ -8,17 +8,17 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
         public string Folder = "Original";
 
         [JsonPropertyName("exist")]
-        public bool? Exist;
+        public bool Exist;
+
+        public bool Filter(string url)
+        {
+            var name = IOUtility.GetFileNameFromUri(url);
+            return !string.IsNullOrEmpty(name) && (File.Exists(Path.Combine(Folder, name)) ? Exist : !Exist);
+        }
 
         public bool Filter(ArtworkDatabaseInfo artwork)
         {
-            if (!Exist.HasValue)
-            {
-                return true;
-            }
-
-            bool exist = Exist.Value;
-            if (exist)
+            if (Exist)
             {
                 if (artwork.PageCount == 0)
                 {
@@ -36,7 +36,7 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
 
                 if (File.Exists(Path.Combine(Folder, name)))
                 {
-                    return exist;
+                    return Exist;
                 }
             }
             else
@@ -53,7 +53,7 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
 
                         if (File.Exists(Path.Combine(Folder, name)))
                         {
-                            return exist;
+                            return Exist;
                         }
 
                         goto RETURN;
@@ -62,7 +62,32 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
             }
 
         RETURN:
-            return !exist;
+            return !Exist;
+        }
+
+        public bool Filter(MetaPage[] metaPages)
+        {
+            foreach (var metaPage in metaPages)
+            {
+                if (metaPage.ImageUrls.Original is string page)
+                {
+                    var name = IOUtility.GetFileNameFromUri(page);
+                    if (string.IsNullOrEmpty(name))
+                    {
+                        return false;
+                    }
+
+                    if (File.Exists(Path.Combine(Folder, name)))
+                    {
+                        return Exist;
+                    }
+
+                    goto RETURN;
+                }
+            }
+
+        RETURN:
+            return !Exist;
         }
     }
 
@@ -72,34 +97,25 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
         public string Folder = "Thumbnail";
 
         [JsonPropertyName("exist")]
-        public bool? Exist;
+        public bool Exist;
 
-        public bool Filter(ArtworkDatabaseInfo artwork)
+        public bool Filter(string? url)
         {
-            if (!Exist.HasValue)
+            if (url is null)
             {
-                return true;
+                return !Exist;
             }
 
-            bool exist = Exist.Value;
-            if (artwork.ImageUrls.SquareMedium is not string single)
-            {
-                return !exist;
-            }
-            
-            var name = IOUtility.GetFileNameFromUri(single);
+            var name = IOUtility.GetFileNameFromUri(url);
             if (string.IsNullOrEmpty(name))
             {
                 return false;
             }
 
-            if (File.Exists(Path.Combine(Folder, name)))
-            {
-                return exist;
-            }
-
-            return !exist;
+            return File.Exists(Path.Combine(Folder, name)) ? Exist : !Exist;
         }
+
+        public bool Filter(ArtworkDatabaseInfo artwork) => Filter(artwork.ImageUrls.SquareMedium);
     }
 
     [JsonPropertyName("original")]
@@ -108,11 +124,8 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
     [JsonPropertyName("thumbnail")]
     public ThumbnailFilter? Thumbnail;
 
-    [JsonPropertyName("or")]
-    public bool Or = true;
-
-    private bool Filterable([NotNullWhen(true)] OriginalFilter? filter) => filter is not null && filter.Exist.HasValue;
-    private bool Filterable([NotNullWhen(true)] ThumbnailFilter? filter) => filter is not null && filter.Exist.HasValue;
+    private static bool Filterable([NotNullWhen(true)] OriginalFilter? filter) => filter is not null;
+    private static bool Filterable([NotNullWhen(true)] ThumbnailFilter? filter) => filter is not null;
 
     public bool Filter(ArtworkDatabaseInfo artwork)
     {
@@ -123,11 +136,6 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
                 return Original.Filter(artwork);
             }
 
-            if (Or)
-            {
-                return Original.Filter(artwork) || Thumbnail.Filter(artwork);
-            }
-
             return Original.Filter(artwork) && Thumbnail.Filter(artwork);
         }
 
@@ -135,7 +143,7 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
         {
             return Thumbnail.Filter(artwork);
         }
-        
+
         return true;
     }
 }
