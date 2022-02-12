@@ -1,4 +1,5 @@
-﻿using System.Text.Encodings.Web;
+﻿using Cysharp.Collections;
+using System.Text.Encodings.Web;
 using System.Text.Unicode;
 
 namespace PixivApi;
@@ -15,14 +16,36 @@ public static class IOUtility
         return Path.GetFileName(uriObject.LocalPath);
     }
 
-    public static async ValueTask<ArraySegmentFromPool> ReadFromFileAsync(string path, CancellationToken token)
+    public static async ValueTask<NativeMemoryArray<byte>> ReadFromFileAsync(string path, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.Asynchronous);
         var length = RandomAccess.GetLength(handle);
-        var buffer = ArrayPool<byte>.Shared.Rent((int)length);
-        var actual = await RandomAccess.ReadAsync(handle, buffer, 0, token).ConfigureAwait(false);
-        return new(buffer, actual);
+        var array = new NativeMemoryArray<byte>(length, false, false);
+        try
+        {
+            long actual;
+            if (length <= Array.MaxLength)
+            {
+                actual = await RandomAccess.ReadAsync(handle, array.AsMemory(), 0, token).ConfigureAwait(false);
+            }
+            else
+            {
+                actual = await RandomAccess.ReadAsync(handle, array.AsMemoryList(), 0, token).ConfigureAwait(false);
+            }
+
+            if (length != actual)
+            {
+                throw new InvalidDataException();
+            }
+
+            return array;
+        }
+        catch
+        {
+            array.Dispose();
+            throw;
+        }
     }
 
     public static string? FindArtworkDatabase(string? path, bool returnNullWhenNotExist)
@@ -116,8 +139,8 @@ public static class IOUtility
 
     public static async ValueTask<T?> JsonDeserializeAsync<T>(string path, CancellationToken token) where T : notnull
     {
-        using var segment = await ReadFromFileAsync(path, token).ConfigureAwait(false);
-        return JsonDeserialize<T>(segment.AsReadOnlySpan());
+        using var array = await ReadFromFileAsync(path, token).ConfigureAwait(false);
+        return JsonDeserialize<T>(array.AsSpan());
     }
 
     public static async ValueTask<T?> JsonDeserializeAsync<T>(HttpContent content, CancellationToken token) where T : notnull
@@ -185,7 +208,14 @@ public static class IOUtility
     public static async ValueTask<T?> MessagePackDeserializeAsync<T>(string path, CancellationToken token) where T : notnull
     {
         using var segment = await ReadFromFileAsync(path, token).ConfigureAwait(false);
-        return MessagePackSerializer.Deserialize<T>(segment.AsReadOnlyMemory(), null, token);
+        if (segment.Length <= Array.MaxLength)
+        {
+            return MessagePackSerializer.Deserialize<T>(segment.AsMemory(), null, token);
+        }
+        else
+        {
+            return MessagePackSerializer.Deserialize<T>(segment.AsReadOnlySequence(), null, token);
+        }
     }
 
     public static async ValueTask MessagePackSerializeAsync<T>(string path, T value, FileMode mode)

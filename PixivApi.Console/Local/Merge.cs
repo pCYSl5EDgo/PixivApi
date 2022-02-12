@@ -26,7 +26,7 @@ partial class LocalClient
             }
 
             using var segment = await IOUtility.ReadFromFileAsync(input, token).ConfigureAwait(false);
-            var database = MessagePackSerializer.Deserialize<HashSet<ArtworkDatabaseInfo>>(segment.AsReadOnlyMemory(), null, token);
+            var database = MessagePackSerializer.Deserialize<HashSet<ArtworkDatabaseInfo>>(segment.AsMemory(), null, token);
             bag.Add(database);
         }).ConfigureAwait(false);
 
