@@ -2,7 +2,7 @@
 
 public sealed class UserFilter : IAsyncInitailizable, IFilter<UserDatabaseInfo>
 {
-    [JsonPropertyName("database")] public string? Database;
+    [JsonPropertyName("database")] public string Database = string.Empty;
     [JsonPropertyName("follow")] public bool? IsFollowed;
     [JsonPropertyName("only-registered")] public bool OnlyRegistered = false;
     [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;

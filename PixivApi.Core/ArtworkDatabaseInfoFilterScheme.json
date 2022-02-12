@@ -307,6 +307,9 @@
           "additionalProperties": false
         }
       },
+      "required": [
+        "database"
+      ],
       "additionalProperties": false
     }
   },
