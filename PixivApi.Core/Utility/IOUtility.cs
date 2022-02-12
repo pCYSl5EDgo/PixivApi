@@ -184,27 +184,8 @@ public static class IOUtility
 
     public static async ValueTask<T?> MessagePackDeserializeAsync<T>(string path, CancellationToken token) where T : notnull
     {
-        using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.Asynchronous);
-        var length = RandomAccess.GetLength(handle);
-        const long Size32K = 1L << 15;
-
-        if (length <= Size32K)
-        {
-            using var segment = ArraySegmentFromPool.Rent((int)length);
-            var actual = await RandomAccess.ReadAsync(handle, segment.AsMemory(), 0, token).ConfigureAwait(false);
-            return MessagePackSerializer.Deserialize<T>(segment.AsReadOnlyMemory()[..actual], null, token);
-        }
-        else
-        {
-            using var sequence = new SequenceFromPool(length, 15);
-            var actual = await RandomAccess.ReadAsync(handle, sequence, 0, token).ConfigureAwait(false);
-            if (actual != length)
-            {
-                throw new InvalidDataException();
-            }
-
-            return MessagePackSerializer.Deserialize<T>(sequence.AsSequence(), messagePackSerializerOptions, token);
-        }
+        using var segment = await ReadFromFileAsync(path, token).ConfigureAwait(false);
+        return MessagePackSerializer.Deserialize<T>(segment.AsReadOnlyMemory(), null, token);
     }
 
     public static async ValueTask MessagePackSerializeAsync<T>(string path, T value, FileMode mode)
