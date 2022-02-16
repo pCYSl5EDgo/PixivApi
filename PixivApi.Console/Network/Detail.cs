@@ -44,30 +44,36 @@ partial class NetworkClient
             {
                 try
                 {
-                    var url = $"https://{ApiHost}/v1/illust/detail?illust_id={item.Id}";
-                    var content = await RetryGetAsync(url, token).ConfigureAwait(false);
-                    var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
-                    var converted = Artwork.ConvertFromNetwrok(response.Illust, database.TagSet, database.ToolSet, database.UserDictionary);
-                    var updated = Interlocked.Increment(ref update);
-                    if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
+                    var artwork = await GetArtworkDetailAsync(item.Id, token).ConfigureAwait(false);
+                    if (artwork.User.Id == 0)
                     {
-                        var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
-                        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, token).ConfigureAwait(false)).AsSpan());
-                        item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
-                        for (int frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
-                        {
-                            item.UgoiraFrames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
-                        }
-                    }
-
-                    item.Overwrite(converted);
-                    if (pipe)
-                    {
-                        logger.LogInformation($"{converted.Id}");
+                        item.IsOfficiallyRemoved = true;
                     }
                     else
                     {
-                        logger.LogInformation($"{update,4}: {converted.Id,20}");
+                        var converted = Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
+                        var updated = Interlocked.Increment(ref update);
+                        if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
+                        {
+                            var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
+                            var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, token).ConfigureAwait(false)).AsSpan());
+                            item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
+                            for (int frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
+                            {
+                                item.UgoiraFrames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
+                            }
+                        }
+
+                        item.Overwrite(converted);
+                    }
+
+                    if (pipe)
+                    {
+                        logger.LogInformation($"{item.Id}");
+                    }
+                    else
+                    {
+                        logger.LogInformation($"{update,4}: {item.Id,20}");
                     }
                 }
                 catch (HttpRequestException e)
@@ -98,5 +104,13 @@ partial class NetworkClient
         }
 
         return 0;
+    }
+
+    private async ValueTask<Core.Network.Artwork> GetArtworkDetailAsync(ulong id, CancellationToken token)
+    {
+        var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
+        var content = await RetryGetAsync(url, token).ConfigureAwait(false);
+        var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
+        return response.Illust;
     }
 }
