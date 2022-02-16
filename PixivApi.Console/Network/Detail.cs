@@ -49,6 +49,17 @@ partial class NetworkClient
                     var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
                     var converted = Artwork.ConvertFromNetwrok(response.Illust, database.TagSet, database.ToolSet, database.UserDictionary);
                     var updated = Interlocked.Increment(ref update);
+                    if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
+                    {
+                        var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
+                        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, token).ConfigureAwait(false)).AsSpan());
+                        item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
+                        for (int frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
+                        {
+                            item.UgoiraFrames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
+                        }
+                    }
+
                     item.Overwrite(converted);
                     if (pipe)
                     {
