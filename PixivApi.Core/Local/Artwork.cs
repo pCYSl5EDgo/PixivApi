@@ -160,6 +160,16 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         return handler.ToStringAndClear();
     }
 
+    public string GetZipUrl()
+    {
+        DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/img-zip-ugoira/img/";
+        AddDateToUrl(ref handler);
+        handler.AppendFormatted('/');
+        handler.AppendFormatted(Id);
+        handler.AppendLiteral("_ugoira600x600.zip");
+        return handler.ToStringAndClear();
+    }
+
     public string GetZipFileName() => $"{Id}_ugoira600x600.zip";
 
     public string GetExtensionText() => Extension switch

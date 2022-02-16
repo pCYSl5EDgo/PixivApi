@@ -25,9 +25,9 @@ partial class NetworkClient
         var downloadFileCount = 0;
         var downloadItemCount = 0;
         var downloadByteCount = 0UL;
-        async ValueTask<bool> DownloadAsync(ulong id, string url, string fileName, CancellationToken token)
+        async ValueTask<bool> DownloadAsync(string folder, ulong id, string url, string fileName, CancellationToken token)
         {
-            var fileInfo = new FileInfo(Path.Combine(config.OriginalFolder, $"{id & 255:X2}", fileName));
+            var fileInfo = new FileInfo(Path.Combine(folder, $"{id & 255:X2}", fileName));
             if (fileInfo.Exists && fileInfo.Length != 0)
             {
                 Interlocked.Increment(ref alreadyCount);
@@ -91,9 +91,14 @@ partial class NetworkClient
             }
 
             bool success = true;
+            if (artwork.Type == ArtworkType.Ugoira)
+            {
+                success = await DownloadAsync(config.UgoiraFolder, artwork.Id, artwork.GetZipUrl(), artwork.GetZipFileName(), token).ConfigureAwait(false);
+            }
+
             for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
             {
-                success &= await DownloadAsync(artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex), token).ConfigureAwait(false);
+                success &= await DownloadAsync(config.OriginalFolder, artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex), token).ConfigureAwait(false);
             }
 
             if (!success)
