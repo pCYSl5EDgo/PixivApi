@@ -65,6 +65,8 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         Type = source.Type;
         Extension = source.Extension;
         ExtraHideReason = source.ExtraHideReason;
+        IsOfficiallyRemoved = source.IsOfficiallyRemoved;
+        IsXRestricted = source.IsXRestricted;
         IsBookmarked = source.IsBookmarked;
         IsVisible = source.IsVisible;
         IsMuted = source.IsMuted;
@@ -394,6 +396,10 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
                             answer.Extension = (FileExtensionKind)segmentSpan[45];
                             answer.ExtraHideReason = (HideReason)segmentSpan[46];
                             var flags = segmentSpan[47];
+                            if ((flags & 0b100000) != 0)
+                            {
+                                answer.IsOfficiallyRemoved = true;
+                            }
                             if ((flags & 0b10000) != 0)
                             {
                                 answer.IsXRestricted = true;

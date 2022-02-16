@@ -36,7 +36,7 @@ partial class NetworkClient
                     logger.LogInformation($"{IOUtility.WarningColor}Already exists. Path: {fileInfo.FullName}{IOUtility.NormalizeColor}");
                 }
 
-                return false;
+                return true;
             }
 
             SafeFileHandle? handle = null;
@@ -80,6 +80,8 @@ partial class NetworkClient
             }
         }
 
+        var totalSuccess = 0;
+
         async ValueTask DownloadEach(Artwork artwork, CancellationToken token)
         {
             if ((downloadByteCount >> 30) >= gigaByteCount)
@@ -88,9 +90,15 @@ partial class NetworkClient
                 return;
             }
 
+            bool success = true;
             for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
             {
-                await DownloadAsync(artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex), token).ConfigureAwait(false);
+                success &= await DownloadAsync(artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex), token).ConfigureAwait(false);
+            }
+
+            if (!success)
+            {
+                Interlocked.Exchange(ref alreadyCount, 1);
             }
         }
 
@@ -100,8 +108,11 @@ partial class NetworkClient
         }
         finally
         {
-            await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
             logger.LogInformation($"Item: {downloadItemCount}, File: {downloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(downloadByteCount)}");
+            if (totalSuccess != 0)
+            {
+                await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
+            }
         }
 
         return 0;
