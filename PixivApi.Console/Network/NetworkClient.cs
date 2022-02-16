@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using PixivApi.Core.Network;
 
 namespace PixivApi.Console;
 
@@ -163,7 +162,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 }
 
                 logger.LogError(e, $"{IOUtility.ErrorColor}Reason: {reasonPhrase} Url: {url}{IOUtility.NormalizeColor}");
-                throw e;
+                throw;
             }
         } while (true);
     }
