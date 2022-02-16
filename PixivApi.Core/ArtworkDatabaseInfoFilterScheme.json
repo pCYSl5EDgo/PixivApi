@@ -121,6 +121,9 @@
       "type": "integer",
       "minimum": 0
     },
+    "officially-removed": {
+      "type":  "boolean"
+    },
     "order": {
       "enum": [
         "r",
