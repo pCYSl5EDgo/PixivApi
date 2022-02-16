@@ -21,7 +21,8 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     public FileExtensionKind Extension;
     public HideReason ExtraHideReason;
 
-    // 5bit
+    // 6bit
+    public bool IsOfficiallyRemoved;
     public bool IsXRestricted;
     public bool IsBookmarked;
     public bool IsVisible;
@@ -42,9 +43,14 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
     public void Overwrite(Artwork source)
     {
-        if (Id != source.Id || UserId != source.UserId || source.UserId == 0)
+        if (Id != source.Id)
         {
             return;
+        }
+
+        if (UserId != source.UserId || source.UserId == 0)
+        {
+            IsOfficiallyRemoved = true;
         }
 
         if (TotalView < source.TotalView)
@@ -233,27 +239,60 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         }
 
         var page = (artwork.MetaSinglePage.OriginalImageUrl ?? artwork.MetaPages[0].ImageUrls.Original).AsSpan();
-        page = page[..page.LastIndexOf('/')];
-        var secondIndex = page.LastIndexOf('/');
-        var second = byte.Parse(page[(secondIndex + 1)..]);
-        page = page[..secondIndex];
-        var minuteIndex = page.LastIndexOf('/');
-        var minute = byte.Parse(page[(minuteIndex + 1)..]);
-        page = page[..minuteIndex];
-        var hourIndex = page.LastIndexOf('/');
-        var hour = byte.Parse(page[(hourIndex + 1)..]);
-        page = page[..hourIndex];
-        var dayIndex = page.LastIndexOf('/');
-        var day = byte.Parse(page[(dayIndex + 1)..]);
-        page = page[..dayIndex];
-        var monthIndex = page.LastIndexOf('/');
-        var month = byte.Parse(page[(monthIndex + 1)..]);
-        page = page[..monthIndex];
-        var yearIndex = page.LastIndexOf('/');
-        var year = uint.Parse(page[(yearIndex + 1)..]);
-        answer.FileDate = new DateTime((int)year, month, day, hour, minute, second);
+        if (!TryParseDate(page, out answer.FileDate))
+        {
+            answer.IsOfficiallyRemoved = true;
+            answer.FileDate = answer.CreateDate;
+        }
 
         return answer;
+
+        static bool TryParseDate(ReadOnlySpan<char> page, out DateTime dateTime)
+        {
+            Unsafe.SkipInit(out dateTime);
+            page = page[..page.LastIndexOf('/')];
+            var secondIndex = page.LastIndexOf('/');
+            if (secondIndex == -1 || !byte.TryParse(page[(secondIndex + 1)..], out byte second))
+            {
+                return false;
+            }
+
+            page = page[..secondIndex];
+            var minuteIndex = page.LastIndexOf('/');
+            if (minuteIndex == -1 || !byte.TryParse(page[(minuteIndex + 1)..], out byte minute))
+            {
+                return false;
+            }
+
+            page = page[..minuteIndex];
+            var hourIndex = page.LastIndexOf('/');
+            if (hourIndex == -1 || !byte.TryParse(page[(hourIndex + 1)..], out byte hour))
+            {
+                return false;
+            }
+
+            page = page[..hourIndex];
+            var dayIndex = page.LastIndexOf('/');
+            if (dayIndex == -1 || !byte.TryParse(page[(dayIndex + 1)..], out byte day))
+            {
+                return false;
+            }
+            page = page[..dayIndex];
+            var monthIndex = page.LastIndexOf('/');
+            if (monthIndex == -1 || !byte.TryParse(page[(monthIndex + 1)..], out byte month))
+            {
+                return false;
+            }
+            page = page[..monthIndex];
+            var yearIndex = page.LastIndexOf('/');
+            if (yearIndex == -1 || !uint.TryParse(page[(yearIndex + 1)..], out uint year))
+            {
+                return false;
+            }
+
+            dateTime = new((int)year, month, day, hour, minute, second);
+            return true;
+        }
     }
 
     public override string ToString() => Id.ToString();
@@ -295,11 +334,14 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
                 span[1] = (byte)value.Extension;
                 span[2] = (byte)value.ExtraHideReason;
                 span[3] = (byte)
-                    (((value.IsXRestricted ? 1U : 0) << 4)
+                    (
+                    ((value.IsOfficiallyRemoved ? 1U : 0) << 5)
+                    | ((value.IsXRestricted ? 1U : 0) << 4)
                     | ((value.IsBookmarked ? 1U : 0) << 3)
                     | ((value.IsVisible ? 1U : 0) << 2)
                     | ((value.IsMuted ? 1U : 0) << 1)
-                    | (value.ExtraHideLast ? 1U : 0));
+                    | (value.ExtraHideLast ? 1U : 0)
+                    );
                 writer.Advance(BinLength);
             }
 
