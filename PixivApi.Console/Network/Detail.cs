@@ -38,31 +38,40 @@ partial class NetworkClient
         }
 
         ulong update = 0;
-        foreach (var item in search)
+        try
         {
-            var url = $"https://{ApiHost}/v1/illust/detail?illust_id={item.Id}";
-            var content = await RetryGetAsync(url, token).ConfigureAwait(false);
-            var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
-            var converted = Artwork.ConvertFromNetwrok(response.Illust, database.TagSet, database.ToolSet, database.UserDictionary);
-            var updated = Interlocked.Increment(ref update);
-            item.Overwrite(converted);
-            if (pipe)
+            foreach (var item in search)
             {
-                logger.LogInformation($"{converted.Id}");
-            }
-            else
-            {
-                logger.LogInformation($"{update,4}: {converted.Id,20}");
+                try
+                {
+                    var url = $"https://{ApiHost}/v1/illust/detail?illust_id={item.Id}";
+                    var content = await RetryGetAsync(url, token).ConfigureAwait(false);
+                    var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
+                    var converted = Artwork.ConvertFromNetwrok(response.Illust, database.TagSet, database.ToolSet, database.UserDictionary);
+                    var updated = Interlocked.Increment(ref update);
+                    item.Overwrite(converted);
+                    if (pipe)
+                    {
+                        logger.LogInformation($"{converted.Id}");
+                    }
+                    else
+                    {
+                        logger.LogInformation($"{update,4}: {converted.Id,20}");
+                    }
+                }
+                catch (Exception e) when (e is not TaskCanceledException)
+                {
+                    logger.LogError(e, "");
+                }
             }
         }
-
-        if (update != 0)
+        finally
         {
-            await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
+            if (update != 0)
+            {
+                await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
+            }
         }
-
-        var db2 = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false);
-        var first = db2!.Artworks.First(x => x.Id == (artworkFilter!.IdFilter!.Ids![0])!);
 
         if (!pipe)
         {
