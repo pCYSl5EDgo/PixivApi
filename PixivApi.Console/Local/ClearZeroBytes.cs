@@ -4,8 +4,9 @@ partial class LocalClient
 {
     [Command("clear-0-bytes", "")]
     public ValueTask ClearZeroBytes(
-        bool pipe = false
-    ) => ClearAsync(logger, configSettings, pipe, false, Context.CancellationToken);
+        bool pipe = false,
+        bool force = false
+    ) => ClearAsync(logger, configSettings, pipe, force, Context.CancellationToken);
 
     internal static async ValueTask ClearAsync(ILogger logger, ConfigSettings configSettings, bool pipe, bool forceClear, CancellationToken token)
     {
