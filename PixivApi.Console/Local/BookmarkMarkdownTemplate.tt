@@ -7,7 +7,7 @@ foreach (var artwork in Artworks)
 {
     ++ArtworkCount;
     var user = UserDictionary[artwork.UserId];
-    var time = artwork.LocalTime;
+    var time = artwork.FileDate;
 #>
 # <#= artwork.Title #>
 

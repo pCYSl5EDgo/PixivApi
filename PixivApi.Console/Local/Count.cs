@@ -29,14 +29,24 @@ partial class LocalClient
                 return 0;
             }
 
-            const int SIZE = 10;
+            const int SIZE = 20;
             using var segment = ArraySegmentFromPool.Rent(SIZE);
             var memory = segment.AsMemory()[..(length < SIZE ? (int)length : SIZE)];
             var actualReadCount = await RandomAccess.ReadAsync(handle, memory, 0, token).ConfigureAwait(false);
             static int ReadCount(ReadOnlyMemory<byte> memory)
             {
                 var reader = new MessagePackReader(memory);
-                return reader.TryReadArrayHeader(out var header) && header != 0 && reader.TryReadArrayHeader(out var header2) ? header2 : 0;
+                if (!reader.TryReadArrayHeader(out var header) || header == 0)
+                {
+                    return 0;
+                }
+
+                // skip major version
+                reader.Skip();
+                // skip minor version
+                reader.Skip();
+
+                return reader.TryReadArrayHeader(out var header2) ? header2 : 0;
             }
 
             count = ReadCount(segment.AsReadOnlyMemory()[..actualReadCount]);

@@ -3,21 +3,27 @@
 [MessagePackFormatter(typeof(Formatter))]
 public sealed class DatabaseFile
 {
-    [Key(0x00)] public Artwork[] Artworks;
-    [Key(0x01)] public ConcurrentDictionary<ulong, User> UserDictionary;
-    [Key(0x02)] public StringSet TagSet;
-    [Key(0x03)] public StringSet ToolSet;
+    [Key(0x00)] public uint MajorVersion;
+    [Key(0x01)] public uint MinorVersion;
+    [Key(0x02)] public Artwork[] Artworks;
+    [Key(0x03)] public ConcurrentDictionary<ulong, User> UserDictionary;
+    [Key(0x04)] public StringSet TagSet;
+    [Key(0x05)] public StringSet ToolSet;
 
     public DatabaseFile()
     {
+        MajorVersion = 0;
+        MinorVersion = 0;
         Artworks = Array.Empty<Artwork>();
         UserDictionary = new();
         TagSet = new(4096);
         ToolSet = new(256);
     }
 
-    public DatabaseFile(Artwork[] artworks, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet)
+    public DatabaseFile(uint majorVersion, uint minorVersion, Artwork[] artworks, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet)
     {
+        MajorVersion = majorVersion;
+        MinorVersion = minorVersion;
         Artworks = artworks;
         UserDictionary = userDictionary;
         TagSet = tagSet;
@@ -36,7 +42,9 @@ public sealed class DatabaseFile
                 return;
             }
 
-            writer.WriteArrayHeader(4);
+            writer.WriteArrayHeader(6);
+            writer.Write(value.MajorVersion);
+            writer.Write(value.MinorVersion);
             writer.WriteArrayHeader(value.Artworks.Length);
             foreach (var item in value.Artworks)
             {
@@ -63,6 +71,7 @@ public sealed class DatabaseFile
             }
 
             var header = reader.ReadArrayHeader();
+            uint major = 0, minor = 0;
             var artworks = Array.Empty<Artwork>();
             ConcurrentDictionary<ulong, User>? users = null;
             StringSet? tags = null;
@@ -72,6 +81,12 @@ public sealed class DatabaseFile
                 switch (memberIndex)
                 {
                     case 0:
+                        major = reader.ReadUInt32();
+                        break;
+                    case 1:
+                        minor = reader.ReadUInt32();
+                        break;
+                    case 2:
                         if (!reader.TryReadArrayHeader(out var artworkHeader) || artworkHeader == 0)
                         {
                             break;
@@ -83,7 +98,7 @@ public sealed class DatabaseFile
                             artworks[i] = Artwork.Formatter.DeserializeStatic(ref reader, options);
                         }
                         break;
-                    case 1:
+                    case 3:
                         if (!reader.TryReadArrayHeader(out var userHeader) || userHeader == 0)
                         {
                             break;
@@ -97,10 +112,10 @@ public sealed class DatabaseFile
                             users.TryAdd(user.Id, user);
                         }
                         break;
-                    case 2:
+                    case 4:
                         tags = StringSet.Formatter.DeserializeStatic(ref reader);
                         break;
-                    case 3:
+                    case 5:
                         tools = StringSet.Formatter.DeserializeStatic(ref reader);
                         break;
                     default:
@@ -109,7 +124,7 @@ public sealed class DatabaseFile
                 }
             }
 
-            return new(artworks, users ?? new(), tags ?? new(0), tools ?? new(0));
+            return new(major, minor, artworks, users ?? new(), tags ?? new(0), tools ?? new(0));
         }
     }
 }

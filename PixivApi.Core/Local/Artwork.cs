@@ -29,6 +29,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     public bool ExtraHideLast;
 
     public DateTime CreateDate;
+    public DateTime FileDate;
     public uint[] Tags = Array.Empty<uint>();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[]? ExtraTags;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[]? ExtraFakeTags;
@@ -38,8 +39,6 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string? ExtraMemo;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public ushort[]? UgoiraFrames;
-
-    [JsonIgnore] public DateTime LocalTime => CreateDate.ToLocalTime();
 
     public void Overwrite(Artwork source)
     {
@@ -65,6 +64,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         IsMuted = source.IsMuted;
         ExtraHideLast = source.ExtraHideLast;
         CreateDate = source.CreateDate;
+        FileDate = source.FileDate;
         Tags = source.Tags;
         OverwriteExtensions.Overwrite(ref ExtraTags, source.ExtraTags);
         OverwriteExtensions.Overwrite(ref ExtraFakeTags, source.ExtraFakeTags);
@@ -78,23 +78,21 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
     private void AddDateToUrl(ref DefaultInterpolatedStringHandler handler)
     {
-        var createDate = LocalTime;
-        handler.AppendFormatted(createDate.Year);
+        handler.AppendFormatted(FileDate.Year);
         handler.AppendFormatted('/');
-        handler.AppendFormatted(createDate.Month, format: "D2");
+        handler.AppendFormatted(FileDate.Month, format: "D2");
         handler.AppendFormatted('/');
-        handler.AppendFormatted(createDate.Day, format: "D2");
+        handler.AppendFormatted(FileDate.Day, format: "D2");
         handler.AppendFormatted('/');
-        handler.AppendFormatted(createDate.Hour, format: "D2");
+        handler.AppendFormatted(FileDate.Hour, format: "D2");
         handler.AppendFormatted('/');
-        handler.AppendFormatted(createDate.Minute, format: "D2");
+        handler.AppendFormatted(FileDate.Minute, format: "D2");
         handler.AppendFormatted('/');
-        handler.AppendFormatted(createDate.Second, format: "D2");
+        handler.AppendFormatted(FileDate.Second, format: "D2");
     }
 
     public string GetOriginalUrl(uint pageIndex)
     {
-        var createDate = CreateDate.ToLocalTime();
         DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/img-original/img/";
         AddDateToUrl(ref handler);
         handler.AppendFormatted('/');
@@ -104,7 +102,6 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
     public string GetThumbnailUrl()
     {
-        var createDate = CreateDate.ToLocalTime();
         DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/c/360x360_70/img-master/img/";
         AddDateToUrl(ref handler);
         handler.AppendFormatted('/');
@@ -144,7 +141,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         }
         else
         {
-            handler.AppendLiteral("_square1200_p0.jpg");
+            handler.AppendLiteral("_p0_square1200.jpg");
         }
     }
 
@@ -235,6 +232,27 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             }
         }
 
+        var page = (artwork.MetaSinglePage.OriginalImageUrl ?? artwork.MetaPages[0].ImageUrls.Original).AsSpan();
+        page = page[..page.LastIndexOf('/')];
+        var secondIndex = page.LastIndexOf('/');
+        var second = byte.Parse(page[(secondIndex + 1)..]);
+        page = page[..secondIndex];
+        var minuteIndex = page.LastIndexOf('/');
+        var minute = byte.Parse(page[(minuteIndex + 1)..]);
+        page = page[..minuteIndex];
+        var hourIndex = page.LastIndexOf('/');
+        var hour = byte.Parse(page[(hourIndex + 1)..]);
+        page = page[..hourIndex];
+        var dayIndex = page.LastIndexOf('/');
+        var day = byte.Parse(page[(dayIndex + 1)..]);
+        page = page[..dayIndex];
+        var monthIndex = page.LastIndexOf('/');
+        var month = byte.Parse(page[(monthIndex + 1)..]);
+        page = page[..monthIndex];
+        var yearIndex = page.LastIndexOf('/');
+        var year = uint.Parse(page[(yearIndex + 1)..]);
+        answer.FileDate = new DateTime((int)year, month, day, hour, minute, second);
+
         return answer;
     }
 
@@ -254,7 +272,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
         public static void SerializeStatic(ref MessagePackWriter writer, Artwork value)
         {
-            writer.WriteArrayHeader(11);
+            writer.WriteArrayHeader(12);
             // 0
             {
                 writer.WriteBinHeader(BinLength);
@@ -286,6 +304,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             }
 
             writer.Write(value.CreateDate); // 1
+            writer.Write(value.FileDate);
             WriteArray(ref writer, value.Tags);
             WriteArray(ref writer, value.ExtraTags);
             WriteArray(ref writer, value.ExtraFakeTags);
@@ -359,30 +378,33 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
                         answer.CreateDate = reader.ReadDateTime();
                         break;
                     case 0x02:
-                        answer.Tags = ReadUInt32Array(ref reader) ?? Array.Empty<uint>();
+                        answer.FileDate = reader.ReadDateTime();
                         break;
                     case 0x03:
-                        answer.ExtraTags = ReadUInt32Array(ref reader);
+                        answer.Tags = ReadUInt32Array(ref reader) ?? Array.Empty<uint>();
                         break;
                     case 0x04:
-                        answer.ExtraFakeTags = ReadUInt32Array(ref reader);
+                        answer.ExtraTags = ReadUInt32Array(ref reader);
                         break;
                     case 0x05:
-                        answer.Tools = ReadUInt32Array(ref reader) ?? Array.Empty<uint>();
+                        answer.ExtraFakeTags = ReadUInt32Array(ref reader);
                         break;
                     case 0x06:
-                        answer.Title = reader.ReadString() ?? string.Empty;
+                        answer.Tools = ReadUInt32Array(ref reader) ?? Array.Empty<uint>();
                         break;
                     case 0x07:
-                        answer.Caption = reader.ReadString() ?? string.Empty;
+                        answer.Title = reader.ReadString() ?? string.Empty;
                         break;
                     case 0x08:
-                        answer.ExtraMemo = reader.ReadString();
+                        answer.Caption = reader.ReadString() ?? string.Empty;
                         break;
                     case 0x09:
-                        answer.ExtraPageHideReasonDictionary = ReadDictionary(ref reader);
+                        answer.ExtraMemo = reader.ReadString();
                         break;
                     case 0x0a:
+                        answer.ExtraPageHideReasonDictionary = ReadDictionary(ref reader);
+                        break;
+                    case 0x0b:
                         answer.UgoiraFrames = ReadUInt16Array(ref reader);
                         break;
                     default:
