@@ -68,11 +68,6 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
         public bool Filter(Artwork artwork)
         {
-            if (artwork.UgoiraFrames is null)
-            {
-                return !Exist;
-            }
-
             return File.Exists($"{Folder}/{(byte)(artwork.Id & 255):X2}/{artwork.GetZipFileName()}") == Exist;
         }
     }
