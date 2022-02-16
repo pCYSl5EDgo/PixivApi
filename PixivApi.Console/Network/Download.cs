@@ -35,18 +35,7 @@ partial class NetworkClient
             bool success = true;
             if (detail)
             {
-                try
-                {
-                    var detailArtwork = await GetArtworkDetailAsync(artwork.Id, token).ConfigureAwait(false);
-                    var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
-                    artwork.Overwrite(converted);
-                    success = converted.IsOfficiallyRemoved;
-                }
-                catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    artwork.IsOfficiallyRemoved = true;
-                    success = false;
-                }
+                success = await DownloadFilePrepareDetailAsync(database, artwork, token).ConfigureAwait(false);
             }
 
             if (success && artwork.Type == ArtworkType.Ugoira)
@@ -67,11 +56,15 @@ partial class NetworkClient
 
         try
         {
-            await Parallel.ForEachAsync(artworks, Context.CancellationToken, DownloadEach).ConfigureAwait(false);
+            await Parallel.ForEachAsync(artworks, token, DownloadEach).ConfigureAwait(false);
         }
         finally
         {
             logger.LogInformation($"Item: {machine.downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
+            if (detail)
+            {
+                await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
+            }
             if (failFlag != 0)
             {
                 await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
@@ -86,6 +79,7 @@ partial class NetworkClient
         [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string path,
         [Option(1, IOUtility.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
+        [Option("d")] bool detail = false,
         bool displayAlreadyExists = false
     )
     {
@@ -106,7 +100,17 @@ partial class NetworkClient
                 return;
             }
 
-            var success = await machine.DownloadAsync(config.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName()).ConfigureAwait(false);
+            bool success = true;
+            if (detail)
+            {
+                success = await DownloadFilePrepareDetailAsync(database, artwork, token).ConfigureAwait(false);
+            }
+
+            if (success)
+            {
+                success = await machine.DownloadAsync(config.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName()).ConfigureAwait(false);
+            }
+
             if (!success)
             {
                 Interlocked.Exchange(ref failFlag, 1);
@@ -115,11 +119,15 @@ partial class NetworkClient
 
         try
         {
-            await Parallel.ForEachAsync(artworks, Context.CancellationToken, DownloadEach).ConfigureAwait(false);
+            await Parallel.ForEachAsync(artworks, token, DownloadEach).ConfigureAwait(false);
         }
         finally
         {
             logger.LogInformation($"Item: {machine.downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
+            if (detail)
+            {
+                await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
+            }
             if (failFlag != 0)
             {
                 await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
@@ -127,6 +135,25 @@ partial class NetworkClient
         }
 
         return 0;
+    }
+
+    private async ValueTask<bool> DownloadFilePrepareDetailAsync(DatabaseFile database, Artwork artwork, CancellationToken token)
+    {
+        bool success;
+        try
+        {
+            var detailArtwork = await GetArtworkDetailAsync(artwork.Id, token).ConfigureAwait(false);
+            var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
+            artwork.Overwrite(converted);
+            success = !converted.IsOfficiallyRemoved;
+        }
+        catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            artwork.IsOfficiallyRemoved = true;
+            success = false;
+        }
+        logger.LogInformation($"Detail success: {success} Id: {artwork.Id,20}");
+        return success;
     }
 
     private async ValueTask<(DatabaseFile, IEnumerable<Artwork>?)> PrepareDownloadFileAsync(
