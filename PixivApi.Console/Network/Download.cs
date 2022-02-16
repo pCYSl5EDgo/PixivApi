@@ -1,6 +1,6 @@
-﻿using Microsoft.Win32.SafeHandles;
-using PixivApi.Core.Local;
+﻿using PixivApi.Core.Local;
 using PixivApi.Core.Local.Filter;
+using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
@@ -11,99 +11,57 @@ partial class NetworkClient
         [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string path,
         [Option(1, IOUtility.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
+        [Option("d")] bool detail = false,
         bool displayAlreadyExists = false
     )
     {
         var token = Context.CancellationToken;
-        var artworks = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), config.OriginalFolder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), config.OriginalFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
             return -1;
         }
 
-        var alreadyCount = 0U;
-        var downloadFileCount = 0;
-        var downloadItemCount = 0;
-        var downloadByteCount = 0UL;
-        async ValueTask<bool> DownloadAsync(string folder, ulong id, string url, string fileName, CancellationToken token)
-        {
-            var fileInfo = new FileInfo(Path.Combine(folder, $"{id & 255:X2}", fileName));
-            if (fileInfo.Exists && fileInfo.Length != 0)
-            {
-                Interlocked.Increment(ref alreadyCount);
-                if (displayAlreadyExists)
-                {
-                    logger.LogInformation($"{IOUtility.WarningColor}Already exists. Path: {fileInfo.FullName}{IOUtility.NormalizeColor}");
-                }
-
-                return true;
-            }
-
-            SafeFileHandle? handle = null;
-            try
-            {
-                handle = File.OpenHandle(fileInfo.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read, FileOptions.Asynchronous);
-                try
-                {
-                    byte[] contentByteArray;
-                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
-                    {
-                        var headers = request.Headers;
-                        headers.Referrer = referer;
-                        using var response = await client.SendAsync(request, token).ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
-                        contentByteArray = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
-                    }
-
-                    var contentLength = (ulong)contentByteArray.Length;
-                    Interlocked.Add(ref downloadByteCount, contentLength);
-                    await RandomAccess.WriteAsync(handle, contentByteArray, 0, token).ConfigureAwait(false);
-                    var donwloaded = Interlocked.Increment(ref downloadFileCount);
-                    logger.LogInformation($"{IOUtility.SuccessColor}Download success. Index: {donwloaded,4} Transfer: {contentLength,20} Url: {url}{IOUtility.NormalizeColor}");
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, $"{IOUtility.ErrorColor}Download failed. Url: {url}{IOUtility.NormalizeColor}");
-                    return false;
-                }
-            }
-            catch (IOException)
-            {
-                Interlocked.Increment(ref alreadyCount);
-                logger.LogInformation($"{IOUtility.WarningColor}Already exists. Path: {fileInfo.FullName}{IOUtility.NormalizeColor}");
-                return false;
-            }
-            finally
-            {
-                handle?.Dispose();
-            }
-        }
-
-        var totalSuccess = 0;
-
+        var failFlag = 0;
+        var machine = new DownloadAsyncMachine(client, logger, displayAlreadyExists, token);
         async ValueTask DownloadEach(Artwork artwork, CancellationToken token)
         {
-            if ((downloadByteCount >> 30) >= gigaByteCount)
+            if ((machine.downloadByteCount >> 30) >= gigaByteCount)
             {
                 cancellationTokenSource.Cancel();
                 return;
             }
 
             bool success = true;
-            if (artwork.Type == ArtworkType.Ugoira)
+            if (detail)
             {
-                success = await DownloadAsync(config.UgoiraFolder, artwork.Id, artwork.GetZipUrl(), artwork.GetZipFileName(), token).ConfigureAwait(false);
+                try
+                {
+                    var detailArtwork = await GetArtworkDetailAsync(artwork.Id, token).ConfigureAwait(false);
+                    var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
+                    artwork.Overwrite(converted);
+                    success = converted.IsOfficiallyRemoved;
+                }
+                catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    artwork.IsOfficiallyRemoved = true;
+                    success = false;
+                }
             }
 
-            for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
+            if (success && artwork.Type == ArtworkType.Ugoira)
             {
-                success &= await DownloadAsync(config.OriginalFolder, artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex), token).ConfigureAwait(false);
+                success = await machine.DownloadAsync(config.UgoiraFolder, artwork.Id, artwork.GetZipUrl(), artwork.GetZipFileName()).ConfigureAwait(false);
+            }
+
+            for (uint pageIndex = 0; success && pageIndex < artwork.PageCount; pageIndex++)
+            {
+                success = await machine.DownloadAsync(config.OriginalFolder, artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex)).ConfigureAwait(false);
             }
 
             if (!success)
             {
-                Interlocked.Exchange(ref alreadyCount, 1);
+                Interlocked.Exchange(ref failFlag, 1);
             }
         }
 
@@ -113,8 +71,8 @@ partial class NetworkClient
         }
         finally
         {
-            logger.LogInformation($"Item: {downloadItemCount}, File: {downloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(downloadByteCount)}");
-            if (totalSuccess != 0)
+            logger.LogInformation($"Item: {machine.downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
+            if (failFlag != 0)
             {
                 await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
             }
@@ -132,80 +90,27 @@ partial class NetworkClient
     )
     {
         var token = Context.CancellationToken;
-        var artworks = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), config.ThumbnailFolder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), config.ThumbnailFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
             return -1;
         }
 
-        var alreadyCount = 0U;
-        var downloadFileCount = 0;
-        var downloadItemCount = 0;
-        var downloadByteCount = 0UL;
-        async ValueTask<bool> DownloadAsync(ulong id, string url, string fileName, CancellationToken token)
-        {
-            var fileInfo = new FileInfo(Path.Combine(config.ThumbnailFolder, $"{id & 255:X2}", fileName));
-            if (fileInfo.Exists && fileInfo.Length != 0)
-            {
-                Interlocked.Increment(ref alreadyCount);
-                if (displayAlreadyExists)
-                {
-                    logger.LogInformation($"{IOUtility.WarningColor}Already exists. Path: {fileInfo.FullName}{IOUtility.NormalizeColor}");
-                }
-
-                return false;
-            }
-
-            SafeFileHandle? handle = null;
-            try
-            {
-                handle = File.OpenHandle(fileInfo.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read, FileOptions.Asynchronous);
-                try
-                {
-                    byte[] contentByteArray;
-                    using (var request = new HttpRequestMessage(HttpMethod.Get, url))
-                    {
-                        var headers = request.Headers;
-                        headers.Referrer = referer;
-                        using var response = await client.SendAsync(request, token).ConfigureAwait(false);
-                        response.EnsureSuccessStatusCode();
-                        contentByteArray = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
-                    }
-
-                    var contentLength = (ulong)contentByteArray.Length;
-                    Interlocked.Add(ref downloadByteCount, contentLength);
-                    await RandomAccess.WriteAsync(handle, contentByteArray, 0, token).ConfigureAwait(false);
-                    Interlocked.Increment(ref downloadFileCount);
-                    logger.LogInformation($"{IOUtility.SuccessColor}Download success. Index: {downloadFileCount,4} Transfer: {contentLength,20} Url: {url}{IOUtility.NormalizeColor}");
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, $"{IOUtility.ErrorColor}Download failed. Url: {url}{IOUtility.NormalizeColor}");
-                    return false;
-                }
-            }
-            catch (IOException)
-            {
-                Interlocked.Increment(ref alreadyCount);
-                logger.LogInformation($"{IOUtility.WarningColor}Already exists. Path: {fileInfo.FullName}{IOUtility.NormalizeColor}");
-                return false;
-            }
-            finally
-            {
-                handle?.Dispose();
-            }
-        }
-
+        var failFlag = 0;
+        var machine = new DownloadAsyncMachine(client, logger, displayAlreadyExists, token);
         async ValueTask DownloadEach(Artwork artwork, CancellationToken token)
         {
-            if ((downloadByteCount >> 30) >= gigaByteCount)
+            if ((machine.downloadByteCount >> 30) >= gigaByteCount)
             {
                 cancellationTokenSource.Cancel();
                 return;
             }
 
-            await DownloadAsync(artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName(), token).ConfigureAwait(false);
+            var success = await machine.DownloadAsync(config.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName()).ConfigureAwait(false);
+            if (!success)
+            {
+                Interlocked.Exchange(ref failFlag, 1);
+            }
         }
 
         try
@@ -214,14 +119,17 @@ partial class NetworkClient
         }
         finally
         {
-            await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
-            logger.LogInformation($"Item: {downloadItemCount}, File: {downloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(downloadByteCount)}");
+            logger.LogInformation($"Item: {machine.downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
+            if (failFlag != 0)
+            {
+                await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
+            }
         }
 
         return 0;
     }
 
-    private async ValueTask<IEnumerable<Artwork>?> PrepareDownloadFileAsync(
+    private async ValueTask<(DatabaseFile, IEnumerable<Artwork>?)> PrepareDownloadFileAsync(
         string path,
         ArtworkFilter? filter,
         string destinationDirectory,
@@ -262,7 +170,7 @@ partial class NetworkClient
         filter.PageCount.Min = 1;
 
         var artworkCollection = await ArtworkEnumerable.CreateAsync(database, filter, token).ConfigureAwait(false);
-        return artworkCollection;
+        return (database, artworkCollection);
     }
 
     private static string ToDisplayableByteAmount(ulong byteCount)
@@ -289,4 +197,75 @@ partial class NetworkClient
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");
+
+    private sealed class DownloadAsyncMachine
+    {
+        public DownloadAsyncMachine(HttpClient client, ILogger logger, bool displayAlreadyExists, CancellationToken token)
+        {
+            this.client = client;
+            this.logger = logger;
+            this.displayAlreadyExists = displayAlreadyExists;
+            this.token = token;
+        }
+
+        private readonly HttpClient client;
+        private readonly ILogger logger;
+        private readonly bool displayAlreadyExists;
+        private readonly CancellationToken token;
+        public int downloadFileCount = 0;
+        public int downloadItemCount = 0;
+        public ulong downloadByteCount = 0UL;
+
+        public async ValueTask<bool> DownloadAsync(string folder, ulong id, string url, string fileName)
+        {
+            var fileInfo = new FileInfo(Path.Combine(folder, $"{id & 255:X2}", fileName));
+            if (fileInfo.Exists)
+            {
+                if (displayAlreadyExists)
+                {
+                    logger.LogInformation($"{IOUtility.WarningColor}Already exists. Path: {fileInfo.FullName}{IOUtility.NormalizeColor}");
+                }
+
+                return fileInfo.Length != 0;
+            }
+
+            var (byteCount, exception) = await PassThroughFromHttpGetQueryToFileAsync(url, fileInfo.FullName).ConfigureAwait(false);
+            switch (exception)
+            {
+                case null:
+                    Interlocked.Add(ref downloadByteCount, byteCount);
+                    var donwloaded = Interlocked.Increment(ref downloadFileCount);
+                    logger.LogInformation($"{IOUtility.SuccessColor}Download success. Index: {donwloaded,4} Transfer: {byteCount,20} Url: {url}{IOUtility.NormalizeColor}");
+                    return true;
+                case TaskCanceledException:
+                    ExceptionDispatchInfo.Throw(exception);
+                    throw null;
+                default:
+                    logger.LogError(exception, $"{IOUtility.ErrorColor}Download failed. Url: {url}{IOUtility.NormalizeColor}");
+                    return false;
+            }
+        }
+
+
+        private async ValueTask<(ulong ByteCount, Exception? Exception)> PassThroughFromHttpGetQueryToFileAsync(string url, string path)
+        {
+            try
+            {
+                using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
+                using var request = new HttpRequestMessage(HttpMethod.Get, url);
+                var headers = request.Headers;
+                headers.Referrer = referer;
+                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                await response.Content.CopyToAsync(stream, token).ConfigureAwait(false);
+                var byteCount = (ulong)stream.Length;
+                return (byteCount, null);
+            }
+            catch (Exception e)
+            {
+                return (0, e);
+            }
+        }
+
+    }
 }
