@@ -10,6 +10,7 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
     [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;
     [JsonPropertyName("mute")] public bool? IsMuted = null;
     [JsonPropertyName("offset")] public int Offset = 0;
+    [JsonPropertyName("officially-removed")] public bool? IsOfficiallyRemoved = null;
     [JsonPropertyName("order")] public string? Order = null;
     [JsonPropertyName("page-count")] public MinMaxFilter? PageCount = null;
     [JsonPropertyName("r18")] public bool? R18;
@@ -66,6 +67,11 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
 
     public bool Filter(Artwork artwork)
     {
+        if (IsOfficiallyRemoved.HasValue && IsOfficiallyRemoved.Value != artwork.IsOfficiallyRemoved)
+        {
+            return false;
+        }
+
         if (IsVisible.HasValue && IsVisible.Value != artwork.IsVisible)
         {
             return false;
