@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Local.Filter;
 
 public sealed class TagFilter
 {
@@ -12,537 +12,182 @@ public sealed class TagFilter
     [JsonPropertyName("ignore-exact-or")] public bool IgnoreExactOr = true;
     [JsonPropertyName("ignore-partial-or")] public bool IgnorePartialOr = true;
 
-    [JsonIgnore]
-    public bool IsNoFilter => Exacts is not { Length: > 0 } && Partials is not { Length: > 0 } && IgnoreExacts is not { Length: > 0 } && IgnoreExacts is not { Length: > 0 };
+    private StringSet? tagSet;
+    [JsonIgnore] public HashSet<uint>? PartialSet;
+    [JsonIgnore] public HashSet<uint>? IgnorePartialSet;
 
-    public bool IsMatch<T>(in StringCompareInfo compareInfo, T[] tags, string[]? additionalTags, string[]? fakeTags) where T : ITag
+    public async ValueTask InitializeAsync(StringSet? set, CancellationToken token)
     {
-        var hasAddition = additionalTags is { Length: > 0 };
-        var hasFake = fakeTags is { Length: > 0 };
-        HashSet<string>? tagsSet = hasAddition || hasFake ? new HashSet<string>(compareInfo) : null;
-        if (tagsSet is not null)
+        if (ReferenceEquals(tagSet, set))
         {
-            foreach (var t in tags)
-            {
-                tagsSet.Add(t.Tag);
-            }
-
-            if (hasAddition)
-            {
-                foreach (var t in additionalTags!)
-                {
-                    tagsSet.Add(t);
-                }
-            }
-
-            if (hasFake)
-            {
-                foreach (var t in fakeTags!)
-                {
-                    tagsSet.Remove(t);
-                }
-            }
+            return;
         }
 
-        if (Exacts is { Length: > 0 })
+        tagSet = set;
+        if (set is not { Reverses.IsEmpty: false })
         {
-            if (ExactOr)
-            {
-                if (tagsSet is null)
-                {
-                    foreach (var tag in tags)
-                    {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in Exacts)
-                        {
-                            if (compareInfo.Equals(tagTag, _tag))
-                            {
-                                goto BREAK;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var _tag in Exacts)
-                    {
-                        if (tagsSet.Contains(_tag))
-                        {
-                            goto BREAK;
-                        }
-                    }
-                }
-
-                return false;
-            BREAK:;
-            }
-            else
-            {
-                if (tagsSet is null)
-                {
-                    foreach (var tag in tags)
-                    {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in Exacts)
-                        {
-                            if (compareInfo.Equals(tagTag, _tag))
-                            {
-                                goto BREAK;
-                            }
-                        }
-                        return false;
-                    BREAK:;
-                    }
-                }
-                else
-                {
-                    foreach (var _tag in Exacts)
-                    {
-                        if (!tagsSet.Contains(_tag))
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
+            return;
         }
 
         if (Partials is { Length: > 0 })
         {
-            if (PartialOr)
+            PartialSet = new();
+            await Parallel.ForEachAsync(set.Values, token, (pair, token) =>
             {
-                if (tagsSet is null)
+                var (key, value) = pair;
+                if (value is { Length: > 0 })
                 {
-                    foreach (var tag in tags)
+                    foreach (var text in Partials)
                     {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in Partials)
+                        if (value.Contains(text))
                         {
-                            if (compareInfo.Contains(tagTag, _tag))
-                            {
-                                goto BREAK;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var tag in tagsSet)
-                    {
-                        foreach (var _tag in Partials)
-                        {
-                            if (compareInfo.Contains(tag, _tag))
-                            {
-                                goto BREAK;
-                            }
+                            PartialSet.Add(key);
                         }
                     }
                 }
 
-                return false;
-            BREAK:;
-            }
-            else
-            {
-                if (tagsSet is null)
-                {
-                    foreach (var tag in tags)
-                    {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in Partials)
-                        {
-                            if (compareInfo.Contains(tagTag, _tag))
-                            {
-                                goto BREAK;
-                            }
-                        }
-
-                        return false;
-                    BREAK:;
-                    }
-                }
-                else
-                {
-                    foreach (var tag in tagsSet)
-                    {
-                        foreach (var _tag in Partials)
-                        {
-                            if (compareInfo.Contains(tag, _tag))
-                            {
-                                goto BREAK;
-                            }
-                        }
-
-                        return false;
-                    BREAK:;
-                    }
-                }
-            }
-        }
-
-        if (IgnoreExacts is { Length: > 0 })
-        {
-            if (IgnoreExactOr)
-            {
-                if (tagsSet is null)
-                {
-                    foreach (var tag in tags)
-                    {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in IgnoreExacts)
-                        {
-                            if (compareInfo.Equals(tagTag, _tag))
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var _tag in IgnoreExacts)
-                    {
-                        if (tagsSet.Contains(_tag))
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (tagsSet is null)
-                {
-                    foreach (var tag in tags)
-                    {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in IgnoreExacts)
-                        {
-                            if (!compareInfo.Equals(tagTag, _tag))
-                            {
-                                goto OK;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var _tag in IgnoreExacts)
-                    {
-                        if (!tagsSet.Contains(_tag))
-                        {
-                            goto OK;
-                        }
-                    }
-                }
-
-                return false;
-            OK:;
-            }
+                return ValueTask.CompletedTask;
+            });
         }
 
         if (IgnorePartials is { Length: > 0 })
         {
-            if (IgnorePartialOr)
+            IgnorePartialSet = new();
+            await Parallel.ForEachAsync(set.Values, token, (pair, token) =>
             {
-                if (tagsSet is null)
+                var (key, value) = pair;
+                if (value is { Length: > 0 })
                 {
-                    foreach (var tag in tags)
+                    foreach (var text in IgnorePartials)
                     {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in IgnorePartials)
+                        if (value.Contains(text))
                         {
-                            if (compareInfo.Contains(tagTag, _tag))
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var tag in tagsSet)
-                    {
-                        foreach (var _tag in IgnorePartials)
-                        {
-                            if (compareInfo.Contains(tag, _tag))
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                if (tagsSet is null)
-                {
-                    foreach (var tag in tags)
-                    {
-                        var tagTag = tag.Tag;
-                        foreach (var _tag in IgnorePartials)
-                        {
-                            if (!compareInfo.Contains(tagTag, _tag))
-                            {
-                                goto OK;
-                            }
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var tag in tagsSet)
-                    {
-                        foreach (var _tag in IgnorePartials)
-                        {
-                            if (!compareInfo.Contains(tag, _tag))
-                            {
-                                goto OK;
-                            }
+                            IgnorePartialSet.Add(key);
                         }
                     }
                 }
 
-                return false;
-            OK:;
+                return ValueTask.CompletedTask;
+            });
+        }
+    }
+
+    public bool Filter(uint[] tags, uint[]? extraTags, uint[]? extraFakeTags)
+    {
+        var set = new HashSet<uint>(tags);
+        if (extraTags is { Length: > 0 })
+        {
+            foreach (var tag in tags)
+            {
+                set.Add(tag);
             }
         }
 
-        return true;
-    }
+        if (extraFakeTags is { Length: > 0 })
+        {
 
-    public bool IsMatch(in StringCompareInfo compareInfo, ReadOnlySpan<string> tags)
-    {
+            foreach (var tag in extraFakeTags)
+            {
+                set.Remove(tag);
+            }
+        }
+
         if (Exacts is { Length: > 0 })
         {
-            if (tags is not { Length: > 0 })
+            if (tagSet is not { Reverses: { Count: > 0 } dictionary })
             {
                 return false;
             }
 
             if (ExactOr)
             {
-                foreach (var tag in tags)
+                foreach (var item in Exacts)
                 {
-                    foreach (var _tag in Exacts)
+                    if (dictionary.TryGetValue(item, out var tag) && set.Contains(tag))
                     {
-                        if (compareInfo.Equals(tag, _tag))
-                        {
-                            goto BREAK;
-                        }
-                    }
-                }
-
-                return false;
-            BREAK:;
-            }
-            else
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in Exacts)
-                    {
-                        if (compareInfo.Equals(tag, _tag))
-                        {
-                            goto BREAK;
-                        }
-                    }
-                    return false;
-                BREAK:;
-                }
-            }
-        }
-
-        if (Partials is { Length: > 0 })
-        {
-            if (tags is not { Length: > 0 })
-            {
-                return false;
-            }
-
-            if (PartialOr)
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in Partials)
-                    {
-                        if (compareInfo.Contains(tag, _tag))
-                        {
-                            goto BREAK;
-                        }
-                    }
-                }
-
-                return false;
-            BREAK:;
-            }
-            else
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in Partials)
-                    {
-                        if (compareInfo.Contains(tag, _tag))
-                        {
-                            goto BREAK;
-                        }
-                    }
-
-                    return false;
-                BREAK:;
-                }
-            }
-        }
-
-        if (tags.IsEmpty)
-        {
-            return true;
-        }
-
-        if (IgnoreExacts is { Length: > 0 })
-        {
-            if (IgnoreExactOr)
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in IgnoreExacts)
-                    {
-                        if (compareInfo.Equals(tag, _tag))
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in IgnoreExacts)
-                    {
-                        if (!compareInfo.Equals(tag, _tag))
-                        {
-                            goto OK;
-                        }
+                        goto OK;
                     }
                 }
 
                 return false;
             OK:;
             }
+            else
+            {
+                foreach (var item in Exacts)
+                {
+                    if (!dictionary.TryGetValue(item, out var tag) || !set.Contains(tag))
+                    {
+                        return false;
+                    }
+                }
+            }
         }
 
-        if (IgnorePartials is { Length: > 0 })
+        if (IgnoreExacts is { Length: > 0 })
+        {
+            if (tagSet is { Reverses: { Count: > 0 } dictionary })
+            {
+                if (IgnoreExactOr)
+                {
+                    foreach (var item in IgnoreExacts)
+                    {
+                        if (dictionary.TryGetValue(item, out var key) && set.Contains(key))
+                        {
+                            return false;
+                        }
+                    }
+                }
+                else
+                {
+                    foreach (var item in IgnoreExacts)
+                    {
+                        if (!dictionary.TryGetValue(item, out var key) || !set.Contains(key))
+                        {
+                            goto OK;
+                        }
+                    }
+
+                    return false;
+                OK:;
+                }
+            }
+        }
+
+        if (PartialSet is not null)
+        {
+            if (PartialOr)
+            {
+                foreach (var item in set)
+                {
+                    if (PartialSet.Contains(item))
+                    {
+                        goto OK;
+                    }
+                }
+
+                return false;
+            OK:;
+            }
+            else
+            {
+                foreach (var item in set)
+                {
+                    if (!PartialSet.Contains(item))
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        if (IgnorePartialSet is not null)
         {
             if (IgnorePartialOr)
             {
-                foreach (var tag in tags)
+                foreach (var item in set)
                 {
-                    foreach (var _tag in IgnorePartials)
-                    {
-                        if (compareInfo.Contains(tag, _tag))
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in IgnorePartials)
-                    {
-                        if (!compareInfo.Contains(tag, _tag))
-                        {
-                            goto OK;
-                        }
-                    }
-                }
-
-                return false;
-            OK:;
-            }
-        }
-
-        return true;
-    }
-
-    public bool IsMatch(StringCompareInfo compareInfo, HashSet<string> tags)
-    {
-        if (Exacts is { Length: > 0 })
-        {
-            if (ExactOr)
-            {
-                foreach (var _tag in Exacts)
-                {
-                    if (tags.Contains(_tag))
-                    {
-                        goto BREAK;
-                    }
-                }
-
-                return false;
-            BREAK:;
-            }
-            else
-            {
-                foreach (var _tag in Exacts)
-                {
-                    if (tags.Contains(_tag))
-                    {
-                        goto BREAK;
-                    }
-                }
-
-                return false;
-            BREAK:;
-            }
-        }
-
-        if (Partials is { Length: > 0 })
-        {
-            if (PartialOr)
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in Partials)
-                    {
-                        if (compareInfo.Contains(tag, _tag))
-                        {
-                            goto BREAK;
-                        }
-                    }
-                }
-
-                return false;
-            BREAK:;
-            }
-            else
-            {
-                foreach (var tag in tags)
-                {
-                    foreach (var _tag in Partials)
-                    {
-                        if (compareInfo.Contains(tag, _tag))
-                        {
-                            goto BREAK;
-                        }
-                    }
-
-                    return false;
-                BREAK:;
-                }
-            }
-        }
-
-        if (IgnoreExacts is { Length: > 0 })
-        {
-            if (IgnoreExactOr)
-            {
-                foreach (var _tag in IgnoreExacts)
-                {
-                    if (tags.Contains(_tag))
+                    if (IgnorePartialSet.Contains(item))
                     {
                         return false;
                     }
@@ -550,9 +195,9 @@ public sealed class TagFilter
             }
             else
             {
-                foreach (var _tag in IgnoreExacts)
+                foreach (var item in set)
                 {
-                    if (!tags.Contains(_tag))
+                    if (!IgnorePartialSet.Contains(item))
                     {
                         goto OK;
                     }
@@ -563,15 +208,56 @@ public sealed class TagFilter
             }
         }
 
-        if (IgnorePartials is { Length: > 0 })
+        return true;
+    }
+
+    public bool Filter(ReadOnlySpan<string> span)
+    {
+        if (Exacts is { Length: > 0 })
         {
-            if (IgnorePartialOr)
+            if (ExactOr)
             {
-                foreach (var tag in tags)
+                foreach (var other in Exacts)
                 {
-                    foreach (var _tag in IgnorePartials)
+                    foreach (var item in span)
                     {
-                        if (compareInfo.Contains(tag, _tag))
+                        if (item.SequenceEqual(other))
+                        {
+                            goto OK;
+                        }
+                    }
+                }
+
+                return false;
+            OK:;
+            }
+            else
+            {
+                foreach (var other in Exacts)
+                {
+                    foreach (var item in span)
+                    {
+                        if (item.SequenceEqual(other))
+                        {
+                            goto OK;
+                        }
+                    }
+
+                    return false;
+                OK:;
+                }
+            }
+        }
+
+        if (IgnoreExacts is { Length: > 0 })
+        {
+            if (IgnoreExactOr)
+            {
+                foreach (var other in IgnoreExacts)
+                {
+                    foreach (var item in span)
+                    {
+                        if (item.SequenceEqual(other))
                         {
                             return false;
                         }
@@ -580,15 +266,90 @@ public sealed class TagFilter
             }
             else
             {
-                foreach (var tag in tags)
+                foreach (var other in IgnoreExacts)
                 {
-                    foreach (var _tag in IgnorePartials)
+                    foreach (var item in span)
                     {
-                        if (!compareInfo.Contains(tag, _tag))
+                        if (item.SequenceEqual(other))
+                        {
+                            goto BREAK;
+                        }
+                    }
+
+                    goto OK;
+                BREAK:;
+                }
+
+                return false;
+            OK:;
+            }
+        }
+
+        if (Partials is { Length: > 0 })
+        {
+            if (PartialOr)
+            {
+                foreach (var other in Partials)
+                {
+                    foreach (var item in span)
+                    {
+                        if (item.Contains(other, StringComparison.Ordinal))
                         {
                             goto OK;
                         }
                     }
+                }
+
+                return false;
+            OK:;
+            }
+            else
+            {
+                foreach (var other in Partials)
+                {
+                    foreach (var item in span)
+                    {
+                        if (item.Contains(other, StringComparison.Ordinal))
+                        {
+                            goto OK;
+                        }
+                    }
+
+                    return false;
+                OK:;
+                }
+            }
+        }
+
+        if (IgnorePartials is { Length: > 0 })
+        {
+            if (IgnorePartialOr)
+            {
+                foreach (var other in IgnorePartials)
+                {
+                    foreach (var item in span)
+                    {
+                        if (item.Contains(other, StringComparison.Ordinal))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                foreach (var other in IgnorePartials)
+                {
+                    foreach (var item in span)
+                    {
+                        if (item.Contains(other, StringComparison.Ordinal))
+                        {
+                            goto BREAK;
+                        }
+                    }
+
+                    goto OK;
+                BREAK:;
                 }
 
                 return false;

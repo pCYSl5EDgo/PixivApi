@@ -1,6 +1,6 @@
 ﻿namespace PixivApi;
 
-public enum ArtworkType
+public enum ArtworkType : byte
 {
     None,
     Illust,

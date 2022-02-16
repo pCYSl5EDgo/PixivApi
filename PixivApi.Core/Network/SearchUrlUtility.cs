@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Network;
 
 public sealed class SearchUrlUtility
 {
@@ -16,7 +16,7 @@ public sealed class SearchUrlUtility
         }
     }
 
-    public static int GetIndexOfOldestDay(ReadOnlySpan<ArtworkDatabaseInfo> newToOld)
+    public static int GetIndexOfOldestDay(ReadOnlySpan<Artwork> newToOld)
     {
         Debug.Assert(!newToOld.IsEmpty);
         var date = DateOnly.FromDateTime(newToOld[^1].CreateDate);

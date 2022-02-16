@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Console;
 
 [Command("local")]
 public sealed partial class LocalClient : ConsoleAppBase

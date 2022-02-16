@@ -12,6 +12,8 @@ public partial class ConfigSettings : IEquatable<ConfigSettings>
     public double RetrySeconds { get; set; } = 300d;
     public string OriginalFolder { get; set; } = "Original";
     public string ThumbnailFolder { get; set; } = "Thumbnail";
+    public string UgoiraFolder { get; set; } = "Ugoira";
+    public ulong UserId { get; set; }
 
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
 
@@ -24,9 +26,10 @@ public partial class ConfigSettings : IEquatable<ConfigSettings>
         && other.UserAgent == UserAgent
         && other.ClientId == ClientId
         && other.ClientSecret == ClientSecret
-        && other.HashSecret == HashSecret;
+        && other.HashSecret == HashSecret
+        && other.UserId == UserId;
 
     public override bool Equals(object? obj) => Equals(obj as ConfigSettings);
 
-    public override int GetHashCode() => HashCode.Combine(RefreshToken, AppOS, AppOSVersion, UserAgent, ClientId, ClientSecret, HashSecret);
+    public override int GetHashCode() => HashCode.Combine(RefreshToken, AppOS, AppOSVersion, UserAgent, ClientId, ClientSecret, HashSecret, UserId);
 }

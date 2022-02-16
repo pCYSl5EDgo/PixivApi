@@ -2,25 +2,26 @@
 <#@ import namespace="System.IO" #>
 <#
 var relativeFolder = Path.GetRelativePath(Environment.CurrentDirectory, RelativePath);
-foreach (ref var artwork in Artworks.AsSpan())
-{#>
+ArtworkCount = 0;
+foreach (var artwork in Artworks)
+{
+    ++ArtworkCount;
+    var user = UserDictionary[artwork.UserId];
+    var time = artwork.LocalTime;
+#>
 # <#= artwork.Title #>
 
-<#if (artwork.User.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> [<#= artwork.User.Name #>](https://www.pixiv.net/users/<#= artwork.User.Id #>) 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= artwork.CreateDate.Year #>-<#= artwork.CreateDate.Month #>-<#= artwork.CreateDate.Day #>
+<#if (user.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> [<#= user.Name #>](https://www.pixiv.net/users/<#= user.Id #>) 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= time.Year #>-<#= time.Month #>-<#= time.Day #>
 
 <#
     for (uint i = 0; i < artwork.PageCount; ++i)
     {
-        if (i + 1U == artwork.PageCount && artwork.ExtraInfo is { HideLast: true })
+        if (i + 1U == artwork.PageCount && artwork.ExtraHideLast)
         {
             break;
         }
-        if (artwork.ExtraInfo is { PageExtraInfoDictionary: { Count: > 0 } dictionary } && dictionary.TryGetValue(i, out var pageExtraInfo) && pageExtraInfo.HideReason != HideReason.NotHidden)
-        {
-            continue;
-        }
 #>
-![<#= artwork.Title #> - <#= i #>](<# WritePath(ref builder, artwork.GetOriginalUrl(i)); #> "<#= artwork.Id #>")
+![<#= artwork.Title #> - <#= i #>](<# WritePath(ref builder, artwork.Id, artwork.GetOriginalFileName(i)); #> "<#= artwork.Id #>")
 <#
     }
     if (!string.IsNullOrWhiteSpace(artwork.Caption)) {#>
@@ -34,7 +35,7 @@ foreach (ref var artwork in Artworks.AsSpan())
 
 <#
         foreach (var tag in artwork.Tags)
-        {#> **<#= tag.Name #>**<#}
+        {#> **<#= TagSet.Values[tag] #>**<#}
     }
 #>
 

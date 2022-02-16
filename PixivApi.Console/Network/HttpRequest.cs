@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Console;
 
 partial class NetworkClient : ConsoleAppBase
 {
@@ -11,11 +11,7 @@ partial class NetworkClient : ConsoleAppBase
         }
 
         using HttpRequestMessage request = new(HttpMethod.Get, $"https://{ApiHost}/{url}");
-        if (!request.TryAddToHeader(config.HashSecret, ApiHost))
-        {
-            throw new InvalidOperationException();
-        }
-
+        AddToHeader(request);
         var token = Context.CancellationToken;
         using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
         responseMessage.EnsureSuccessStatusCode();
@@ -32,11 +28,7 @@ partial class NetworkClient : ConsoleAppBase
         }
 
         using HttpRequestMessage request = new(HttpMethod.Post, $"https://{ApiHost}/{url}");
-        if (!request.TryAddToHeader(config.HashSecret, ApiHost))
-        {
-            throw new InvalidOperationException();
-        }
-
+        AddToHeader(request);
         var token = Context.CancellationToken;
         request.Content = new StringContent($"get_secure_url=1&{content}", new System.Text.UTF8Encoding(false));
         request.Content.Headers.ContentType = new("application/x-www-form-urlencoded");
@@ -54,7 +46,7 @@ partial class NetworkClient : ConsoleAppBase
             return;
         }
 
-        using HttpRequestMessage request = new(HttpMethod.Get, $"https://i.pximg.net/c/{url}");
+        using HttpRequestMessage request = new(HttpMethod.Get, $"https://i.pximg.net/{url}");
         request.Headers.Referrer = referer;
         var token = Context.CancellationToken;
         using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);

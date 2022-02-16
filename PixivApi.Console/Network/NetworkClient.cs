@@ -1,6 +1,7 @@
 ﻿using System.Net;
+using PixivApi.Core.Network;
 
-namespace PixivApi;
+namespace PixivApi.Console;
 
 [Command("net")]
 public sealed partial class NetworkClient : ConsoleAppBase
@@ -17,6 +18,14 @@ public sealed partial class NetworkClient : ConsoleAppBase
         this.logger = logger;
         this.client = client;
         this.cancellationTokenSource = cancellationTokenSource;
+    }
+
+    private void AddToHeader(HttpRequestMessage request)
+    {
+        if (!request.TryAddToHeader(config.HashSecret, ApiHost))
+        {
+            throw new InvalidOperationException();
+        }
     }
 
     private async ValueTask<bool> Connect()
@@ -50,11 +59,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         do
         {
             using HttpRequestMessage request = new(HttpMethod.Get, url);
-            if (!request.TryAddToHeader(config.HashSecret, ApiHost))
-            {
-                throw new InvalidOperationException();
-            }
-
+            AddToHeader(request);
             string? reasonPhrase = null;
             try
             {
@@ -161,236 +166,5 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 throw e;
             }
         } while (true);
-    }
-
-    private async ValueTask<IEnumerable<T>> LoopDownloadAsync<THandler, TContainer, T>(string url, THandler handler)
-        where THandler : ILoopDownloadHandler<TContainer, T>
-        where TContainer : INext, IArrayContainer<T>
-        where T : IComparable<T>
-    {
-        var token = Context.CancellationToken;
-        try
-        {
-            do
-            {
-                var content = await RetryGetAsync(url, token).ConfigureAwait(false);
-                var container = IOUtility.JsonDeserialize<TContainer>(content);
-                if (container is null)
-                {
-                    break;
-                }
-
-                url = (await handler.GetNextUrlAsync(container, token).ConfigureAwait(false))!;
-            } while (!string.IsNullOrWhiteSpace(url));
-        }
-        catch
-        {
-            return handler.Get();
-        }
-
-        return handler.Get();
-    }
-
-    private async ValueTask OverwriteLoopDownloadAsync<THandler, TMergeHandler, TContainer, TElement>(
-        string output,
-        string url,
-        OverwriteKind overwrite,
-        bool isPipeOutput,
-        THandler defaultHandler,
-        TMergeHandler mergeHandler,
-        Func<string, CancellationToken, ValueTask<TElement[]?>> deserializeAsync,
-        Func<string, IEnumerable<TElement>, FileMode, ValueTask> serializeAsync
-    )
-        where THandler : ILoopDownloadHandler<TContainer, TElement>
-        where TMergeHandler : IMergeLoopDownloadHandler<TContainer, TElement>
-        where TContainer : INext, IArrayContainer<TElement>
-        where TElement : IEquatable<TElement>, IComparable<TElement>, IOverwrite<TElement>
-    {
-        var fileInfo = new FileInfo(output);
-        var token = Context.CancellationToken;
-        switch (overwrite)
-        {
-            case OverwriteKind.ClearAndAdd:
-                await ClearAndAddDownloadAsync<THandler, TContainer, TElement>(output, url, isPipeOutput, defaultHandler, serializeAsync).ConfigureAwait(false);
-                break;
-            case OverwriteKind.SearchAndAdd:
-                {
-                    await SearchAndAddDownloadAsync<THandler, TContainer, TElement>(output, url, isPipeOutput, defaultHandler, deserializeAsync, serializeAsync, token).ConfigureAwait(false);
-                }
-                break;
-            default:
-                if (!fileInfo.Exists || fileInfo.Length == 0)
-                {
-                    goto case OverwriteKind.ClearAndAdd;
-                }
-                else
-                {
-                    await AddDownloadAsync<TMergeHandler, TContainer, TElement>(output, url, isPipeOutput, mergeHandler, deserializeAsync, serializeAsync, token).ConfigureAwait(false);
-                }
-                break;
-        }
-    }
-
-    private async ValueTask AddDownloadAsync<TMergeHandler, TContainer, TElement>(string output, string url, bool isPipeOutput, TMergeHandler mergeHandler, Func<string, CancellationToken, ValueTask<TElement[]?>> deserializeAsync, Func<string, IEnumerable<TElement>, FileMode, ValueTask> serializeAsync, CancellationToken token)
-        where TMergeHandler : IMergeLoopDownloadHandler<TContainer, TElement>
-        where TContainer : INext, IArrayContainer<TElement>
-        where TElement : IEquatable<TElement>, IComparable<TElement>, IOverwrite<TElement>
-    {
-        if (!isPipeOutput)
-        {
-            logger.LogInformation($"edit add {output}");
-        }
-
-        IEnumerable<TElement>? enumerable = null;
-        var artworkItems = await deserializeAsync(output, token).ConfigureAwait(false);
-        mergeHandler.Initialize(artworkItems);
-        try
-        {
-            enumerable = await LoopDownloadAsync<TMergeHandler, TContainer, TElement>(url, mergeHandler).ConfigureAwait(false);
-        }
-        finally
-        {
-            var result = new HashSet<TElement>(artworkItems ?? Array.Empty<TElement>());
-            if (enumerable is null)
-            {
-                if (!isPipeOutput)
-                {
-                    logger.LogInformation($"Count: {result.Count}, Add: 0");
-                }
-            }
-            else
-            {
-                var count = 0U;
-                foreach (var item in enumerable)
-                {
-                    if (result.TryGetValue(item, out var actual))
-                    {
-                        actual.Overwrite(item);
-                    }
-                    else
-                    {
-                        ++count;
-                        result.Add(item);
-                        if (isPipeOutput)
-                        {
-                            if (item.ToString() is string text)
-                            {
-                                logger.LogInformation(text);
-                            }
-                        }
-                        else
-                        {
-                            logger.LogInformation($"{IOUtility.SuccessColor}download success. Item: {item}{IOUtility.NormalizeColor}");
-                        }
-                    }
-                }
-
-                if (!isPipeOutput)
-                {
-                    logger.LogInformation($"Count: {result.Count}, Add: {count}");
-                }
-
-                await serializeAsync(output, result, FileMode.Create).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private async ValueTask SearchAndAddDownloadAsync<THandler, TContainer, TElement>(string output, string url, bool isPipeOutput, THandler defaultHandler, Func<string, CancellationToken, ValueTask<TElement[]?>> deserializeAsync, Func<string, IEnumerable<TElement>, FileMode, ValueTask> serializeAsync, CancellationToken token)
-        where THandler : ILoopDownloadHandler<TContainer, TElement>
-        where TContainer : INext, IArrayContainer<TElement>
-        where TElement : IEquatable<TElement>, IComparable<TElement>, IOverwrite<TElement>
-    {
-        if (!isPipeOutput)
-        {
-            logger.LogInformation($"edit all-add {output}");
-        }
-
-        IEnumerable<TElement>? enumerable = null;
-        try
-        {
-            enumerable = await LoopDownloadAsync<THandler, TContainer, TElement>(url, defaultHandler).ConfigureAwait(false);
-        }
-        finally
-        {
-            var result = new HashSet<TElement>(await deserializeAsync(output, token).ConfigureAwait(false) ?? Array.Empty<TElement>());
-            if (enumerable is null)
-            {
-                if (!isPipeOutput)
-                {
-                    logger.LogInformation($"Count: {result.Count}, Add: 0");
-                }
-            }
-            else
-            {
-                var count = 0U;
-                foreach (var item in enumerable)
-                {
-                    if (result.TryGetValue(item, out var actual))
-                    {
-                        actual.Overwrite(item);
-                    }
-                    else
-                    {
-                        ++count;
-                        result.Add(item);
-                        if (isPipeOutput)
-                        {
-                            if (item.ToString() is string text)
-                            {
-                                logger.LogInformation(text);
-                            }
-                        }
-                        else
-                        {
-                            logger.LogInformation($"{IOUtility.SuccessColor}download success. Item: {item}{IOUtility.NormalizeColor}");
-                        }
-                    }
-                }
-
-                if (!isPipeOutput)
-                {
-                    logger.LogInformation($"Count: {result.Count}, Add: {count}");
-                }
-
-                await serializeAsync(output, result, FileMode.Create).ConfigureAwait(false);
-            }
-        }
-    }
-
-    private async ValueTask ClearAndAddDownloadAsync<THandler, TContainer, TElement>(string output, string url, bool isPipeOutput, THandler defaultHandler, Func<string, IEnumerable<TElement>, FileMode, ValueTask> serializeAsync)
-        where THandler : ILoopDownloadHandler<TContainer, TElement>
-        where TContainer : INext, IArrayContainer<TElement>
-        where TElement : IEquatable<TElement>, IComparable<TElement>, IOverwrite<TElement>
-    {
-        if (!isPipeOutput)
-        {
-            logger.LogInformation($"create {output}");
-        }
-
-        TElement[]? result = null;
-        try
-        {
-            var tmp = await LoopDownloadAsync<THandler, TContainer, TElement>(url, defaultHandler).ConfigureAwait(false);
-            result = tmp?.ToArray();
-        }
-        finally
-        {
-            if (result is { Length: > 0 })
-            {
-                await serializeAsync(output, result, FileMode.Create).ConfigureAwait(false);
-            }
-
-            if (!isPipeOutput)
-            {
-                if (result is { Length: > 0 })
-                {
-                    logger.LogInformation($"Count: {result.Length}");
-                }
-                else
-                {
-                    logger.LogInformation("file is not created. Count: 0");
-                }
-            }
-        }
     }
 }

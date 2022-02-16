@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Local.Filter;
 
 public sealed class DateTimeFilter : IFilter<DateTime>
 {

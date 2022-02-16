@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace PixivApi;
+namespace PixivApi.Console;
 
 public sealed class Program
 {
@@ -9,7 +9,7 @@ public sealed class Program
 
     public static async Task Main(string[] args)
     {
-        Console.CancelKeyPress += CancelKeyPress;
+        System.Console.CancelKeyPress += CancelKeyPress;
 
         var handler = new SocketsHttpHandler()
         {
@@ -86,7 +86,7 @@ public sealed class Program
 
     private static void ConfigureHostOptions(HostBuilderContext context, HostOptions options)
     {
-        options.ShutdownTimeout = TimeSpan.FromHours(1);
+        options.ShutdownTimeout = TimeSpan.FromDays(1);
     }
 
     private static unsafe void EnableConsoleVirtualCode()

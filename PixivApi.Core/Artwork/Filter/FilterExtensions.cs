@@ -1,29 +1,25 @@
-﻿using System.Collections;
-using System.Collections.Concurrent;
+﻿namespace PixivApi.Core.Local.Filter;
 
-namespace PixivApi;
-
-public sealed class ArtworkDatabaseInfoEnumerable : IEnumerable<ArtworkDatabaseInfo>
+public sealed class ArtworkEnumerable : IEnumerable<Artwork>
 {
-    private readonly ArtworkDatabaseInfo[] artworkItems;
-    private readonly ArtworkDatabaseInfoFilter filter;
+    private readonly Artwork[] artworkItems;
     private readonly ConcurrentBag<int> bag = new();
 
-    private ArtworkDatabaseInfoEnumerable(ArtworkDatabaseInfo[] artworkItems, ArtworkDatabaseInfoFilter filter)
+    private ArtworkEnumerable(Artwork[] artworkItems)
     {
         this.artworkItems = artworkItems;
-        this.filter = filter;
     }
 
-    public static async ValueTask<int> CountAsync(ArtworkDatabaseInfo[] artworkItems, ArtworkDatabaseInfoFilter filter, CancellationToken cancellationToken)
+    public static async ValueTask<int> CountAsync(DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
         if (filter.Count == 0)
         {
             return 0;
         }
 
+        await filter.InitializeAsync(database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
         int count = 0;
-        await Parallel.ForEachAsync(artworkItems, cancellationToken, (item, token) =>
+        await Parallel.ForEachAsync(database.Artworks, cancellationToken, (item, token) =>
         {
             if (filter.Filter(item))
             {
@@ -57,10 +53,11 @@ public sealed class ArtworkDatabaseInfoEnumerable : IEnumerable<ArtworkDatabaseI
         }
     }
 
-    public static async ValueTask<IEnumerable<ArtworkDatabaseInfo>> CreateAsync(ArtworkDatabaseInfo[] artworkItems, ArtworkDatabaseInfoFilter filter, CancellationToken cancellationToken)
+    public static async ValueTask<IEnumerable<Artwork>> CreateAsync(DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
-        ArtworkDatabaseInfoEnumerable enumerable = new(artworkItems, filter);
-        await Parallel.ForEachAsync(artworkItems.Select((x, i) => (x, i)), cancellationToken, (pair, token) =>
+        await filter.InitializeAsync(database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
+        ArtworkEnumerable enumerable = new(database.Artworks);
+        await Parallel.ForEachAsync(database.Artworks.Select((x, i) => (x, i)), cancellationToken, (pair, token) =>
         {
             var (item, index) = pair;
             if (filter.Filter(item))
@@ -97,24 +94,24 @@ public sealed class ArtworkDatabaseInfoEnumerable : IEnumerable<ArtworkDatabaseI
 
     public Enumerator GetEnumerator() => new(artworkItems, bag.GetEnumerator());
 
-    IEnumerator<ArtworkDatabaseInfo> IEnumerable<ArtworkDatabaseInfo>.GetEnumerator() => GetEnumerator();
+    IEnumerator<Artwork> IEnumerable<Artwork>.GetEnumerator() => GetEnumerator();
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public struct Enumerator : IEnumerator<ArtworkDatabaseInfo>
+    public readonly struct Enumerator : IEnumerator<Artwork>
     {
-        private ArtworkDatabaseInfo[] artworkItems;
-        private IEnumerator<int> enumerator;
+        private readonly Artwork[] artworkItems;
+        private readonly IEnumerator<int> enumerator;
 
-        public Enumerator(ArtworkDatabaseInfo[] artworkItems, IEnumerator<int> enumerator)
+        public Enumerator(Artwork[] artworkItems, IEnumerator<int> enumerator)
         {
             this.artworkItems = artworkItems;
             this.enumerator = enumerator;
         }
 
-        public ArtworkDatabaseInfo Current => artworkItems[enumerator.Current];
+        public Artwork Current => artworkItems[enumerator.Current];
 
-        object IEnumerator.Current => throw new NotImplementedException();
+        object IEnumerator.Current => Current;
 
         public void Dispose() => enumerator.Dispose();
 

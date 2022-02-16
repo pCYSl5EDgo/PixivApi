@@ -14,13 +14,11 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging.Console" Version="6.0.0" />
-		<PackageReference Include="ConsoleAppFramework" Version="4.0.5" />
-		<PackageReference Include="MessagePack" Version="2.3.85" />
+		<PackageReference Include="ConsoleAppFramework" Version="4.0.6" />
 		<PackageReference Include="RuntimeT4Generator" Version="0.3.20">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="ValueTaskSupplement" Version="1.1.0" />
 		<PackageReference Include="ZString" Version="2.4.4" />
 	</ItemGroup>
 
@@ -36,6 +34,8 @@
 		<Using Include="Microsoft.Extensions.Options" />
 		<Using Include="RuntimeT4Generator" />
 		<Using Include="System.Buffers" />
+		<Using Include="System.Collections.Generic" />
+		<Using Include="System.Collections.Concurrent" />
 		<Using Include="System.Diagnostics" />
 		<Using Include="System.Diagnostics.CodeAnalysis" />
 		<Using Include="System.Runtime.InteropServices" />

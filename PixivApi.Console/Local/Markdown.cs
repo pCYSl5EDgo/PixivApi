@@ -1,4 +1,7 @@
-﻿namespace PixivApi;
+﻿using PixivApi.Core.Local.Filter;
+using PixivApi.Core.Local;
+
+namespace PixivApi.Console;
 
 partial class LocalClient : ConsoleAppBase
 {
@@ -8,19 +11,17 @@ partial class LocalClient : ConsoleAppBase
             [Option(1, IOUtility.FilterDescription)] string filter
         )
     {
-        input = IOUtility.FindArtworkDatabase(input, true)!;
         if (string.IsNullOrWhiteSpace(input))
         {
             return -1;
         }
 
         var token = Context.CancellationToken;
-        var artworkItemFilter = await IOUtility.JsonParseAsync<ArtworkDatabaseInfoFilter>(filter, token).ConfigureAwait(false);
+        var artworkItemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         if (artworkItemFilter is null)
         {
             return 0;
         }
-
 
         string output;
         var dir = Path.GetDirectoryName(input);
@@ -34,9 +35,16 @@ partial class LocalClient : ConsoleAppBase
             output = Path.Combine(dir, fileName);
         }
 
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
+        if (database is null)
+        {
+            return 0;
+        }
+
         var template = new BookmarkMarkdownTemplate(
-            (await ArtworkDatabaseInfoEnumerable.CreateAsync(await IOUtility.MessagePackDeserializeAsync<ArtworkDatabaseInfo[]>(input, token).ConfigureAwait(false) ?? Array.Empty<ArtworkDatabaseInfo>(), artworkItemFilter, token).ConfigureAwait(false)).ToArray(),
-            configSettings.OriginalFolder, output
+            await ArtworkEnumerable.CreateAsync(database, artworkItemFilter, token).ConfigureAwait(false),
+            configSettings.OriginalFolder, output,
+            database.TagSet, database.UserDictionary
         );
         var builder = ZString.CreateUtf8StringBuilder();
         try
@@ -50,7 +58,7 @@ partial class LocalClient : ConsoleAppBase
             builder.Dispose();
         }
 
-        logger.LogInformation($"Count: {template.Artworks.Length}");
+        logger.LogInformation($"{template.ArtworkCount}");
         return 0;
     }
 }

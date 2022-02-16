@@ -6,6 +6,11 @@ namespace PixivApi;
 
 public static class IOUtility
 {
+    static IOUtility()
+    {
+        messagePackSerializerOptions = MessagePackSerializerOptions.Standard;
+    }
+
     public static string? GetFileNameFromUri(string uri)
     {
         if (!Uri.TryCreate(uri, UriKind.Absolute, out var uriObject))
@@ -48,63 +53,20 @@ public static class IOUtility
         }
     }
 
-    public static string? FindArtworkDatabase(string? path, bool returnNullWhenNotExist)
+    public static async ValueTask WriteToFileAsync(string path, ReadOnlyMemory<byte> memory, CancellationToken token)
     {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        if (File.Exists(path))
-        {
-            return path;
-        }
-
-        if (!path.EndsWith(ArtworkDatabaseFileExtension))
-        {
-            path += ArtworkDatabaseFileExtension;
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        return returnNullWhenNotExist ? null : path;
-    }
-
-    public static string? FindUserDatabase(string? path, bool returnNullWhenNotExist)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            return null;
-        }
-
-        if (File.Exists(path))
-        {
-            return path;
-        }
-
-        if (!path.EndsWith(UserDatabaseFileExtension))
-        {
-            path += UserDatabaseFileExtension;
-            if (File.Exists(path))
-            {
-                return path;
-            }
-        }
-
-        return returnNullWhenNotExist ? null : path;
+        token.ThrowIfCancellationRequested();
+        using var handle = File.OpenHandle(path, FileMode.Create, FileAccess.Write, FileShare.Read, FileOptions.Asynchronous);
+        await RandomAccess.WriteAsync(handle, memory, 0, token).ConfigureAwait(false);
     }
 
     public const string ArtworkDatabaseFileExtension = ".arts";
-    public const string UserDatabaseFileExtension = ".usrs";
 
     public const string UserIdDescription = "user id";
 
-    public const string FilterDescription = "artwork filter *.json file or json expression";
+    public const string FilterDescription = "artwork filter *.json file";
 
-    public const string ArtworkDatabaseDescription = $"artwork database *{ArtworkDatabaseFileExtension} file or directory path";
-    public const string UserDatabaseDescription = $"user database *{UserDatabaseFileExtension} file or directory path";
+    public const string ArtworkDatabaseDescription = $"artwork database *{ArtworkDatabaseFileExtension} file path";
 
     public const string OverwriteKindDescription = "add: Append new data to existing file.\nadd-search: Download everything and add to existing file.\nadd-clear: Delete the file and then download everything and write to the file.";
 
@@ -137,16 +99,34 @@ public static class IOUtility
         return JsonSerializer.Deserialize<T>(ref reader, jsonSerializerOptions);
     }
 
+    public static T? JsonDeserialize<T>(ReadOnlySequence<byte> sequence) where T : notnull
+    {
+        var reader = new Utf8JsonReader(sequence, new JsonReaderOptions
+        {
+            AllowTrailingCommas = true,
+            CommentHandling = JsonCommentHandling.Skip,
+        });
+
+        return JsonSerializer.Deserialize<T>(ref reader, jsonSerializerOptions);
+    }
+
     public static async ValueTask<T?> JsonDeserializeAsync<T>(string path, CancellationToken token) where T : notnull
     {
         using var array = await ReadFromFileAsync(path, token).ConfigureAwait(false);
-        return JsonDeserialize<T>(array.AsSpan());
-    }
 
-    public static async ValueTask<T?> JsonDeserializeAsync<T>(HttpContent content, CancellationToken token) where T : notnull
-    {
-        var array = await content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
-        return JsonDeserialize<T>(array);
+        static T? Deserialize(NativeMemoryArray<byte> array)
+        {
+            if (array.TryGetFullSpan(out var span))
+            {
+                return JsonDeserialize<T>(span);
+            }
+            else
+            {
+                return JsonDeserialize<T>(array.AsReadOnlySequence());
+            }
+        }
+
+        return Deserialize(array);
     }
 
     public static async ValueTask JsonSerializeAsync<T>(string path, T value, FileMode mode)
@@ -164,64 +144,36 @@ public static class IOUtility
 
     public static string JsonStringSerialize<T>(T value) => JsonSerializer.Serialize(value, jsonSerializerOptions);
 
-    public static async ValueTask<T?> JsonParseAsync<T>(string? value, CancellationToken token) where T : notnull
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return default;
-        }
-
-        string? directory;
-        T? obj;
-        if (value[0] == '{')
-        {
-            obj = JsonSerializer.Deserialize<T>(value);
-            directory = null;
-        }
-        else if (File.Exists(value))
-        {
-            obj = await JsonDeserializeAsync<T>(value, token).ConfigureAwait(false);
-            directory = Path.GetDirectoryName(value);
-        }
-        else
-        {
-            value += ".json";
-            if (!File.Exists(value))
-            {
-                return default;
-            }
-
-            obj = await JsonDeserializeAsync<T>(value, token).ConfigureAwait(false);
-            directory = Path.GetDirectoryName(value);
-        }
-
-        if (obj is IAsyncInitailizable initailizable)
-        {
-            await initailizable.InitializeAsync(directory, token).ConfigureAwait(false);
-        }
-
-        return obj;
-    }
-
-    private static readonly MessagePackSerializerOptions messagePackSerializerOptions = MessagePackSerializerOptions.Standard;
+    private static readonly MessagePackSerializerOptions messagePackSerializerOptions;
 
     public static async ValueTask<T?> MessagePackDeserializeAsync<T>(string path, CancellationToken token) where T : notnull
     {
-        using var segment = await ReadFromFileAsync(path, token).ConfigureAwait(false);
-        if (segment.Length <= Array.MaxLength)
+        try
         {
-            return MessagePackSerializer.Deserialize<T>(segment.AsMemory(), null, token);
+            using var segment = await ReadFromFileAsync(path, token).ConfigureAwait(false);
+            if (segment.Length == 0)
+            {
+                return default;
+            }
+            else if (segment.Length <= Array.MaxLength)
+            {
+                return MessagePackSerializer.Deserialize<T>(segment.AsMemory(), messagePackSerializerOptions, token);
+            }
+            else
+            {
+                return MessagePackSerializer.Deserialize<T>(segment.AsReadOnlySequence(), messagePackSerializerOptions, token);
+            }
         }
-        else
+        catch (IOException)
         {
-            return MessagePackSerializer.Deserialize<T>(segment.AsReadOnlySequence(), null, token);
+            return default;
         }
     }
 
     public static async ValueTask MessagePackSerializeAsync<T>(string path, T value, FileMode mode)
     {
-        using var stream = new FileStream(path, mode, FileAccess.Write, FileShare.Read, 8192, FileOptions.Asynchronous);
-        await MessagePackSerializer.SerializeAsync(stream, value, messagePackSerializerOptions, default).ConfigureAwait(false);
+        using var stream = new FileStream(path, mode, FileAccess.Write, FileShare.Read, 8192, true);
+        await MessagePackSerializer.SerializeAsync(stream, value, null, CancellationToken.None).ConfigureAwait(false);
     }
 
     public static readonly HashSet<char> PathInvalidChars = new(Path.GetInvalidPathChars());

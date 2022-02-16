@@ -8,7 +8,9 @@ internal class Program
     // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
     // yet and stuff might break.
     [STAThread]
+#pragma warning disable CS1998
     public static async Task Main(string[] args)
+#pragma warning restore CS1998
     {
         var handler = new SocketsHttpHandler()
         {
@@ -43,7 +45,9 @@ internal class Program
         .LogToTrace()
         .UseReactiveUI();
 
+#pragma warning disable IDE0051
     private static async ValueTask<ConfigSettings> GetConfigAsync(HttpClient httpClient)
+#pragma warning restore IDE0051
     {
         ConfigSettings? configSettings = null;
         var appsettings = new FileInfo("appsettings.json");

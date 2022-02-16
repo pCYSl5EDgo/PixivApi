@@ -11,9 +11,6 @@
       "type": "integer",
       "minimum": 0
     },
-    "culture": {
-      "type": "string"
-    },
     "date": {
       "type": "object",
       "properties": {
@@ -60,6 +57,35 @@
           "required": [
             "exist"
           ]
+        },
+        "ugoira": {
+          "type": "object",
+          "properties": {
+            "exist": {
+              "type": "boolean"
+            },
+            "folder": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "exist"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "height": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0
         }
       },
       "additionalProperties": false
@@ -88,7 +114,7 @@
       },
       "additionalProperties": false
     },
-    "ignore-case": {
+    "mute": {
       "type": "boolean"
     },
     "offset": {
@@ -310,6 +336,23 @@
       "required": [
         "database"
       ],
+      "additionalProperties": false
+    },
+    "visible": {
+      "type": "boolean"
+    },
+    "width": {
+      "type": "object",
+      "properties": {
+        "min": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
       "additionalProperties": false
     }
   },

@@ -1,41 +1,48 @@
-﻿namespace PixivApi;
+﻿using PixivApi.Core.Local.Filter;
+using PixivApi.Core.Local;
+
+namespace PixivApi.Console;
 
 partial class LocalClient
 {
-    [Command("map", "")]
+    [Command("map")]
     public async ValueTask<int> MapAsync(
         [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string input,
-        [Option(1, IOUtility.FilterDescription)] string filter
+        [Option(1, IOUtility.FilterDescription)] string filter,
+        bool pipe = false
     )
     {
-        var info = new FileInfo(input);
-        if (!info.Exists || info.Length == 0)
+        if (string.IsNullOrWhiteSpace(input))
         {
             goto END;
         }
 
         var token = Context.CancellationToken;
-        var itemFilter = await IOUtility.JsonParseAsync<ArtworkDatabaseInfoFilter>(filter, token).ConfigureAwait(false);
-
-        if (!input.EndsWith(IOUtility.ArtworkDatabaseFileExtension))
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
+        if (database is null)
         {
+            if (!pipe)
+            {
+                logger.LogInformation("null");
+            }
             goto END;
         }
 
-        var array = await IOUtility.MessagePackDeserializeAsync<ArtworkDatabaseInfo[]>(info.FullName, token).ConfigureAwait(false);
-        if (array is null)
-        {
-            logger.LogInformation("null");
-            goto END;
-        }
+        var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
+        var artworks = itemFilter is null
+            ? database.Artworks
+            : await ArtworkEnumerable.CreateAsync(database, itemFilter, token).ConfigureAwait(false);
 
-        if (itemFilter is null)
+        if (pipe)
         {
-            logger.LogInformation(IOUtility.JsonStringSerialize(array));
+            foreach (var item in artworks)
+            {
+                logger.LogInformation(IOUtility.JsonStringSerialize(item));
+            }
         }
         else
         {
-            logger.LogInformation(IOUtility.JsonStringSerialize(await ArtworkDatabaseInfoEnumerable.CreateAsync(array, itemFilter, token).ConfigureAwait(false)));
+            logger.LogInformation(IOUtility.JsonStringSerialize(artworks));
         }
 
     END:

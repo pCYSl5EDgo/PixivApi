@@ -1,8 +1,8 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Local.Filter;
 
-public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
+public sealed class FileExistanceFilter : IFilter<Artwork>
 {
-    public sealed class OriginalFilter
+    public sealed class OriginalFilter : IFilter<Artwork>
     {
         [JsonPropertyName("folder")]
         public string Folder = "Original";
@@ -10,88 +10,39 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
         [JsonPropertyName("exist")]
         public bool Exist;
 
-        public bool Filter(string url)
+        public bool Filter(Artwork artwork)
         {
-            var name = IOUtility.GetFileNameFromUri(url);
-            return !string.IsNullOrEmpty(name) && (File.Exists(Path.Combine(Folder, name)) ? Exist : !Exist);
-        }
-
-        public bool Filter(ArtworkDatabaseInfo artwork)
-        {
+            var folder = $"{Folder}/{(byte)(artwork.Id & 255):X2}/";
             if (Exist)
             {
-                if (artwork.PageCount == 0)
+                for (uint i = 0; i < artwork.PageCount; i++)
                 {
-                    return false;
-                }
-            }
-
-            if (artwork.MetaSinglePage.OriginalImageUrl is string single)
-            {
-                var name = IOUtility.GetFileNameFromUri(single);
-                if (string.IsNullOrEmpty(name))
-                {
-                    return false;
-                }
-
-                if (File.Exists(Path.Combine(Folder, name)))
-                {
-                    return Exist;
+                    DefaultInterpolatedStringHandler handler = $"{folder}";
+                    artwork.AddOriginalFileName(i, ref handler);
+                    if (!File.Exists(handler.ToStringAndClear()))
+                    {
+                        return false;
+                    }
                 }
             }
             else
             {
-                foreach (var metaPage in artwork.MetaPages)
+                for (uint i = 0; i < artwork.PageCount; i++)
                 {
-                    if (metaPage.ImageUrls.Original is string page)
-                    {
-                        var name = IOUtility.GetFileNameFromUri(page);
-                        if (string.IsNullOrEmpty(name))
-                        {
-                            return false;
-                        }
-
-                        if (File.Exists(Path.Combine(Folder, name)))
-                        {
-                            return Exist;
-                        }
-
-                        goto RETURN;
-                    }
-                }
-            }
-
-        RETURN:
-            return !Exist;
-        }
-
-        public bool Filter(MetaPage[] metaPages)
-        {
-            foreach (var metaPage in metaPages)
-            {
-                if (metaPage.ImageUrls.Original is string page)
-                {
-                    var name = IOUtility.GetFileNameFromUri(page);
-                    if (string.IsNullOrEmpty(name))
+                    DefaultInterpolatedStringHandler handler = $"{folder}";
+                    artwork.AddOriginalFileName(i, ref handler);
+                    if (File.Exists(handler.ToStringAndClear()))
                     {
                         return false;
                     }
-
-                    if (File.Exists(Path.Combine(Folder, name)))
-                    {
-                        return Exist;
-                    }
-
-                    goto RETURN;
                 }
             }
 
-        RETURN:
-            return !Exist;
+            return true;
         }
     }
 
-    public sealed class ThumbnailFilter
+    public sealed class ThumbnailFilter : IFilter<Artwork>
     {
         [JsonPropertyName("folder")]
         public string Folder = "Thumbnail";
@@ -99,23 +50,31 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
         [JsonPropertyName("exist")]
         public bool Exist;
 
-        public bool Filter(string? url)
+        public bool Filter(Artwork artwork)
         {
-            if (url is null)
+            DefaultInterpolatedStringHandler handler = $"{Folder}/{(byte)(artwork.Id & 255):X2}/";
+            artwork.AddThumbnailFileName(ref handler);
+            return File.Exists(handler.ToStringAndClear()) == Exist;
+        }
+    }
+
+    public sealed class UgoiraFilter : IFilter<Artwork>
+    {
+        [JsonPropertyName("folder")]
+        public string Folder = "Ugoira";
+
+        [JsonPropertyName("exist")]
+        public bool Exist;
+
+        public bool Filter(Artwork artwork)
+        {
+            if (artwork.UgoiraFrames is null)
             {
                 return !Exist;
             }
 
-            var name = IOUtility.GetFileNameFromUri(url);
-            if (string.IsNullOrEmpty(name))
-            {
-                return false;
-            }
-
-            return File.Exists(Path.Combine(Folder, name)) ? Exist : !Exist;
+            return File.Exists($"{Folder}/{(byte)(artwork.Id & 255):X2}/{artwork.GetZipFileName()}") == Exist;
         }
-
-        public bool Filter(ArtworkDatabaseInfo artwork) => Filter(artwork.ImageUrls.SquareMedium);
     }
 
     [JsonPropertyName("original")]
@@ -124,24 +83,24 @@ public sealed class FileExistanceFilter : IFilter<ArtworkDatabaseInfo>
     [JsonPropertyName("thumbnail")]
     public ThumbnailFilter? Thumbnail;
 
-    private static bool Filterable([NotNullWhen(true)] OriginalFilter? filter) => filter is not null;
-    private static bool Filterable([NotNullWhen(true)] ThumbnailFilter? filter) => filter is not null;
+    [JsonPropertyName("ugoira")]
+    public UgoiraFilter? Ugoira;
 
-    public bool Filter(ArtworkDatabaseInfo artwork)
+    public bool Filter(Artwork artwork)
     {
-        if (Filterable(Original))
+        if (Original is not null && !Original.Filter(artwork))
         {
-            if (!Filterable(Thumbnail))
-            {
-                return Original.Filter(artwork);
-            }
-
-            return Original.Filter(artwork) && Thumbnail.Filter(artwork);
+            return false;
         }
 
-        if (Filterable(Thumbnail))
+        if (Thumbnail is not null && !Thumbnail.Filter(artwork))
         {
-            return Thumbnail.Filter(artwork);
+            return false;
+        }
+
+        if (artwork.Type == ArtworkType.Ugoira && Ugoira is not null && !Ugoira.Filter(artwork))
+        {
+            return false;
         }
 
         return true;

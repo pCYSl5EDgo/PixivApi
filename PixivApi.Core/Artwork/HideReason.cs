@@ -1,6 +1,6 @@
 ﻿namespace PixivApi;
 
-public enum HideReason
+public enum HideReason : byte
 {
     NotHidden,
     LowQuality,

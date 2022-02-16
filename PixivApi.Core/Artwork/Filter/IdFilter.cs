@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Local.Filter;
 
 public sealed class IdFilter : IFilter<ulong>
 {

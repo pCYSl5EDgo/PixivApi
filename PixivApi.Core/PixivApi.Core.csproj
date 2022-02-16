@@ -2,7 +2,6 @@
 
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<LangVersion>10</LangVersion>
@@ -10,13 +9,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="ArtworkDatabaseInfoFilterScheme.json" />
+	  <None Remove="ArtworkFilterScheme.json" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="MessagePack" Version="2.3.85" />
 		<PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
 		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="6.0.0" />
+		<PackageReference Include="Microsoft.Toolkit.HighPerformance" Version="7.1.2" />
 		<PackageReference Include="NativeMemoryArray" Version="1.2.0" />
 		<PackageReference Include="Selenium.WebDriver" Version="4.1.0" />
 		<PackageReference Include="ValueTaskSupplement" Version="1.1.0" />
@@ -38,14 +38,24 @@
 		<Using Include="MessagePack.Formatters" />
 		<Using Include="Microsoft.Extensions.Options" />
 		<Using Include="RuntimeT4Generator" />
+		<Using Include="System" />
+		<Using Include="System.Net" />
+		<Using Include="System.Net.Http" />
 		<Using Include="System.Buffers" />
+		<Using Include="System.Collections" />
+		<Using Include="System.Collections.Generic" />
+		<Using Include="System.Collections.Concurrent" />
 		<Using Include="System.Diagnostics" />
 		<Using Include="System.Diagnostics.CodeAnalysis" />
 		<Using Include="System.IO" />
+		<Using Include="System.Globalization" />
+		<Using Include="System.Linq" />
 		<Using Include="System.Runtime.InteropServices" />
 		<Using Include="System.Runtime.CompilerServices" />
 		<Using Include="System.Text.Json" />
 		<Using Include="System.Text.Json.Serialization" />
+		<Using Include="System.Threading" />
+		<Using Include="System.Threading.Tasks" />
 	</ItemGroup>
 
 	<ProjectExtensions><VisualStudio><UserProperties artworkdatabaseinfofilterscheme_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>

@@ -1,28 +1,28 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Local.Filter;
 
-public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, IAsyncInitailizable, IFilter<ArtworkDatabaseInfo>
+public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonOnDeserialized
 {
-    [JsonPropertyName("title-filter")] public TagFilter? TitleFilter = null;
-    [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;
-    [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
-    [JsonPropertyName("user-filter")] public UserFilter? UserFilter = null;
-    [JsonPropertyName("file-filter")] public FileExistanceFilter? FileExistanceFilter = null;
-    [JsonPropertyName("culture")] public string? Culture = null;
-    [JsonPropertyName("total-view")] public MinMaxFilter? TotalView = null;
-    [JsonPropertyName("total-bookmarks")] public MinMaxFilter? TotalBookmarks = null;
-    [JsonPropertyName("page-count")] public MinMaxFilter? PageCount = null;
-    [JsonPropertyName("width")] public MinMaxFilter? Width = null;
-    [JsonPropertyName("height")] public MinMaxFilter? Height = null;
-    [JsonPropertyName("type")] public ArtworkType? Type = null;
-    [JsonPropertyName("date")] public DateTimeFilter? DateTimeFilter = null;
-    [JsonPropertyName("r18")] public bool? R18;
     [JsonPropertyName("bookmark")] public bool? IsBookmark = null;
-    [JsonPropertyName("ignore-case")] public bool IgnoreCase = true;
     [JsonPropertyName("count")] public int? Count = null;
+    [JsonPropertyName("date")] public DateTimeFilter? DateTimeFilter = null;
+    [JsonPropertyName("file-filter")] public FileExistanceFilter? FileExistanceFilter = null;
+    [JsonPropertyName("height")] public MinMaxFilter? Height = null;
+    [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;
+    [JsonPropertyName("mute")] public bool? IsMuted = null;
     [JsonPropertyName("offset")] public int Offset = 0;
     [JsonPropertyName("order")] public string? Order = null;
+    [JsonPropertyName("page-count")] public MinMaxFilter? PageCount = null;
+    [JsonPropertyName("r18")] public bool? R18;
+    [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
+    [JsonPropertyName("title-filter")] public TagFilter? TitleFilter = null;
+    [JsonPropertyName("total-bookmarks")] public MinMaxFilter? TotalBookmarks = null;
+    [JsonPropertyName("total-view")] public MinMaxFilter? TotalView = null;
+    [JsonPropertyName("type")] public ArtworkType? Type = null;
+    [JsonPropertyName("user-filter")] public UserFilter? UserFilter = null;
+    [JsonPropertyName("visible")] public bool? IsVisible = null;
+    [JsonPropertyName("width")] public MinMaxFilter? Width = null;
 
-    public IEnumerable<ArtworkDatabaseInfo> Limit(IEnumerable<ArtworkDatabaseInfo> collection)
+    public IEnumerable<Artwork> Limit(IEnumerable<Artwork> collection)
     {
         if (Offset == 0)
         {
@@ -30,7 +30,7 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
             {
                 if (Count.Value == 0)
                 {
-                    return Array.Empty<ArtworkDatabaseInfo>();
+                    return Array.Empty<Artwork>();
                 }
                 else
                 {
@@ -48,7 +48,7 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
             {
                 if (Count.Value == 0)
                 {
-                    return Array.Empty<ArtworkDatabaseInfo>();
+                    return Array.Empty<Artwork>();
                 }
                 else
                 {
@@ -64,33 +64,18 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
 
     public bool IsDateDescending() => OrderKind == ArtworkOrderKind.ReverseId;
 
-    [MemberNotNull(nameof(CompareInfo))]
-    public async ValueTask InitializeAsync(string? directory, CancellationToken token)
+    public bool Filter(Artwork artwork)
     {
-        CompareInfo = new StringCompareInfo(Culture, IgnoreCase);
-        if (UserFilter is not null)
+        if (IsVisible.HasValue && IsVisible.Value != artwork.IsVisible)
         {
-            await UserFilter.InitializeAsync(directory, token).ConfigureAwait(false);
+            return false;
         }
 
-        OrderKind = Order switch
+        if (IsMuted.HasValue && IsMuted.Value != artwork.IsMuted)
         {
-            "view" or "v" => ArtworkOrderKind.View,
-            "reverse-view" or "rv" => ArtworkOrderKind.ReverseView,
-            "id" or "i" => ArtworkOrderKind.Id,
-            "reverse" or "r" or "reverse-id" or "ri" => ArtworkOrderKind.ReverseId,
-            "bookmarks" or "b" => ArtworkOrderKind.Bookmarks,
-            "reverse-bookmarks" or "rb" => ArtworkOrderKind.ReverseBookmarks,
-            "user" or "u" => ArtworkOrderKind.UserId,
-            "reverse-user" or "ru" => ArtworkOrderKind.ReverseUserId,
-            _ => ArtworkOrderKind.None,
-        };
-    }
+            return false;
+        }
 
-    public bool R18Filter(uint xRestrict) => R18 == null || (R18.Value ? xRestrict == 1 : xRestrict != 1);
-
-    public bool Filter(ArtworkDatabaseInfo artwork)
-    {
         if (TotalView is not null && !TotalView.Filter(artwork.TotalView))
         {
             return false;
@@ -129,7 +114,7 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
             }
         }
 
-        if (!R18Filter(artwork.XRestrict))
+        if (R18.HasValue && R18.Value != artwork.IsXRestricted)
         {
             return false;
         }
@@ -144,25 +129,18 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
             return false;
         }
 
-        if (UserFilter is not null && !UserFilter.Filter(artwork.User.Id))
+        if (UserFilter is not null && !UserFilter.Filter(artwork.UserId))
         {
             return false;
         }
-        
-        
+
+
         if (TitleFilter is not null)
         {
-            using var segment = ArraySegmentFromPool<string>.Rent(2);
-            var span = segment.AsSpan();
-            span[0] = artwork.Title;
-            span[1] = artwork.Caption;
-            if (!TitleFilter.IsMatch(CompareInfo, segment.AsReadOnlySpan()))
-            {
-                return false;
-            }
+
         }
 
-        if (TagFilter is not null && !TagFilter.IsMatch(CompareInfo, artwork.Tags, artwork.ExtraInfo?.Tags, artwork.ExtraInfo?.FakeTags))
+        if (TagFilter is not null && !TagFilter.Filter(artwork.Tags, artwork.ExtraTags, artwork.ExtraFakeTags))
         {
             return false;
         }
@@ -184,10 +162,7 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
     [JsonIgnore]
     public ArtworkOrderKind OrderKind;
 
-    [JsonIgnore]
-    public StringCompareInfo CompareInfo = null!;
-
-    public int Compare(ArtworkDatabaseInfo? x, ArtworkDatabaseInfo? y)
+    public int Compare(Artwork? x, Artwork? y)
     {
         if (ReferenceEquals(x, y))
         {
@@ -245,7 +220,7 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
 
                 goto default;
             case ArtworkOrderKind.UserId:
-                c = x.User.Id.CompareTo(y.User.Id);
+                c = x.UserId.CompareTo(y.UserId);
                 if (c != 0)
                 {
                     return c;
@@ -253,7 +228,7 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
 
                 goto default;
             case ArtworkOrderKind.ReverseUserId:
-                c = y.User.Id.CompareTo(x.User.Id);
+                c = y.UserId.CompareTo(x.UserId);
                 if (c != 0)
                 {
                     return c;
@@ -261,5 +236,31 @@ public sealed class ArtworkDatabaseInfoFilter : IComparer<ArtworkDatabaseInfo>, 
 
                 goto default;
         }
+    }
+
+    public void OnDeserialized()
+    {
+        OrderKind = Order switch
+        {
+            "view" or "v" => ArtworkOrderKind.View,
+            "reverse-view" or "rv" => ArtworkOrderKind.ReverseView,
+            "id" or "i" => ArtworkOrderKind.Id,
+            "reverse" or "r" or "reverse-id" or "ri" => ArtworkOrderKind.ReverseId,
+            "bookmarks" or "b" => ArtworkOrderKind.Bookmarks,
+            "reverse-bookmarks" or "rb" => ArtworkOrderKind.ReverseBookmarks,
+            "user" or "u" => ArtworkOrderKind.UserId,
+            "reverse-user" or "ru" => ArtworkOrderKind.ReverseUserId,
+            _ => ArtworkOrderKind.None,
+        };
+    }
+
+    public ValueTask InitializeAsync(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken cancellationToken)
+    {
+        if (UserFilter is not null)
+        {
+            UserFilter.Dictionary = userDictionary;
+        }
+
+        return TagFilter?.InitializeAsync(tagSet, cancellationToken) ?? ValueTask.CompletedTask;
     }
 }

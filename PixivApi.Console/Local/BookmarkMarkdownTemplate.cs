@@ -1,20 +1,35 @@
-﻿namespace PixivApi;
+﻿using PixivApi.Core.Local;
+
+namespace PixivApi.Console;
 
 [T4("Local", Kind.Utf8)]
 public partial struct BookmarkMarkdownTemplate
 {
-    public BookmarkMarkdownTemplate(ArtworkDatabaseInfo[] artworks, string originalDirectory, string outputFilePath)
+    public BookmarkMarkdownTemplate(IEnumerable<Artwork> artworks, string originalDirectory, string outputFilePath, StringSet tagSet, ConcurrentDictionary<ulong, User> userDictionary)
     {
         Artworks = artworks;
+        TagSet = tagSet;
+        UserDictionary = userDictionary;
         RelativePath = Path.GetRelativePath(Path.GetDirectoryName(outputFilePath) ?? string.Empty, originalDirectory);
+        if (artworks.TryGetNonEnumeratedCount(out var nonEnumeratedCount))
+        {
+            ArtworkCount = nonEnumeratedCount;
+        }
+        else
+        {
+            ArtworkCount = 0;
+        }
     }
 
-    public ArtworkDatabaseInfo[] Artworks { get; }
+    public IEnumerable<Artwork> Artworks { get; }
+    public StringSet TagSet { get; }
+    public ConcurrentDictionary<ulong, User> UserDictionary { get; }
     public string RelativePath { get; }
 
-    private void WritePath(ref Utf8ValueStringBuilder builder, string url)
+    public int ArtworkCount { get; private set; }
+
+    private void WritePath(ref Utf8ValueStringBuilder builder, ulong id, string name)
     {
-        var name = url.AsSpan((url.LastIndexOf('/') + 1));
         if (!string.IsNullOrEmpty(RelativePath))
         {
             bool isLastSlash = false;
@@ -42,6 +57,8 @@ public partial struct BookmarkMarkdownTemplate
             }
         }
 
+        builder.Append((byte)(id & 255), new StandardFormat('X', 2));
+        builder.Append('/');
         builder.Append(name);
     }
 }
