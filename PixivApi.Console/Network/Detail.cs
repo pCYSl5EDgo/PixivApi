@@ -59,8 +59,16 @@ partial class NetworkClient
                         logger.LogInformation($"{update,4}: {converted.Id,20}");
                     }
                 }
-                catch (Exception e) when (e is not TaskCanceledException)
+                catch (HttpRequestException e)
                 {
+                    if (e.StatusCode.HasValue && e.StatusCode.Value == System.Net.HttpStatusCode.NotFound)
+                    {
+                        item.IsOfficiallyRemoved = true;
+                        var updated = Interlocked.Increment(ref update);
+                        logger.LogInformation($"{updated,4}: {item.Id,20} removed");
+                        continue;
+                    }
+
                     logger.LogError(e, "");
                 }
             }
@@ -71,11 +79,11 @@ partial class NetworkClient
             {
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
             }
-        }
 
-        if (!pipe)
-        {
-            logger.LogInformation($"Total: {database.Artworks.Length} Update: {update}");
+            if (!pipe)
+            {
+                logger.LogInformation($"Total: {database.Artworks.Length} Update: {update}");
+            }
         }
 
         return 0;
