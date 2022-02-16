@@ -77,7 +77,7 @@ public sealed class UserPreview
     [JsonPropertyName("is_muted")] public bool IsMuted;
 }
 
-public struct UgoiraMetadata
+public struct UgoiraMetadataResponseData
 {
     [JsonPropertyName("ugoira_metadata")]
     public InnerData Value;
