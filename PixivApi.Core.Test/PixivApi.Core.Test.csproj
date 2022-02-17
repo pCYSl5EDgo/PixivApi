@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net6.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<OutputType>Exe</OutputType>
+		<LangVersion>10</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
+		<PackageReference Include="coverlet.collector" Version="3.1.0">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="xunit.v3" Version="0.1.1-pre.30" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="System" />
+		<Using Include="System.Linq" />
+		<Using Include="System.Collections.Generic" />
+		<Using Include="System.Collections.Concurrent" />
+		<Using Include="System.Threading" />
+		<Using Include="System.Threading.Tasks" />
+		<Using Include="PixivApi.Core.Local" />
+	</ItemGroup>
+
+</Project>

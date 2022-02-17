@@ -30,6 +30,12 @@ public sealed class DatabaseFile
         ToolSet = toolSet;
     }
 
+    public void Optimize()
+    {
+        var lackedTag = TagSet.GetLackedNumbers().ToArray();
+        var lackedTool = ToolSet.GetLackedNumbers().ToArray();
+    }
+
     public sealed class Formatter : IMessagePackFormatter<DatabaseFile?>
     {
         public void Serialize(ref MessagePackWriter writer, DatabaseFile? value, MessagePackSerializerOptions options) => SerializeStatic(ref writer, value, options);

@@ -28,6 +28,26 @@ public sealed class StringSet
         });
     }
 
+    public IEnumerable<(uint lackedNumber, uint valueNumber)> GetLackedNumbers()
+    {
+        if (Reverses.IsEmpty)
+        {
+            yield break;
+        }
+
+        uint index = 0;
+        var ascending = Reverses.Select(x => x.Value).ToArray();
+        Array.Sort(ascending);
+        for (uint ascendingIndex = 0, descendingIndex = (uint)ascending.Length - 1; ascendingIndex <= descendingIndex; ascendingIndex++)
+        {
+            uint number = ascending[ascendingIndex];
+            while (++index != number && ascendingIndex <= descendingIndex)
+            {
+                yield return (index, ascending[descendingIndex--]);
+            }
+        }
+    }
+
     public sealed class Formatter : IMessagePackFormatter<StringSet?>
     {
         public StringSet? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => DeserializeStatic(ref reader);
@@ -63,7 +83,7 @@ public sealed class StringSet
         }
 
         public void Serialize(ref MessagePackWriter writer, StringSet? value, MessagePackSerializerOptions options) => SerializeStatic(ref writer, value);
-        
+
         public static void SerializeStatic(ref MessagePackWriter writer, StringSet? value)
         {
             if (value is null)
