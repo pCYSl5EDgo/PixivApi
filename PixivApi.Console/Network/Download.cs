@@ -22,6 +22,7 @@ partial class NetworkClient
             return -1;
         }
 
+        var downloadItemCount = 0;
         var failFlag = 0;
         var machine = new DownloadAsyncMachine(this, displayAlreadyExists, token);
         async ValueTask DownloadEach(Artwork artwork, CancellationToken token)
@@ -48,7 +49,11 @@ partial class NetworkClient
                 success = await machine.DownloadAsync(config.OriginalFolder, artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex)).ConfigureAwait(false);
             }
 
-            if (!success)
+            if (success)
+            {
+                Interlocked.Increment(ref downloadItemCount);
+            }
+            else
             {
                 Interlocked.Exchange(ref failFlag, 1);
             }
@@ -60,7 +65,7 @@ partial class NetworkClient
         }
         finally
         {
-            logger.LogInformation($"Item: {machine.downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
+            logger.LogInformation($"Item: {downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
             if (detail)
             {
                 await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
@@ -90,6 +95,7 @@ partial class NetworkClient
             return -1;
         }
 
+        var downloadItemCount = 0;
         var failFlag = 0;
         var machine = new DownloadAsyncMachine(this, displayAlreadyExists, token);
         async ValueTask DownloadEach(Artwork artwork, CancellationToken token)
@@ -111,7 +117,11 @@ partial class NetworkClient
                 success = await machine.DownloadAsync(config.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName()).ConfigureAwait(false);
             }
 
-            if (!success)
+            if (success)
+            {
+                Interlocked.Increment(ref downloadItemCount);
+            }
+            else
             {
                 Interlocked.Exchange(ref failFlag, 1);
             }
@@ -123,7 +133,7 @@ partial class NetworkClient
         }
         finally
         {
-            logger.LogInformation($"Item: {machine.downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
+            logger.LogInformation($"Item: {downloadItemCount}, File: {machine.downloadFileCount}, Already: {failFlag}, Transfer: {ToDisplayableByteAmount(machine.downloadByteCount)}");
             if (detail)
             {
                 await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
@@ -136,8 +146,6 @@ partial class NetworkClient
 
         return 0;
     }
-
-
 
     private async ValueTask<(DatabaseFile, IEnumerable<Artwork>?)> PrepareDownloadFileAsync(
         string path,
@@ -225,7 +233,6 @@ partial class NetworkClient
         private readonly bool displayAlreadyExists;
         private readonly CancellationToken token;
         public int downloadFileCount = 0;
-        public int downloadItemCount = 0;
         public ulong downloadByteCount = 0UL;
         private ulong retryPair = 0UL;
 
