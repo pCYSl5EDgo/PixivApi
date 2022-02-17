@@ -1,5 +1,7 @@
 using PixivApi.Core.Local;
 using PixivApi.Core.Local.Filter;
+using System.Net;
+using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
@@ -42,6 +44,7 @@ partial class NetworkClient
         {
             foreach (var item in search)
             {
+            RETRY:
                 try
                 {
                     var artwork = await GetArtworkDetailAsync(item.Id, token).ConfigureAwait(false);
@@ -76,17 +79,34 @@ partial class NetworkClient
                         logger.LogInformation($"{update,4}: {item.Id,20}");
                     }
                 }
-                catch (HttpRequestException e)
+                catch (HttpRequestException e) when (e.StatusCode.HasValue)
                 {
-                    if (e.StatusCode.HasValue && e.StatusCode.Value == System.Net.HttpStatusCode.NotFound)
+                    if (e.StatusCode.Value == HttpStatusCode.NotFound)
                     {
                         item.IsOfficiallyRemoved = true;
                         var updated = Interlocked.Increment(ref update);
                         logger.LogInformation($"{updated,4}: {item.Id,20} removed");
                         continue;
                     }
+                    else if (e.StatusCode.Value == HttpStatusCode.BadRequest)
+                    {
+                        if (!pipe)
+                        {
+                            logger.LogWarning($"Reconnect. Wait for {config.RetryTimeSpan.TotalSeconds} seconds.");
+                        }
 
-                    logger.LogError(e, "");
+                        await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
+                        if (!(await Reconnect().ConfigureAwait(false)))
+                        {
+                            ExceptionDispatchInfo.Throw(e);
+                        }
+
+                        goto RETRY;
+                    }
+                    else
+                    {
+                        logger.LogError(e, "");
+                    }
                 }
             }
         }
