@@ -16,7 +16,7 @@ partial class LocalClient
             return;
         }
 
-        database.Optimize();
+        await database.OptimizeAsync(token).ConfigureAwait(false);
         await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
     }
 }

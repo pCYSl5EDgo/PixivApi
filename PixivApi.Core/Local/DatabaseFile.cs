@@ -30,10 +30,51 @@ public sealed class DatabaseFile
         ToolSet = toolSet;
     }
 
-    public void Optimize()
+    public async ValueTask OptimizeAsync(CancellationToken token)
     {
-        var lackedTag = TagSet.GetLackedNumbers().ToArray();
-        var lackedTool = ToolSet.GetLackedNumbers().ToArray();
+        var lackedTag = TagSet.Optimize();
+        var lackedTool = ToolSet.Optimize();
+        await Parallel.ForEachAsync(Artworks, token, (artwork, token) =>
+        {
+            foreach (var (lacked, value) in lackedTag)
+            {
+                foreach (ref var item in artwork.Tags.AsSpan())
+                {
+                    if (item == value)
+                    {
+                        item = lacked;
+                    }
+                }
+
+                foreach (ref var item in artwork.ExtraTags.AsSpan())
+                {
+                    if (item == value)
+                    {
+                        item = lacked;
+                    }
+                }
+
+                foreach (ref var item in artwork.ExtraFakeTags.AsSpan())
+                {
+                    if (item == value)
+                    {
+                        item = lacked;
+                    }
+                }
+            }
+
+            foreach (var (lacked, value) in lackedTool)
+            {
+                foreach (ref var item in artwork.Tools.AsSpan())
+                {
+                    if (item == value)
+                    {
+                        item = lacked;
+                    }
+                }
+            }
+            return ValueTask.CompletedTask;
+        }).ConfigureAwait(false);
     }
 
     public sealed class Formatter : IMessagePackFormatter<DatabaseFile?>

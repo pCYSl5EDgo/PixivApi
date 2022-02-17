@@ -28,7 +28,25 @@ public sealed class StringSet
         });
     }
 
-    public IEnumerable<(uint lackedNumber, uint valueNumber)> GetLackedNumbers()
+    public (uint lackedNumber, uint valueNumber)[] Optimize()
+    {
+        var array = GetLackedNumbers().ToArray();
+        foreach (var (lackedNumber, valueNumber) in array)
+        {
+            Values.TryRemove(valueNumber, out var valueText);
+            if (string.IsNullOrEmpty(valueText))
+            {
+                throw new InvalidDataException();
+            }
+
+            Values.AddOrUpdate(lackedNumber, valueText, (_, _) => valueText);
+            Reverses.AddOrUpdate(valueText, lackedNumber, (_, _) => lackedNumber);
+        }
+
+        return array;
+    }
+
+    private IEnumerable<(uint lackedNumber, uint valueNumber)> GetLackedNumbers()
     {
         if (Reverses.IsEmpty)
         {
