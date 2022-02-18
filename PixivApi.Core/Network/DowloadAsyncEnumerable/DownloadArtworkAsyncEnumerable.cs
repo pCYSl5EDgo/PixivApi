@@ -2,6 +2,7 @@
 using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreview>;
 using QueryAsync = System.Func<string, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>;
 using SplitFunc = System.Func<PixivApi.Core.Network.Artwork[], System.ValueTuple<System.DateOnly, PixivApi.Core.Network.Artwork[]>>;
+using ReconnectAsyncFunc = System.Func<System.Exception, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>;
 
 namespace PixivApi.Core.Network;
 
@@ -87,16 +88,18 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
     private readonly string initialUrl;
     private readonly SearchNextUrl searchNextUrl;
     private readonly SplitFunc split;
+    private readonly ReconnectAsyncFunc reconnect;
 
-    public SearchArtworkAsyncEnumerable(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split)
+    public SearchArtworkAsyncEnumerable(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split, ReconnectAsyncFunc reconnect)
     {
         this.query = query;
         this.initialUrl = initialUrl;
         this.searchNextUrl = searchNextUrl;
         this.split = split;
+        this.reconnect = reconnect;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, searchNextUrl, split, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, searchNextUrl, split, reconnect, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
@@ -108,13 +111,15 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
         private string? url;
         private readonly SearchNextUrl searchNextUrl;
         private readonly SplitFunc split;
+        private readonly ReconnectAsyncFunc reconnect;
         private Artwork[]? array;
 
-        public Enumerator(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split, CancellationToken cancellationToken)
+        public Enumerator(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split, ReconnectAsyncFunc reconnect, CancellationToken cancellationToken)
         {
             url = initialUrl;
             this.searchNextUrl = searchNextUrl;
             this.split = split;
+            this.reconnect = reconnect;
             this.query = query;
             this.cancellationToken = cancellationToken;
         }
@@ -135,7 +140,29 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
                 return false;
             }
 
-            var responseByteArray = await query(url, cancellationToken).ConfigureAwait(false);
+            byte[]? responseByteArray;
+            do
+            {
+                try
+                {
+                    responseByteArray = await query(url, cancellationToken).ConfigureAwait(false);
+                }
+                catch (HttpRequestException e)
+                {
+                    if (e.StatusCode.HasValue && e.StatusCode.Value == HttpStatusCode.BadRequest)
+                    {
+                        await reconnect(e, cancellationToken).ConfigureAwait(false);
+                        continue;
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+
+                break;
+            } while (true);
+
             if (responseByteArray is not { Length: > 0 })
             {
                 return false;
