@@ -4,7 +4,7 @@
   "additionalProperties": false,
   "description": "A filter json file",
   "properties": {
-    "$scehma": {
+    "$schema": {
       "type": "string",
       "format": "uri"
     },
