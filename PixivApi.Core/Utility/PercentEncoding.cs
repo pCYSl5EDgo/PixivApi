@@ -82,6 +82,7 @@ public readonly struct PercentEncoding : ISpanFormattable, IEquatable<PercentEnc
 
                         charsWritten++;
                         destination[0] = (char)c.Value;
+                        destination = destination[1..];
                         continue;
                 }
             }
