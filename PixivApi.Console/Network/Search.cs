@@ -1,4 +1,5 @@
 using PixivApi.Core.Network;
+using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
@@ -25,7 +26,7 @@ partial class NetworkClient
         return await InternalSearchAsync(text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), output, OverwriteKindExtensions.Parse(overwrite), pipe);
     }
 
-    private async ValueTask<int> InternalSearchAsync(string[] searchArray, string output, OverwriteKind overwrite, bool pipe)
+    private async ValueTask<int> InternalSearchAsync(string[] searchArray, string output, OverwriteKind overwriteKind, bool pipe)
     {
         if (CalcUrl(searchArray) is not string url)
         {
@@ -38,12 +39,12 @@ partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var database = overwrite == OverwriteKind.ClearAndAdd ?
+        var database = overwriteKind == OverwriteKind.ClearAndAdd ?
             new() :
             await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false);
         if (database is null)
         {
-            overwrite = OverwriteKind.ClearAndAdd;
+            overwriteKind = OverwriteKind.ClearAndAdd;
             database = new();
         }
 
@@ -70,6 +71,16 @@ partial class NetworkClient
             var index = SearchUrlUtility.GetIndexOfOldestDay(array);
             var date = DateOnly.FromDateTime(array[index].CreateDate);
             return (date, index == 0 ? Array.Empty<Artwork>() : array[..index]);
+        }, async (e, token) =>
+        {
+            logger.LogInformation(e, $"{IOUtility.WarningColor}Wait for {config.RetryTimeSpan.TotalSeconds} seconds to reconnect.{IOUtility.NormalizeColor}");
+            await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
+            if (!await Reconnect().ConfigureAwait(false))
+            {
+                ExceptionDispatchInfo.Throw(e);
+            }
+
+            logger.LogInformation($"{IOUtility.WarningColor}Reconnect.{IOUtility.NormalizeColor}");
         }).GetAsyncEnumerator(token);
         try
         {
@@ -108,7 +119,7 @@ partial class NetworkClient
                     return ValueTask.CompletedTask;
                 }).ConfigureAwait(false);
 
-                if (overwrite == OverwriteKind.Add && update == oldUpdate && add != oldAdd)
+                if (overwriteKind == OverwriteKind.Add && add == oldAdd)
                 {
                     break;
                 }
