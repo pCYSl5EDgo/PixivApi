@@ -7,7 +7,7 @@ partial class LocalClient : ConsoleAppBase
 {
     [Command("markdown", "Generate markdown file.")]
     public async ValueTask<int> GenerateMarkdownAsync(
-            [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string input,
+            [Option(0, $"input {IOUtility.DatabaseDescription}")] string input,
             [Option(1, IOUtility.FilterDescription)] string filter
         )
     {

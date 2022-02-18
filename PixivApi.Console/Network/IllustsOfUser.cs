@@ -7,7 +7,7 @@ partial class NetworkClient
     [Command("illusts")]
     public async ValueTask<int> DownloadIllustsOfUserAsync
     (
-        [Option(0, $"output {IOUtility.ArtworkDatabaseDescription}")] string output,
+        [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
         [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false
     )

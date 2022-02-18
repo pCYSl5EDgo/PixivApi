@@ -7,7 +7,7 @@ partial class LocalClient
 {
     [Command("map")]
     public async ValueTask<int> MapAsync(
-        [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string input,
+        [Option(0, $"input {IOUtility.DatabaseDescription}")] string input,
         [Option(1, IOUtility.FilterDescription)] string filter,
         bool pipe = false
     )

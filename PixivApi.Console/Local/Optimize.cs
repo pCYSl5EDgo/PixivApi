@@ -6,7 +6,7 @@ partial class LocalClient
 {
     [Command("optimize")]
     public async ValueTask OptimizeAsync(
-        [Option(0, IOUtility.ArtworkDatabaseDescription)] string path
+        [Option(0, IOUtility.DatabaseDescription)] string path
     )
     {
         var token = Context.CancellationToken;

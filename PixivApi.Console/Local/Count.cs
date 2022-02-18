@@ -7,7 +7,7 @@ partial class LocalClient
 {
     [Command("count", "")]
     public async ValueTask<int> CountAsync(
-        [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string input,
+        [Option(0, $"input {IOUtility.DatabaseDescription}")] string input,
         [Option(1, "filter json content or json file path")] string? filter = null
     )
     {

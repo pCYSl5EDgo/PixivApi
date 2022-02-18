@@ -60,13 +60,11 @@ public static class IOUtility
         await RandomAccess.WriteAsync(handle, memory, 0, token).ConfigureAwait(false);
     }
 
-    public const string ArtworkDatabaseFileExtension = ".arts";
-
     public const string UserIdDescription = "user id";
 
     public const string FilterDescription = "artwork filter *.json file";
 
-    public const string ArtworkDatabaseDescription = $"artwork database *{ArtworkDatabaseFileExtension} file path";
+    public const string DatabaseDescription = "artwork database file path";
 
     public const string OverwriteKindDescription = "add: Append new data to existing file.\nadd-search: Download everything and add to existing file.\nadd-clear: Delete the file and then download everything and write to the file.";
 

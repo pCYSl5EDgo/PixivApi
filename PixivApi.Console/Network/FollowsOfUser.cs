@@ -7,7 +7,7 @@ partial class NetworkClient
     [Command("follows")]
     public async ValueTask<int> DownloadFollowsOfUserAsync
     (
-        [Option(0, $"output {IOUtility.ArtworkDatabaseDescription}")] string output,
+        [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
         [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false
     )

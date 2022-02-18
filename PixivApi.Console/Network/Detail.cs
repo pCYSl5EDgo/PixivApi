@@ -10,7 +10,7 @@ partial class NetworkClient
     [Command("detail")]
     public async ValueTask<int> DetailAsync
     (
-        [Option(0, $"output {IOUtility.ArtworkDatabaseDescription}")] string output,
+        [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
         [Option(1, $"{IOUtility.FilterDescription}")] string filter,
         bool pipe = false
     )

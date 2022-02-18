@@ -1,6 +1,7 @@
 ﻿using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.Artwork>;
 using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreview>;
 using QueryAsync = System.Func<string, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>;
+using SplitFunc = System.Func<PixivApi.Core.Network.Artwork[], System.ValueTuple<System.DateOnly, PixivApi.Core.Network.Artwork[]>>;
 
 namespace PixivApi.Core.Network;
 
@@ -80,16 +81,22 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
 
 public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
 {
+    public delegate string SearchNextUrl(ReadOnlySpan<char> url, DateOnly date);
+
     private readonly QueryAsync query;
     private readonly string initialUrl;
+    private readonly SearchNextUrl searchNextUrl;
+    private readonly SplitFunc split;
 
-    public SearchArtworkAsyncEnumerable(QueryAsync query, string initialUrl)
+    public SearchArtworkAsyncEnumerable(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split)
     {
         this.query = query;
         this.initialUrl = initialUrl;
+        this.searchNextUrl = searchNextUrl;
+        this.split = split;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, searchNextUrl, split, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
@@ -99,11 +106,15 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
         private readonly CancellationToken cancellationToken;
 
         private string? url;
+        private readonly SearchNextUrl searchNextUrl;
+        private readonly SplitFunc split;
         private Artwork[]? array;
 
-        public Enumerator(QueryAsync query, string initialUrl, CancellationToken cancellationToken)
+        public Enumerator(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split, CancellationToken cancellationToken)
         {
             url = initialUrl;
+            this.searchNextUrl = searchNextUrl;
+            this.split = split;
             this.query = query;
             this.cancellationToken = cancellationToken;
         }
@@ -136,27 +147,29 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
             {
                 return false;
             }
-            else if (array is not null && array.Length > container.Length)
+
+            if (array is not null && array.Length > container.Length)
             {
                 url = null;
-            }
-            else
-            {
-                url = response.NextUrl;
-                if (url is not null && array is { Length: > 0 })
-                {
-                    const string parts = "&offset=5010";
-                    var index = url.IndexOf(parts);
-                    if (index != -1)
-                    {
-                        var lastDayIndex = SearchUrlUtility.GetIndexOfOldestDay(array);
-                        var date = DateOnly.FromDateTime(array[lastDayIndex].CreateDate);
-                        url = SearchUrlUtility.CalculateNextUrl(url.AsSpan(0, index), date);
-                        array = lastDayIndex == 0 ? Array.Empty<Artwork>() : array[..lastDayIndex];
-                    }
-                }
+                goto DEFAULT;
             }
 
+            url = response.NextUrl;
+            if (url is null || array is not { Length: > 0 })
+            {
+                goto DEFAULT;
+            }
+
+            const string parts = "&offset=5010";
+            var index = url.IndexOf(parts);
+            if (index != -1)
+            {
+                (var date, array) = split(array);
+                url = searchNextUrl(url.AsSpan(0, index), date);
+                return true;
+            }
+
+        DEFAULT:
             array = container;
             return true;
         }

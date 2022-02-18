@@ -8,7 +8,7 @@ partial class NetworkClient
 {
     [Command("download-original")]
     public async ValueTask<int> DownloadOriginalFileFromDatabaseAsync(
-        [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string path,
+        [Option(0, $"input {IOUtility.DatabaseDescription}")] string path,
         [Option(1, IOUtility.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
         [Option("d")] bool detail = false,
@@ -81,7 +81,7 @@ partial class NetworkClient
 
     [Command("download-thumbnail")]
     public async ValueTask<int> DownloadThumbnailFileFromDatabaseAsync(
-        [Option(0, $"input {IOUtility.ArtworkDatabaseDescription}")] string path,
+        [Option(0, $"input {IOUtility.DatabaseDescription}")] string path,
         [Option(1, IOUtility.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
         [Option("d")] bool detail = false,

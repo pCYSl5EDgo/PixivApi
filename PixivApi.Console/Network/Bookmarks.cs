@@ -7,7 +7,7 @@ partial class NetworkClient
     [Command("bookmarks")]
     public async ValueTask<int> DownloadBookmarksOfUserAsync
     (
-        [Option(0, $"output {IOUtility.ArtworkDatabaseDescription}")] string output,
+        [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
         [Option(null, "public bookmarks?")] bool isPublic = true,
         [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false

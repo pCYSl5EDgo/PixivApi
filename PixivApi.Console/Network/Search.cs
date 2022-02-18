@@ -6,7 +6,9 @@ partial class NetworkClient
 {
     [Command("search")]
     public async ValueTask<int> SearchAsync(
-        [Option(0)] string text,
+        [Option(0, "search text")] string text,
+        [Option(1, IOUtility.DatabaseDescription)] string output,
+        [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false
     )
     {
@@ -20,10 +22,10 @@ partial class NetworkClient
             return -1;
         }
 
-        return await InternalSearchAsync(text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), OverwriteKind.Add, pipe);
+        return await InternalSearchAsync(text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), output, OverwriteKindExtensions.Parse(overwrite), pipe);
     }
 
-    private async ValueTask<int> InternalSearchAsync(string[] searchArray, OverwriteKind overwrite, bool pipe)
+    private async ValueTask<int> InternalSearchAsync(string[] searchArray, string output, OverwriteKind overwrite, bool pipe)
     {
         if (CalcUrl(searchArray) is not string url)
         {
@@ -35,20 +37,9 @@ partial class NetworkClient
             return -1;
         }
 
-        var output = CalcFileName(searchArray);
-        if (string.IsNullOrWhiteSpace(output))
-        {
-            if (!pipe)
-            {
-                logger.LogError("invalid file name.");
-            }
-
-            return -1;
-        }
-
         var token = Context.CancellationToken;
         var database = overwrite == OverwriteKind.ClearAndAdd ?
-            null :
+            new() :
             await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false);
         if (database is null)
         {
@@ -57,12 +48,9 @@ partial class NetworkClient
         }
 
         var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
-        if (overwrite != OverwriteKind.ClearAndAdd)
+        foreach (var item in database.Artworks)
         {
-            foreach (var item in database.Artworks)
-            {
-                dictionary.TryAdd(item.Id, item);
-            }
+            dictionary.TryAdd(item.Id, item);
         }
 
         if (!await Connect().ConfigureAwait(false))
@@ -77,7 +65,12 @@ partial class NetworkClient
         };
         var add = 0UL;
         var update = 0UL;
-        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, url).GetAsyncEnumerator(token);
+        var enumerator = new SearchArtworkAsyncEnumerable(RetryGetAsync, url, SearchUrlUtility.CalculateNextUrl, array =>
+        {
+            var index = SearchUrlUtility.GetIndexOfOldestDay(array);
+            var date = DateOnly.FromDateTime(array[index].CreateDate);
+            return (date, index == 0 ? Array.Empty<Artwork>() : array[..index]);
+        }).GetAsyncEnumerator(token);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))
@@ -154,41 +147,6 @@ partial class NetworkClient
 
             handler.AppendLiteral("&search_target=");
             handler.AppendLiteral("partial_match_for_tags&sort=date_desc");
-            return handler.ToStringAndClear();
-        }
-
-        static string CalcFileName(string[] array)
-        {
-            DefaultInterpolatedStringHandler handler = $"search_";
-            foreach (var c in array[0])
-            {
-                if (IOUtility.PathInvalidChars.Contains(c))
-                {
-                    handler.AppendLiteral("_");
-                }
-                else
-                {
-                    handler.AppendFormatted(c);
-                }
-            }
-
-            for (int i = 1; i < array.Length; i++)
-            {
-                handler.AppendLiteral(" ");
-                foreach (var c in array[i])
-                {
-                    if (IOUtility.PathInvalidChars.Contains(c))
-                    {
-                        handler.AppendLiteral("_");
-                    }
-                    else
-                    {
-                        handler.AppendFormatted(c);
-                    }
-                }
-            }
-
-            handler.AppendLiteral(IOUtility.ArtworkDatabaseFileExtension);
             return handler.ToStringAndClear();
         }
     }
