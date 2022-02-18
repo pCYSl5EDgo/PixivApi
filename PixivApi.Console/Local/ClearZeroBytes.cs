@@ -39,10 +39,15 @@ partial class LocalClient
             return ValueTask.CompletedTask;
         }
 
+        var parallelOptions = new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
+        };
         var tasks = new Task[3];
-        tasks[0] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories), token, Collect);
-        tasks[1] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories), token, Collect);
-        tasks[2] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories), token, Collect);
+        tasks[0] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories), parallelOptions, Collect);
+        tasks[1] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories), parallelOptions, Collect);
+        tasks[2] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories), parallelOptions, Collect);
         await Task.WhenAll(tasks).ConfigureAwait(false);
 
         if (!files.IsEmpty)
@@ -83,10 +88,15 @@ partial class LocalClient
             return ValueTask.CompletedTask;
         }
 
+        var parallelOptions = new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
+        };
         var tasks = new Task[3];
-        tasks[0] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories), token, Delete);
-        tasks[1] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories), token, Delete);
-        tasks[2] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories), token, Delete);
+        tasks[0] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
+        tasks[1] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
+        tasks[2] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
         await Task.WhenAll(tasks).ConfigureAwait(false);
         logger.LogInformation($"{IOUtility.WarningColor}{clear} files are deleted.{IOUtility.NormalizeColor}");
     }

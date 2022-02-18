@@ -52,6 +52,11 @@ partial class NetworkClient
             }
         }
 
+        var parallelOptions = new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = config.MaxParallel,
+        };
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
         var enumerator = new DownloadUserPreviewAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/following?user_id={config.UserId}").GetAsyncEnumerator(token);
         try
@@ -61,7 +66,7 @@ partial class NetworkClient
                 var c = enumerator.Current;
                 var oldAdd = add;
                 var oldUpdate = update;
-                await Parallel.ForEachAsync(c, token, (item, token) =>
+                await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
                 {
                     token.ThrowIfCancellationRequested();
                     Core.Local.User converted = item;

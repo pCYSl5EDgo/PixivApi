@@ -30,11 +30,11 @@ public sealed class DatabaseFile
         ToolSet = toolSet;
     }
 
-    public async ValueTask OptimizeAsync(CancellationToken token)
+    public async ValueTask OptimizeAsync(ParallelOptions parallelOptions)
     {
         var lackedTag = TagSet.Optimize();
         var lackedTool = ToolSet.Optimize();
-        await Parallel.ForEachAsync(Artworks, token, (artwork, token) =>
+        await Parallel.ForEachAsync(Artworks, parallelOptions, (artwork, token) =>
         {
             foreach (var (lacked, value) in lackedTag)
             {

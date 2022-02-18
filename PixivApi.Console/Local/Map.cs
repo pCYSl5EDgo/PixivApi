@@ -31,7 +31,7 @@ partial class LocalClient
         var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         var artworks = itemFilter is null
             ? database.Artworks
-            : await ArtworkEnumerable.CreateAsync(database, itemFilter, token).ConfigureAwait(false);
+            : await ArtworkEnumerable.CreateAsync(database, itemFilter, new() { CancellationToken = token, MaxDegreeOfParallelism = configSettings.MaxParallel, }).ConfigureAwait(false);
 
         if (pipe)
         {

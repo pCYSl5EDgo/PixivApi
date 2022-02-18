@@ -28,7 +28,12 @@ partial class NetworkClient
         }
 
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
-        var search = (await ArtworkEnumerable.CreateAsync(database, artworkFilter, token).ConfigureAwait(false)!);
+        var parallelOptions = new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = config.MaxParallel,
+        };
+        var search = (await ArtworkEnumerable.CreateAsync(database, artworkFilter, parallelOptions).ConfigureAwait(false)!);
         if (search is null)
         {
             return 0;

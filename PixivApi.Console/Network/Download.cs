@@ -61,7 +61,7 @@ partial class NetworkClient
 
         try
         {
-            await Parallel.ForEachAsync(artworks, token, DownloadEach).ConfigureAwait(false);
+            await Parallel.ForEachAsync(artworks, machine.ParallelOptions, DownloadEach).ConfigureAwait(false);
         }
         finally
         {
@@ -129,7 +129,7 @@ partial class NetworkClient
 
         try
         {
-            await Parallel.ForEachAsync(artworks, token, DownloadEach).ConfigureAwait(false);
+            await Parallel.ForEachAsync(artworks, machine.ParallelOptions, DownloadEach).ConfigureAwait(false);
         }
         finally
         {
@@ -187,7 +187,12 @@ partial class NetworkClient
         filter.PageCount ??= new();
         filter.PageCount.Min = 1;
 
-        var artworkCollection = await ArtworkEnumerable.CreateAsync(database, filter, token).ConfigureAwait(false);
+        var parallelOptions = new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = config.MaxParallel,
+        };
+        var artworkCollection = await ArtworkEnumerable.CreateAsync(database, filter, parallelOptions).ConfigureAwait(false);
         return (database, artworkCollection);
     }
 
@@ -224,14 +229,18 @@ partial class NetworkClient
             logger = networkClient.logger;
             this.networkClient = networkClient;
             this.displayAlreadyExists = displayAlreadyExists;
-            this.token = token;
+            ParallelOptions = new()
+            {
+                CancellationToken = token,
+                MaxDegreeOfParallelism = networkClient.config.MaxParallel,
+            };
         }
 
         private readonly HttpClient client;
         private readonly ILogger logger;
         private readonly NetworkClient networkClient;
         private readonly bool displayAlreadyExists;
-        private readonly CancellationToken token;
+        public readonly ParallelOptions ParallelOptions;
         public int downloadFileCount = 0;
         public ulong downloadByteCount = 0UL;
         private ulong retryPair = 0UL;
@@ -274,9 +283,9 @@ partial class NetworkClient
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 var headers = request.Headers;
                 headers.Referrer = referer;
-                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ParallelOptions.CancellationToken).ConfigureAwait(false);
                 response.EnsureSuccessStatusCode();
-                await response.Content.CopyToAsync(stream, token).ConfigureAwait(false);
+                await response.Content.CopyToAsync(stream, ParallelOptions.CancellationToken).ConfigureAwait(false);
                 var byteCount = (ulong)stream.Length;
                 return (byteCount, null);
             }
@@ -293,7 +302,7 @@ partial class NetworkClient
             {
                 try
                 {
-                    var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, token).ConfigureAwait(false);
+                    var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, ParallelOptions.CancellationToken).ConfigureAwait(false);
                     var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                     artwork.Overwrite(converted);
                     success = !converted.IsOfficiallyRemoved;
@@ -310,18 +319,18 @@ partial class NetworkClient
                         var myMatterIndex = pair >> 1;
                         var timeSpan = networkClient.config.RetryTimeSpan;
                         logger.LogError(e, $"let me just sleep for {timeSpan.TotalSeconds} seconds.");
-                        await Task.Delay(timeSpan, token).ConfigureAwait(false);
+                        await Task.Delay(timeSpan, ParallelOptions.CancellationToken).ConfigureAwait(false);
                         while (myMatterIndex == (Interlocked.Read(ref retryPair) >> 1))
                         {
                             if ((pair & 1UL) != 0)
                             {
-                                await Task.Delay(timeSpan, token).ConfigureAwait(false);
+                                await Task.Delay(timeSpan, ParallelOptions.CancellationToken).ConfigureAwait(false);
                                 continue;
                             }
-                            
+
                             if (Interlocked.CompareExchange(ref retryPair, pair + 1UL, pair) != pair)
                             {
-                                await Task.Delay(timeSpan, token).ConfigureAwait(false);
+                                await Task.Delay(timeSpan, ParallelOptions.CancellationToken).ConfigureAwait(false);
                                 continue;
                             }
 

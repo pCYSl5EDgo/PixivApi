@@ -1,4 +1,6 @@
-﻿namespace PixivApi;
+﻿[assembly: InternalsVisibleTo("PixivApi.Core.Test")]
+
+namespace PixivApi;
 
 [MessagePackFormatter(typeof(Formatter))]
 public sealed class StringSet
@@ -46,7 +48,7 @@ public sealed class StringSet
         return array;
     }
 
-    private IEnumerable<(uint lackedNumber, uint valueNumber)> GetLackedNumbers()
+    internal IEnumerable<(uint lackedNumber, uint valueNumber)> GetLackedNumbers()
     {
         if (Reverses.IsEmpty)
         {

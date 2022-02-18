@@ -16,7 +16,12 @@ partial class LocalClient
             return;
         }
 
-        await database.OptimizeAsync(token).ConfigureAwait(false);
+        var parallelOptions = new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
+        };
+        await database.OptimizeAsync(parallelOptions).ConfigureAwait(false);
         await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
     }
 }

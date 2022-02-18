@@ -260,13 +260,13 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
         };
     }
 
-    public ValueTask InitializeAsync(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken cancellationToken)
+    public ValueTask InitializeAsync(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, ParallelOptions parallelOptions)
     {
         if (UserFilter is not null)
         {
             UserFilter.Dictionary = userDictionary;
         }
 
-        return TagFilter?.InitializeAsync(tagSet, cancellationToken) ?? ValueTask.CompletedTask;
+        return TagFilter?.InitializeAsync(tagSet, parallelOptions) ?? ValueTask.CompletedTask;
     }
 }

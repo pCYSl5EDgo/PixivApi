@@ -43,6 +43,11 @@ partial class NetworkClient
             return -3;
         }
 
+        var parallelOptions = new ParallelOptions()
+        {
+            CancellationToken = token,
+            MaxDegreeOfParallelism = config.MaxParallel,
+        };
         var add = 0UL;
         var update = 0UL;
         try
@@ -62,7 +67,7 @@ partial class NetworkClient
                         var c = enumerator.Current;
                         var oldAdd = add;
                         var oldUpdate = update;
-                        await Parallel.ForEachAsync(c, token, (item, token) =>
+                        await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
                         {
                             token.ThrowIfCancellationRequested();
                             var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);

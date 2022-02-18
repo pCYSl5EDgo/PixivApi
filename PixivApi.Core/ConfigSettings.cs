@@ -15,6 +15,13 @@ public partial class ConfigSettings : IEquatable<ConfigSettings>
     public string UgoiraFolder { get; set; } = "Ugoira";
     public ulong UserId { get; set; }
 
+    private int? maxParallel = null;
+    public int MaxParallel
+    {
+        get => maxParallel ?? Environment.ProcessorCount;
+        set => maxParallel = value <= 0 ? null : value;
+    }
+
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
 
     public ConfigSettings() { }

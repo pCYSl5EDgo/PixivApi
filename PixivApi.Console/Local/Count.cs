@@ -59,7 +59,12 @@ partial class LocalClient
                 goto END;
             }
 
-            count = await ArtworkEnumerable.CountAsync(database, artworkItemFilter, token).ConfigureAwait(false);
+            var parallelOptions = new ParallelOptions()
+            {
+                CancellationToken = token,
+                MaxDegreeOfParallelism = configSettings.MaxParallel,
+            };
+            count = await ArtworkEnumerable.CountAsync(database, artworkItemFilter, parallelOptions).ConfigureAwait(false);
         }
 
     END:

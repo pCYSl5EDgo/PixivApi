@@ -10,16 +10,16 @@ public sealed class ArtworkEnumerable : IEnumerable<Artwork>
         this.artworkItems = artworkItems;
     }
 
-    public static async ValueTask<int> CountAsync(DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
+    public static async ValueTask<int> CountAsync(DatabaseFile database, ArtworkFilter filter, ParallelOptions parallelOptions)
     {
         if (filter.Count == 0)
         {
             return 0;
         }
 
-        await filter.InitializeAsync(database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
+        await filter.InitializeAsync(database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
         int count = 0;
-        await Parallel.ForEachAsync(database.Artworks, cancellationToken, (item, token) =>
+        await Parallel.ForEachAsync(database.Artworks, parallelOptions, (item, token) =>
         {
             if (filter.Filter(item))
             {
@@ -53,11 +53,11 @@ public sealed class ArtworkEnumerable : IEnumerable<Artwork>
         }
     }
 
-    public static async ValueTask<IEnumerable<Artwork>> CreateAsync(DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
+    public static async ValueTask<IEnumerable<Artwork>> CreateAsync(DatabaseFile database, ArtworkFilter filter, ParallelOptions parallelOptions)
     {
-        await filter.InitializeAsync(database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
+        await filter.InitializeAsync(database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
         ArtworkEnumerable enumerable = new(database.Artworks);
-        await Parallel.ForEachAsync(database.Artworks.Select((x, i) => (x, i)), cancellationToken, (pair, token) =>
+        await Parallel.ForEachAsync(database.Artworks.Select((x, i) => (x, i)), parallelOptions, (pair, token) =>
         {
             var (item, index) = pair;
             if (filter.Filter(item))
