@@ -299,9 +299,6 @@
     "user-filter": {
       "type": "object",
       "properties": {
-        "database": {
-          "type": "string"
-        },
         "follow": {
           "type": "boolean"
         },
