@@ -29,9 +29,18 @@ public sealed class TagFilter
             return;
         }
 
+        ConcurrentBag<uint>? bag = null;
         if (Partials is { Length: > 0 })
         {
-            ConcurrentBag<uint> bag = new();
+            if (bag is null)
+            {
+                bag = new();
+            }
+            else
+            {
+                bag.Clear();
+            }
+
             await Parallel.ForEachAsync(set.Values, parallelOptions, (pair, token) =>
             {
                 var (key, value) = pair;
@@ -53,7 +62,15 @@ public sealed class TagFilter
 
         if (IgnorePartials is { Length: > 0 })
         {
-            ConcurrentBag<uint> bag = new();
+            if (bag is null)
+            {
+                bag = new();
+            }
+            else
+            {
+                bag.Clear();
+            }
+
             await Parallel.ForEachAsync(set.Values, parallelOptions, (pair, token) =>
             {
                 var (key, value) = pair;
