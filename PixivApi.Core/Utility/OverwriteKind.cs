@@ -4,5 +4,4 @@ public enum OverwriteKind
 {
     Add,
     SearchAndAdd,
-    ClearAndAdd,
 }

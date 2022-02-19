@@ -24,22 +24,11 @@ partial class NetworkClient
 
         var token = Context.CancellationToken;
         var overwriteKind = OverwriteKindExtensions.Parse(overwrite);
-        var database = overwriteKind == OverwriteKind.ClearAndAdd ?
-            null :
-            await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false);
-        if (database is null)
-        {
-            overwriteKind = OverwriteKind.ClearAndAdd;
-            database = new();
-        }
-
+        var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
         var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
-        if (overwriteKind == OverwriteKind.SearchAndAdd || overwriteKind == OverwriteKind.Add)
+        foreach (var item in database.Artworks)
         {
-            foreach (var item in database.Artworks)
-            {
-                dictionary.TryAdd(item.Id, item);
-            }
+            dictionary.TryAdd(item.Id, item);
         }
 
         var parallelOptions = new ParallelOptions()
