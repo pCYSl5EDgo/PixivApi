@@ -52,7 +52,7 @@ partial class LocalClient
 
         if (!files.IsEmpty)
         {
-            logger.LogWarning($"{IOUtility.WarningColor}Are you sure to delete {files.Count} files? Input 'yes'.{IOUtility.NormalizeColor}");
+            logger.LogWarning($"{ArgumentDescriptions.WarningColor}Are you sure to delete {files.Count} files? Input 'yes'.{ArgumentDescriptions.NormalizeColor}");
             var input = System.Console.ReadLine();
             if (input == "yes")
             {
@@ -62,7 +62,7 @@ partial class LocalClient
                     return ValueTask.CompletedTask;
                 }).ConfigureAwait(false);
 
-                logger.LogWarning($"{IOUtility.WarningColor}Done.{IOUtility.NormalizeColor}");
+                logger.LogWarning($"{ArgumentDescriptions.WarningColor}Done.{ArgumentDescriptions.NormalizeColor}");
             }
         }
     }
@@ -98,6 +98,6 @@ partial class LocalClient
         tasks[1] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
         tasks[2] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
         await Task.WhenAll(tasks).ConfigureAwait(false);
-        logger.LogInformation($"{IOUtility.WarningColor}{clear} files are deleted.{IOUtility.NormalizeColor}");
+        logger.LogInformation($"{ArgumentDescriptions.WarningColor}{clear} files are deleted.{ArgumentDescriptions.NormalizeColor}");
     }
 }

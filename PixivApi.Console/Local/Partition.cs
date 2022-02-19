@@ -7,8 +7,8 @@ partial class LocalClient
 {
     [Command("partition")]
     public async ValueTask PartitionAsync(
-        [Option(0, IOUtility.DatabaseDescription)] string path,
-        [Option(1, IOUtility.FilterDescription)] string filter
+        [Option(0, ArgumentDescriptions.DatabaseDescription)] string path,
+        [Option(1, ArgumentDescriptions.FilterDescription)] string filter
     )
     {
         var token = Context.CancellationToken;

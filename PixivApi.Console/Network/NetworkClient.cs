@@ -32,7 +32,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, config, Context.CancellationToken).ConfigureAwait(false);
         if (accessToken is null)
         {
-            logger.LogError(IOUtility.ErrorColor + "Failed to get access token." + IOUtility.NormalizeColor);
+            logger.LogError(ArgumentDescriptions.ErrorColor + "Failed to get access token." + ArgumentDescriptions.NormalizeColor);
             return false;
         }
 
@@ -44,7 +44,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, config, Context.CancellationToken).ConfigureAwait(false);
         if (accessToken is null)
         {
-            logger.LogError(IOUtility.ErrorColor + "Failed to get access token." + IOUtility.NormalizeColor);
+            logger.LogError(ArgumentDescriptions.ErrorColor + "Failed to get access token." + ArgumentDescriptions.NormalizeColor);
             return false;
         }
 
@@ -75,9 +75,9 @@ public sealed partial class NetworkClient : ConsoleAppBase
                     {
                         case HttpStatusCode.Forbidden:
                             token.ThrowIfCancellationRequested();
-                            logger.LogWarning($"{IOUtility.WarningColor}Downloading {url} is forbidden. Retry {config.RetrySeconds} seconds later. Time: {DateTime.Now}{IOUtility.NormalizeColor}");
+                            logger.LogWarning($"{ArgumentDescriptions.WarningColor}Downloading {url} is forbidden. Retry {config.RetrySeconds} seconds later. Time: {DateTime.Now}{ArgumentDescriptions.NormalizeColor}");
                             await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
-                            logger.LogWarning($"{IOUtility.WarningColor}Restart.{IOUtility.NormalizeColor}");
+                            logger.LogWarning($"{ArgumentDescriptions.WarningColor}Restart.{ArgumentDescriptions.NormalizeColor}");
                             continue;
                         #region Http Status Code
                         case HttpStatusCode.OK:
@@ -153,7 +153,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 }
                 else
                 {
-                    logger.LogError(e, $"{IOUtility.ErrorColor}Long wait {config.RetrySeconds} seconds to reconnect. Status Code: {e.StatusCode}\r\nCurrent Url: {url}{IOUtility.NormalizeColor}");
+                    logger.LogError(e, $"{ArgumentDescriptions.ErrorColor}Long wait {config.RetrySeconds} seconds to reconnect. Status Code: {e.StatusCode}\r\nCurrent Url: {url}{ArgumentDescriptions.NormalizeColor}");
                     await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
                     if (await Reconnect().ConfigureAwait(false))
                     {
@@ -161,7 +161,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
                     }
                 }
 
-                logger.LogError(e, $"{IOUtility.ErrorColor}Reason: {reasonPhrase} Url: {url}{IOUtility.NormalizeColor}");
+                logger.LogError(e, $"{ArgumentDescriptions.ErrorColor}Reason: {reasonPhrase} Url: {url}{ArgumentDescriptions.NormalizeColor}");
                 throw;
             }
         } while (true);

@@ -10,8 +10,8 @@ partial class NetworkClient
     [Command("update")]
     public async ValueTask<int> UpdateAsync
     (
-        [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
-        [Option(1, $"{IOUtility.FilterDescription}")] string filter,
+        [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
+        [Option(1, $"{ArgumentDescriptions.FilterDescription}")] string filter,
         bool pipe = false
     )
     {

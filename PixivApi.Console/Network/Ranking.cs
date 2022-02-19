@@ -4,42 +4,26 @@ namespace PixivApi.Console;
 
 partial class NetworkClient
 {
-    [Command("follows-new-work")]
-    public async ValueTask<int> DownloadNewIllustsOfFollowersAsync
+    [Command("ranking")]
+    public async ValueTask<int> DownloadRankingAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
+        [Option(1, "")] RankingKind ranking = RankingKind.day,
+        [Option(2, "")] DateOnly? date = null,
         bool pipe = false
     )
     {
-        if (string.IsNullOrWhiteSpace(output))
-        {
-            return -1;
-        }
-
         if (!await Connect().ConfigureAwait(false))
         {
             return -3;
         }
 
         var token = Context.CancellationToken;
-        var overwriteKind = OverwriteKindExtensions.Parse(overwrite);
-        var database = overwriteKind == OverwriteKind.ClearAndAdd ?
-            null :
-            await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false);
-        if (database is null)
-        {
-            overwriteKind = OverwriteKind.ClearAndAdd;
-            database = new();
-        }
-
+        var database = (await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false)) ?? new();
         var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
-        if (overwriteKind == OverwriteKind.SearchAndAdd || overwriteKind == OverwriteKind.Add)
+        foreach (var item in database.Artworks)
         {
-            foreach (var item in database.Artworks)
-            {
-                dictionary.TryAdd(item.Id, item);
-            }
+            dictionary.TryAdd(item.Id, item);
         }
 
         var parallelOptions = new ParallelOptions()
@@ -47,9 +31,10 @@ partial class NetworkClient
             CancellationToken = token,
             MaxDegreeOfParallelism = config.MaxParallel,
         };
+
         var add = 0UL;
         var update = 0UL;
-        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v2/illust/follow?restrict=public").GetAsyncEnumerator(token);
+        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, GetUrl(ranking, date)).GetAsyncEnumerator(token);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))
@@ -86,11 +71,6 @@ partial class NetworkClient
 
                     return ValueTask.CompletedTask;
                 }).ConfigureAwait(false);
-
-                if (overwriteKind == OverwriteKind.Add && add == oldAdd)
-                {
-                    break;
-                }
             }
         }
         finally
@@ -113,5 +93,22 @@ partial class NetworkClient
         }
 
         return 0;
+
+        static string GetUrl(RankingKind ranking, DateOnly? date)
+        {
+            DefaultInterpolatedStringHandler url = $"https://{ApiHost}/v1/illust/ranking?mode={ranking}";
+            if (date.HasValue)
+            {
+                url.AppendLiteral("&date=");
+                var d = date.Value;
+                url.AppendFormatted(d.Year);
+                url.AppendLiteral("-");
+                url.AppendFormatted(d.Month);
+                url.AppendLiteral("-");
+                url.AppendFormatted(d.Day);
+            }
+
+            return url.ToString();
+        }
     }
 }

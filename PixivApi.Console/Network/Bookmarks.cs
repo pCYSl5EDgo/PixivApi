@@ -7,9 +7,9 @@ partial class NetworkClient
     [Command("bookmarks")]
     public async ValueTask<int> DownloadBookmarksOfUserAsync
     (
-        [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
+        [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
         [Option(null, "public bookmarks?")] bool isPublic = true,
-        [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
+        [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false
     )
     {
@@ -20,7 +20,7 @@ partial class NetworkClient
 
         if (config.UserId == 0UL)
         {
-            logger.LogError($"{IOUtility.ErrorColor}User Id should be written in appsettings.json{IOUtility.NormalizeColor}");
+            logger.LogError($"{ArgumentDescriptions.ErrorColor}User Id should be written in appsettings.json{ArgumentDescriptions.NormalizeColor}");
             return -1;
         }
 

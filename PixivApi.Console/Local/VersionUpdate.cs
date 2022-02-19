@@ -6,7 +6,7 @@ partial class LocalClient
 {
     [Command("database-version-update")]
     public async ValueTask DatabaseVersionUpdateAsync(
-        [Option(0, IOUtility.DatabaseDescription)] string path
+        [Option(0, ArgumentDescriptions.DatabaseDescription)] string path
     )
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -23,7 +23,7 @@ partial class LocalClient
         await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
     }
 
-    public async ValueTask DatabseVersion([Option(0, IOUtility.DatabaseDescription)] string? path)
+    public async ValueTask DatabseVersion([Option(0, ArgumentDescriptions.DatabaseDescription)] string? path)
     {
         if (!string.IsNullOrWhiteSpace(path))
         {

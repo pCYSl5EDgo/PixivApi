@@ -8,8 +8,8 @@ partial class NetworkClient
     [Command("search")]
     public async ValueTask<int> SearchAsync(
         [Option(0, "search text")] string text,
-        [Option(1, IOUtility.DatabaseDescription)] string output,
-        [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
+        [Option(1, ArgumentDescriptions.DatabaseDescription)] string output,
+        [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false
     )
     {
@@ -73,14 +73,14 @@ partial class NetworkClient
             return (date, index == 0 ? Array.Empty<Artwork>() : array[..index]);
         }, async (e, token) =>
         {
-            logger.LogInformation(e, $"{IOUtility.WarningColor}Wait for {config.RetryTimeSpan.TotalSeconds} seconds to reconnect.{IOUtility.NormalizeColor}");
+            logger.LogInformation(e, $"{ArgumentDescriptions.WarningColor}Wait for {config.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ArgumentDescriptions.NormalizeColor}");
             await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
             if (!await Reconnect().ConfigureAwait(false))
             {
                 ExceptionDispatchInfo.Throw(e);
             }
 
-            logger.LogInformation($"{IOUtility.WarningColor}Reconnect.{IOUtility.NormalizeColor}");
+            logger.LogInformation($"{ArgumentDescriptions.WarningColor}Reconnect.{ArgumentDescriptions.NormalizeColor}");
         }).GetAsyncEnumerator(token);
         try
         {

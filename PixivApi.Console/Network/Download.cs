@@ -8,8 +8,8 @@ partial class NetworkClient
 {
     [Command("download-original")]
     public async ValueTask<int> DownloadOriginalFileFromDatabaseAsync(
-        [Option(0, $"input {IOUtility.DatabaseDescription}")] string path,
-        [Option(1, IOUtility.FilterDescription)] string filter,
+        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
+        [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
         [Option("d")] bool detail = false,
         bool displayAlreadyExists = false
@@ -81,8 +81,8 @@ partial class NetworkClient
 
     [Command("download-thumbnail")]
     public async ValueTask<int> DownloadThumbnailFileFromDatabaseAsync(
-        [Option(0, $"input {IOUtility.DatabaseDescription}")] string path,
-        [Option(1, IOUtility.FilterDescription)] string filter,
+        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
+        [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
         [Option("d")] bool detail = false,
         bool displayAlreadyExists = false
@@ -161,13 +161,13 @@ partial class NetworkClient
 
         if (string.IsNullOrWhiteSpace(path))
         {
-            logger.LogError($"{IOUtility.ErrorColor}file does not exist. Path: {path}{IOUtility.NormalizeColor}");
+            logger.LogError($"{ArgumentDescriptions.ErrorColor}file does not exist. Path: {path}{ArgumentDescriptions.NormalizeColor}");
             return default;
         }
 
         if (!Directory.Exists(destinationDirectory))
         {
-            logger.LogError($"{IOUtility.ErrorColor}directory does not exist. Path: {destinationDirectory}{IOUtility.NormalizeColor}");
+            logger.LogError($"{ArgumentDescriptions.ErrorColor}directory does not exist. Path: {destinationDirectory}{ArgumentDescriptions.NormalizeColor}");
             return default;
         }
 
@@ -175,7 +175,7 @@ partial class NetworkClient
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(path, token).ConfigureAwait(false);
         if (database is not { Artworks.Length: > 0 })
         {
-            logger.LogError($"{IOUtility.ErrorColor}database is empty. Path: {path}{IOUtility.NormalizeColor}");
+            logger.LogError($"{ArgumentDescriptions.ErrorColor}database is empty. Path: {path}{ArgumentDescriptions.NormalizeColor}");
             return default;
         }
 
@@ -252,7 +252,7 @@ partial class NetworkClient
             {
                 if (displayAlreadyExists)
                 {
-                    logger.LogInformation($"{IOUtility.WarningColor}Already exists. Path: {fileInfo.FullName}{IOUtility.NormalizeColor}");
+                    logger.LogInformation($"{ArgumentDescriptions.WarningColor}Already exists. Path: {fileInfo.FullName}{ArgumentDescriptions.NormalizeColor}");
                 }
 
                 return fileInfo.Length != 0;
@@ -264,13 +264,13 @@ partial class NetworkClient
                 case null:
                     Interlocked.Add(ref downloadByteCount, byteCount);
                     var donwloaded = Interlocked.Increment(ref downloadFileCount);
-                    logger.LogInformation($"{IOUtility.SuccessColor}Download success. Index: {donwloaded,4} Transfer: {byteCount,20} Url: {url}{IOUtility.NormalizeColor}");
+                    logger.LogInformation($"{ArgumentDescriptions.SuccessColor}Download success. Index: {donwloaded,4} Transfer: {byteCount,20} Url: {url}{ArgumentDescriptions.NormalizeColor}");
                     return true;
                 case TaskCanceledException:
                     ExceptionDispatchInfo.Throw(exception);
                     throw null;
                 default:
-                    logger.LogError(exception, $"{IOUtility.ErrorColor}Download failed. Url: {url}{IOUtility.NormalizeColor}");
+                    logger.LogError(exception, $"{ArgumentDescriptions.ErrorColor}Download failed. Url: {url}{ArgumentDescriptions.NormalizeColor}");
                     return false;
             }
         }

@@ -7,8 +7,8 @@ partial class NetworkClient
     [Command("follows")]
     public async ValueTask<int> DownloadFollowsOfUserAsync
     (
-        [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
-        [Option(null, IOUtility.OverwriteKindDescription)] string overwrite = "add",
+        [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
+        [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false
     )
     {
@@ -19,7 +19,7 @@ partial class NetworkClient
 
         if (config.UserId == 0UL)
         {
-            logger.LogError($"{IOUtility.ErrorColor}User Id should be written in appsettings.json{IOUtility.NormalizeColor}");
+            logger.LogError($"{ArgumentDescriptions.ErrorColor}User Id should be written in appsettings.json{ArgumentDescriptions.NormalizeColor}");
             return -1;
         }
 
