@@ -8,8 +8,8 @@ partial class NetworkClient
     public async ValueTask<int> DownloadRankingAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(1, "")] RankingKind ranking = RankingKind.day,
-        [Option(2, "")] DateOnly? date = null,
+        [Option(1, ArgumentDescriptions.RankingDescription)] RankingKind ranking = RankingKind.day,
+        DateOnly? date = null,
         bool pipe = false
     )
     {
