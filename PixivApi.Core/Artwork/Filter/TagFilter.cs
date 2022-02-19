@@ -31,7 +31,7 @@ public sealed class TagFilter
 
         if (Partials is { Length: > 0 })
         {
-            PartialSet = new();
+            ConcurrentBag<uint> bag = new();
             await Parallel.ForEachAsync(set.Values, parallelOptions, (pair, token) =>
             {
                 var (key, value) = pair;
@@ -41,18 +41,19 @@ public sealed class TagFilter
                     {
                         if (value.Contains(text))
                         {
-                            PartialSet.Add(key);
+                            bag.Add(key);
                         }
                     }
                 }
 
                 return ValueTask.CompletedTask;
             });
+            PartialSet = new(bag);
         }
 
         if (IgnorePartials is { Length: > 0 })
         {
-            IgnorePartialSet = new();
+            ConcurrentBag<uint> bag = new();
             await Parallel.ForEachAsync(set.Values, parallelOptions, (pair, token) =>
             {
                 var (key, value) = pair;
@@ -62,13 +63,14 @@ public sealed class TagFilter
                     {
                         if (value.Contains(text))
                         {
-                            IgnorePartialSet.Add(key);
+                            bag.Add(key);
                         }
                     }
                 }
 
                 return ValueTask.CompletedTask;
             });
+            IgnorePartialSet = new(bag);
         }
     }
 
