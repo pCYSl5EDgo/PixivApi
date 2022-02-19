@@ -7,8 +7,8 @@ namespace PixivApi.Console;
 
 partial class NetworkClient
 {
-    [Command("detail")]
-    public async ValueTask<int> DetailAsync
+    [Command("update")]
+    public async ValueTask<int> UpdateAsync
     (
         [Option(0, $"output {IOUtility.DatabaseDescription}")] string output,
         [Option(1, $"{IOUtility.FilterDescription}")] string filter,
