@@ -228,6 +228,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             CreateDate = artwork.CreateDate,
             Title = artwork.Title,
             Caption = artwork.Caption,
+            IsXRestricted = artwork.XRestrict != 0,
         };
 
         userDictionary.TryAdd(artwork.User.Id, artwork.User);
