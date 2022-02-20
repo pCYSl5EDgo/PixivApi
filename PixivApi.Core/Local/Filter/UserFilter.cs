@@ -5,6 +5,7 @@ public sealed class UserFilter : IFilter<User>
     [JsonPropertyName("follow")] public bool? IsFollowed;
     [JsonPropertyName("only-registered")] public bool OnlyRegistered = false;
     [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;
+    [JsonPropertyName("name-filter")] public TextFilter? NameFilter = null;
     [JsonPropertyName("show-hidden")] public bool ShowHiddenUsers = false;
 
     [JsonIgnore] public ConcurrentDictionary<ulong, User>? Dictionary;
@@ -44,6 +45,16 @@ public sealed class UserFilter : IFilter<User>
             return false;
         }
 
-        return IdFilter is null || IdFilter.Filter(user.Id);
+        if (IdFilter is not null && !IdFilter.Filter(user.Id))
+        {
+            return false;
+        }
+
+        if (NameFilter is not null && !NameFilter.Filter(MemoryMarshal.CreateReadOnlySpan(ref user.Name, 1)))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -14,7 +14,7 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>
     [JsonPropertyName("order")] public ArtworkOrderKind Order = ArtworkOrderKind.None;
     [JsonPropertyName("page-count")] public MinMaxFilter? PageCount = null;
     [JsonPropertyName("r18")] public bool? R18;
-    [JsonPropertyName("tag-filter")] public TextFilter? TagFilter = null;
+    [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
     [JsonPropertyName("title-filter")] public TextFilter? TitleFilter = null;
     [JsonPropertyName("total-bookmarks")] public MinMaxFilter? TotalBookmarks = null;
     [JsonPropertyName("total-view")] public MinMaxFilter? TotalView = null;
@@ -140,10 +140,13 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>
             return false;
         }
 
-
         if (TitleFilter is not null)
         {
-
+            var (Title, _) = (artwork.Title, artwork.Caption);
+            if (!TitleFilter.Filter(MemoryMarshal.CreateReadOnlySpan(ref Title, 2)!))
+            {
+                return false;
+            }
         }
 
         if (TagFilter is not null && !TagFilter.Filter(artwork.Tags, artwork.ExtraTags, artwork.ExtraFakeTags))
@@ -241,7 +244,7 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>
         }
     }
 
-    public ValueTask InitializeAsync(ConfigSettings configSettings, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, ParallelOptions parallelOptions)
+    public async ValueTask InitializeAsync(ConfigSettings configSettings, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, ParallelOptions parallelOptions)
     {
         if (FileExistanceFilter is not null)
         {
@@ -253,6 +256,9 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>
             UserFilter.Dictionary = userDictionary;
         }
 
-        return TagFilter?.InitializeAsync(tagSet, parallelOptions) ?? ValueTask.CompletedTask;
+        if (TagFilter is not null)
+        {
+            await TagFilter.InitializeAsync(tagSet, parallelOptions).ConfigureAwait(false);
+        }
     }
 }

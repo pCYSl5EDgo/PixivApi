@@ -35,6 +35,11 @@
       },
       "type": "object"
     },
+    "name-filter": {
+      "type": "object",
+      "properties": { "$ref": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/TextFilterSchema.json#/properties" },
+      "additionalProperties": false
+    },
     "only-registered": {
       "type": "boolean"
     },
