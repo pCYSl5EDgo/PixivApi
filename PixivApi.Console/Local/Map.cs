@@ -37,12 +37,12 @@ partial class LocalClient
         {
             foreach (var item in artworks)
             {
-                logger.LogInformation(IOUtility.JsonStringSerialize(item));
+                logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
             }
         }
         else
         {
-            logger.LogInformation(IOUtility.JsonStringSerialize(artworks));
+            logger.LogInformation(IOUtility.JsonStringSerialize(artworks, true));
         }
 
     END:
