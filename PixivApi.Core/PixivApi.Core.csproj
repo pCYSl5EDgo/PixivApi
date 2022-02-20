@@ -58,6 +58,6 @@
 		<Using Include="System.Threading.Tasks" />
 	</ItemGroup>
 
-	<ProjectExtensions><VisualStudio><UserProperties artworkdatabaseinfofilterscheme_1json__JsonSchema="" /></VisualStudio></ProjectExtensions>
+	<ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
 
 </Project>

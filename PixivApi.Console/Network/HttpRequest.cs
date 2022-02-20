@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Console;
 
-partial class NetworkClient : ConsoleAppBase
+public partial class NetworkClient : ConsoleAppBase
 {
     [Command("http-get")]
     public async ValueTask GetAsync([Option(0)] string url)

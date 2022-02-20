@@ -54,7 +54,7 @@ public class StringCompareInfo : IEqualityComparer<string>
             var culture = reader.ReadString();
             var ignoreCase = reader.ReadBoolean();
             header = (header - 1) << 1;
-            for (int i = 0; i < header; i++)
+            for (var i = 0; i < header; i++)
             {
                 reader.Skip();
             }

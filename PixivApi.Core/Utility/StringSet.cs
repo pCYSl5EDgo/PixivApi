@@ -60,7 +60,7 @@ public sealed class StringSet
         Array.Sort(ascending);
         for (uint ascendingIndex = 0, descendingIndex = (uint)ascending.Length - 1; ascendingIndex <= descendingIndex; ascendingIndex++)
         {
-            uint number = ascending[ascendingIndex];
+            var number = ascending[ascendingIndex];
             while (++index != number && ascendingIndex <= descendingIndex)
             {
                 yield return (index, ascending[descendingIndex--]);
@@ -81,7 +81,7 @@ public sealed class StringSet
 
             var length = reader.ReadMapHeader();
             var answer = new StringSet(length);
-            for (int i = 0; i < length; i++)
+            for (var i = 0; i < length; i++)
             {
                 var number = reader.ReadUInt32();
                 var text = reader.ReadString();

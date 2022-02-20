@@ -2,7 +2,7 @@
 
 namespace PixivApi.Console;
 
-partial class LocalClient
+public partial class LocalClient
 {
     [Command("database-version-update")]
     public async ValueTask DatabaseVersionUpdateAsync(

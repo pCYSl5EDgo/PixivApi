@@ -1,11 +1,10 @@
 using PixivApi.Core.Local;
-using PixivApi.Core.Local.Filter;
 using System.Net;
 using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
-partial class NetworkClient
+public partial class NetworkClient
 {
     [Command("update")]
     public async ValueTask<int> UpdateAsync
@@ -31,9 +30,9 @@ partial class NetworkClient
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
-            MaxDegreeOfParallelism = config.MaxParallel,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
-        var search = (await ArtworkEnumerable.CreateAsync(database, artworkFilter, parallelOptions).ConfigureAwait(false)!);
+        var search = (await ArtworkEnumerable.CreateAsync(configSettings, database, artworkFilter, parallelOptions).ConfigureAwait(false)!);
         if (search is null)
         {
             return 0;
@@ -66,7 +65,7 @@ partial class NetworkClient
                             var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
                             var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, token).ConfigureAwait(false)).AsSpan());
                             item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
-                            for (int frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
+                            for (var frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
                             {
                                 item.UgoiraFrames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
                             }
@@ -97,10 +96,10 @@ partial class NetworkClient
                     {
                         if (!pipe)
                         {
-                            logger.LogWarning($"Reconnect. Wait for {config.RetryTimeSpan.TotalSeconds} seconds.");
+                            logger.LogWarning($"Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds.");
                         }
 
-                        await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
+                        await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
                         if (!(await Reconnect().ConfigureAwait(false)))
                         {
                             ExceptionDispatchInfo.Throw(e);

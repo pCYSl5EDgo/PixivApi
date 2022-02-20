@@ -2,7 +2,7 @@
 
 namespace PixivApi.Console;
 
-partial class NetworkClient
+public partial class NetworkClient
 {
     [Command("follows")]
     public async ValueTask<int> DownloadFollowsOfUserAsync
@@ -17,7 +17,7 @@ partial class NetworkClient
             return -1;
         }
 
-        if (config.UserId == 0UL)
+        if (configSettings.UserId == 0UL)
         {
             logger.LogError($"{ArgumentDescriptions.ErrorColor}User Id should be written in appsettings.json{ArgumentDescriptions.NormalizeColor}");
             return -1;
@@ -39,10 +39,10 @@ partial class NetworkClient
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
-            MaxDegreeOfParallelism = config.MaxParallel,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
-        var enumerator = new DownloadUserPreviewAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/following?user_id={config.UserId}").GetAsyncEnumerator(token);
+        var enumerator = new DownloadUserPreviewAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}").GetAsyncEnumerator(token);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))

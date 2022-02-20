@@ -78,7 +78,7 @@ public sealed class SearchUrlUtility
     {
         Debug.Assert(!newToOld.IsEmpty);
         var date = DateOnly.FromDateTime(newToOld[^1].CreateDate);
-        for (int i = newToOld.Length - 2; i >= 0; i--)
+        for (var i = newToOld.Length - 2; i >= 0; i--)
         {
             var other = DateOnly.FromDateTime(newToOld[i].CreateDate);
             if (date != other)
@@ -95,7 +95,7 @@ public sealed class SearchUrlUtility
     {
         Debug.Assert(!oldToNew.IsEmpty);
         var date = DateOnly.FromDateTime(oldToNew[^1].CreateDate);
-        for (int i = oldToNew.Length - 2; i >= 0; i--)
+        for (var i = oldToNew.Length - 2; i >= 0; i--)
         {
             var other = DateOnly.FromDateTime(oldToNew[i].CreateDate);
             if (date != other)

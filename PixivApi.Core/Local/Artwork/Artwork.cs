@@ -239,7 +239,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         if (artwork.Tags.Length > 0)
         {
             answer.Tags = new uint[artwork.Tags.Length];
-            for (int i = 0; i < answer.Tags.Length; i++)
+            for (var i = 0; i < answer.Tags.Length; i++)
             {
                 answer.Tags[i] = tagSet.Register(artwork.Tags[i].Name);
             }
@@ -248,7 +248,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         if (artwork.Tools.Length > 0)
         {
             answer.Tools = new uint[artwork.Tools.Length];
-            for (int i = 0; i < answer.Tools.Length; i++)
+            for (var i = 0; i < answer.Tools.Length; i++)
             {
                 answer.Tools[i] = toolSet.Register(artwork.Tools[i]);
             }
@@ -268,40 +268,40 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             Unsafe.SkipInit(out dateTime);
             page = page[..page.LastIndexOf('/')];
             var secondIndex = page.LastIndexOf('/');
-            if (secondIndex == -1 || !byte.TryParse(page[(secondIndex + 1)..], out byte second))
+            if (secondIndex == -1 || !byte.TryParse(page[(secondIndex + 1)..], out var second))
             {
                 return false;
             }
 
             page = page[..secondIndex];
             var minuteIndex = page.LastIndexOf('/');
-            if (minuteIndex == -1 || !byte.TryParse(page[(minuteIndex + 1)..], out byte minute))
+            if (minuteIndex == -1 || !byte.TryParse(page[(minuteIndex + 1)..], out var minute))
             {
                 return false;
             }
 
             page = page[..minuteIndex];
             var hourIndex = page.LastIndexOf('/');
-            if (hourIndex == -1 || !byte.TryParse(page[(hourIndex + 1)..], out byte hour))
+            if (hourIndex == -1 || !byte.TryParse(page[(hourIndex + 1)..], out var hour))
             {
                 return false;
             }
 
             page = page[..hourIndex];
             var dayIndex = page.LastIndexOf('/');
-            if (dayIndex == -1 || !byte.TryParse(page[(dayIndex + 1)..], out byte day))
+            if (dayIndex == -1 || !byte.TryParse(page[(dayIndex + 1)..], out var day))
             {
                 return false;
             }
             page = page[..dayIndex];
             var monthIndex = page.LastIndexOf('/');
-            if (monthIndex == -1 || !byte.TryParse(page[(monthIndex + 1)..], out byte month))
+            if (monthIndex == -1 || !byte.TryParse(page[(monthIndex + 1)..], out var month))
             {
                 return false;
             }
             page = page[..monthIndex];
             var yearIndex = page.LastIndexOf('/');
-            if (yearIndex == -1 || !uint.TryParse(page[(yearIndex + 1)..], out uint year))
+            if (yearIndex == -1 || !uint.TryParse(page[(yearIndex + 1)..], out var year))
             {
                 return false;
             }
@@ -386,7 +386,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             var answer = new Artwork();
             var segment = ArraySegmentFromPool.Rent(BinLength);
             var segmentSpan = segment.AsSpan();
-            for (int i = 0; i < header; i++)
+            for (var i = 0; i < header; i++)
             {
                 switch (i)
                 {
@@ -520,7 +520,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
                 }
 
                 ref var first = ref Unsafe.AsRef(in span[0]);
-                for (int i = 0; i < length; i += 5)
+                for (var i = 0; i < length; i += 5)
                 {
                     var key = Unsafe.ReadUnaligned<uint>(ref first);
                     first = ref Unsafe.Add(ref first, 4);
@@ -531,7 +531,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             else
             {
                 Span<byte> tmp = stackalloc byte[5];
-                int tmpIndex = 0;
+                var tmpIndex = 0;
                 var enumerator = sequence.GetEnumerator();
                 while (enumerator.MoveNext())
                 {

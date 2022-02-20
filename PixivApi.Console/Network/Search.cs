@@ -3,7 +3,7 @@ using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
-partial class NetworkClient
+public partial class NetworkClient
 {
     [Command("search")]
     public async ValueTask<int> SearchAsync(
@@ -51,14 +51,14 @@ partial class NetworkClient
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
-            MaxDegreeOfParallelism = config.MaxParallel,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
         var add = 0UL;
         var update = 0UL;
         var enumerator = new SearchArtworkAsyncNewToOldEnumerable(RetryGetAsync, url, async (e, token) =>
         {
-            logger.LogInformation(e, $"{ArgumentDescriptions.WarningColor}Wait for {config.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ArgumentDescriptions.NormalizeColor}");
-            await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
+            logger.LogInformation(e, $"{ArgumentDescriptions.WarningColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ArgumentDescriptions.NormalizeColor}");
+            await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
             if (!await Reconnect().ConfigureAwait(false))
             {
                 ExceptionDispatchInfo.Throw(e);
@@ -134,7 +134,7 @@ partial class NetworkClient
         {
             DefaultInterpolatedStringHandler handler = $"https://{ApiHost}/v1/search/illust?word=";
             handler.AppendFormatted(new PercentEncoding(array[0]));
-            for (int i = 1; i < array.Length; i++)
+            for (var i = 1; i < array.Length; i++)
             {
                 handler.AppendLiteral("%20");
                 handler.AppendFormatted(new PercentEncoding(array[i]));

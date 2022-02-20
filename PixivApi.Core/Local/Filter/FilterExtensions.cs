@@ -1,4 +1,4 @@
-﻿namespace PixivApi.Core.Local.Filter;
+﻿namespace PixivApi.Core.Local;
 
 public sealed class ArtworkEnumerable : IEnumerable<Artwork>
 {
@@ -10,15 +10,15 @@ public sealed class ArtworkEnumerable : IEnumerable<Artwork>
         this.artworkItems = artworkItems;
     }
 
-    public static async ValueTask<int> CountAsync(DatabaseFile database, ArtworkFilter filter, ParallelOptions parallelOptions)
+    public static async ValueTask<int> CountAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, ParallelOptions parallelOptions)
     {
         if (filter.Count == 0)
         {
             return 0;
         }
 
-        await filter.InitializeAsync(database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
-        int count = 0;
+        await filter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
+        var count = 0;
         await Parallel.ForEachAsync(database.Artworks, parallelOptions, (item, token) =>
         {
             if (filter.Filter(item))
@@ -53,9 +53,9 @@ public sealed class ArtworkEnumerable : IEnumerable<Artwork>
         }
     }
 
-    public static async ValueTask<IEnumerable<Artwork>> CreateAsync(DatabaseFile database, ArtworkFilter filter, ParallelOptions parallelOptions)
+    public static async ValueTask<IEnumerable<Artwork>> CreateAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, ParallelOptions parallelOptions)
     {
-        await filter.InitializeAsync(database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
+        await filter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
         ArtworkEnumerable enumerable = new(database.Artworks);
         await Parallel.ForEachAsync(database.Artworks.Select((x, i) => (x, i)), parallelOptions, (pair, token) =>
         {

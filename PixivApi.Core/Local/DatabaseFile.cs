@@ -123,7 +123,7 @@ public sealed class DatabaseFile
             ConcurrentDictionary<ulong, User>? users = null;
             StringSet? tags = null;
             StringSet? tools = null;
-            for (int memberIndex = 0; memberIndex < header; memberIndex++)
+            for (var memberIndex = 0; memberIndex < header; memberIndex++)
             {
                 switch (memberIndex)
                 {
@@ -140,7 +140,7 @@ public sealed class DatabaseFile
                         }
 
                         artworks = new Artwork[artworkHeader];
-                        for (int i = 0; i < artworks.Length; i++)
+                        for (var i = 0; i < artworks.Length; i++)
                         {
                             artworks[i] = Artwork.Formatter.DeserializeStatic(ref reader, options);
                         }
@@ -153,7 +153,7 @@ public sealed class DatabaseFile
 
                         var userFormatter = options.Resolver.GetFormatterWithVerify<User>();
                         users = new(Environment.ProcessorCount, userHeader);
-                        for (int i = 0; i < userHeader; i++)
+                        for (var i = 0; i < userHeader; i++)
                         {
                             var user = userFormatter.Deserialize(ref reader, options);
                             users.TryAdd(user.Id, user);

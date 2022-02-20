@@ -1,9 +1,8 @@
 ﻿using PixivApi.Core.Local;
-using PixivApi.Core.Local.Filter;
 
 namespace PixivApi.Console;
 
-partial class LocalClient
+public partial class LocalClient
 {
     [Command("partition")]
     public async ValueTask PartitionAsync(
@@ -29,7 +28,7 @@ partial class LocalClient
             CancellationToken = token,
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
-        await artworkFilter.InitializeAsync(database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
+        await artworkFilter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
 
         ConcurrentBag<int> tBag = new();
         ConcurrentBag<int> fBag = new();

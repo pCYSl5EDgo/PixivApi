@@ -2,7 +2,7 @@
 
 namespace PixivApi.Console;
 
-partial class NetworkClient
+public partial class NetworkClient
 {
     [Command("illusts")]
     public async ValueTask<int> DownloadIllustsOfUserAsync
@@ -33,7 +33,7 @@ partial class NetworkClient
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
-            MaxDegreeOfParallelism = config.MaxParallel,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
         var add = 0UL;
         var update = 0UL;

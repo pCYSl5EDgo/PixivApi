@@ -6,14 +6,14 @@ namespace PixivApi.Console;
 public sealed partial class NetworkClient : ConsoleAppBase
 {
     private const string ApiHost = "app-api.pixiv.net";
-    private readonly ConfigSettings config;
+    private readonly ConfigSettings configSettings;
     private readonly ILogger<NetworkClient> logger;
     private readonly HttpClient client;
     private readonly CancellationTokenSource cancellationTokenSource;
 
     public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, CancellationTokenSource cancellationTokenSource)
     {
-        this.config = config;
+        this.configSettings = config;
         this.logger = logger;
         this.client = client;
         this.cancellationTokenSource = cancellationTokenSource;
@@ -21,7 +21,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
 
     private void AddToHeader(HttpRequestMessage request)
     {
-        if (!request.TryAddToHeader(config.HashSecret, ApiHost))
+        if (!request.TryAddToHeader(configSettings.HashSecret, ApiHost))
         {
             throw new InvalidOperationException();
         }
@@ -29,19 +29,19 @@ public sealed partial class NetworkClient : ConsoleAppBase
 
     private async ValueTask<bool> Connect()
     {
-        var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, config, Context.CancellationToken).ConfigureAwait(false);
+        var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, configSettings, Context.CancellationToken).ConfigureAwait(false);
         if (accessToken is null)
         {
             logger.LogError(ArgumentDescriptions.ErrorColor + "Failed to get access token." + ArgumentDescriptions.NormalizeColor);
             return false;
         }
 
-        return client.TryAddToDefaultHeader(config, accessToken);
+        return client.TryAddToDefaultHeader(configSettings, accessToken);
     }
 
     private async ValueTask<bool> Reconnect()
     {
-        var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, config, Context.CancellationToken).ConfigureAwait(false);
+        var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, configSettings, Context.CancellationToken).ConfigureAwait(false);
         if (accessToken is null)
         {
             logger.LogError(ArgumentDescriptions.ErrorColor + "Failed to get access token." + ArgumentDescriptions.NormalizeColor);
@@ -75,8 +75,8 @@ public sealed partial class NetworkClient : ConsoleAppBase
                     {
                         case HttpStatusCode.Forbidden:
                             token.ThrowIfCancellationRequested();
-                            logger.LogWarning($"{ArgumentDescriptions.WarningColor}Downloading {url} is forbidden. Retry {config.RetrySeconds} seconds later. Time: {DateTime.Now}{ArgumentDescriptions.NormalizeColor}");
-                            await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
+                            logger.LogWarning($"{ArgumentDescriptions.WarningColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{ArgumentDescriptions.NormalizeColor}");
+                            await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
                             logger.LogWarning($"{ArgumentDescriptions.WarningColor}Restart.{ArgumentDescriptions.NormalizeColor}");
                             continue;
                         #region Http Status Code
@@ -153,8 +153,8 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 }
                 else
                 {
-                    logger.LogError(e, $"{ArgumentDescriptions.ErrorColor}Long wait {config.RetrySeconds} seconds to reconnect. Status Code: {e.StatusCode}\r\nCurrent Url: {url}{ArgumentDescriptions.NormalizeColor}");
-                    await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
+                    logger.LogError(e, $"{ArgumentDescriptions.ErrorColor}Long wait {configSettings.RetrySeconds} seconds to reconnect. Status Code: {e.StatusCode}\r\nCurrent Url: {url}{ArgumentDescriptions.NormalizeColor}");
+                    await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
                     if (await Reconnect().ConfigureAwait(false))
                     {
                         continue;

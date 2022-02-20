@@ -1,10 +1,9 @@
 ﻿using PixivApi.Core.Local;
-using PixivApi.Core.Local.Filter;
 using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
-partial class NetworkClient
+public partial class NetworkClient
 {
     [Command("download-original")]
     public async ValueTask<int> DownloadOriginalFileFromDatabaseAsync(
@@ -16,7 +15,7 @@ partial class NetworkClient
     )
     {
         var token = Context.CancellationToken;
-        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), config.OriginalFolder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
             return -1;
@@ -33,7 +32,7 @@ partial class NetworkClient
                 return;
             }
 
-            bool success = true;
+            var success = true;
             if (detail)
             {
                 success = await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false);
@@ -41,12 +40,12 @@ partial class NetworkClient
 
             if (success && artwork.Type == ArtworkType.Ugoira)
             {
-                success = await machine.DownloadAsync(config.UgoiraFolder, artwork.Id, artwork.GetZipUrl(), artwork.GetZipFileName()).ConfigureAwait(false);
+                success = await machine.DownloadAsync(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipUrl(), artwork.GetZipFileName()).ConfigureAwait(false);
             }
 
             for (uint pageIndex = 0; success && pageIndex < artwork.PageCount; pageIndex++)
             {
-                success = await machine.DownloadAsync(config.OriginalFolder, artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex)).ConfigureAwait(false);
+                success = await machine.DownloadAsync(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex)).ConfigureAwait(false);
             }
 
             if (success)
@@ -72,7 +71,7 @@ partial class NetworkClient
             }
             if (failFlag != 0)
             {
-                await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
+                await LocalClient.ClearAsync(logger, configSettings, false, true, Context.CancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -89,7 +88,7 @@ partial class NetworkClient
     )
     {
         var token = Context.CancellationToken;
-        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), config.ThumbnailFolder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), configSettings.ThumbnailFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
             return -1;
@@ -106,7 +105,7 @@ partial class NetworkClient
                 return;
             }
 
-            bool success = true;
+            var success = true;
             if (detail)
             {
                 success = await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false);
@@ -114,7 +113,7 @@ partial class NetworkClient
 
             if (success)
             {
-                success = await machine.DownloadAsync(config.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName()).ConfigureAwait(false);
+                success = await machine.DownloadAsync(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName()).ConfigureAwait(false);
             }
 
             if (success)
@@ -140,7 +139,7 @@ partial class NetworkClient
             }
             if (failFlag != 0)
             {
-                await LocalClient.ClearAsync(logger, config, false, true, Context.CancellationToken).ConfigureAwait(false);
+                await LocalClient.ClearAsync(logger, configSettings, false, true, Context.CancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -190,15 +189,15 @@ partial class NetworkClient
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
-            MaxDegreeOfParallelism = config.MaxParallel,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
-        var artworkCollection = await ArtworkEnumerable.CreateAsync(database, filter, parallelOptions).ConfigureAwait(false);
+        var artworkCollection = await ArtworkEnumerable.CreateAsync(configSettings, database, filter, parallelOptions).ConfigureAwait(false);
         return (database, artworkCollection);
     }
 
     private static string ToDisplayableByteAmount(ulong byteCount)
     {
-        string last = "B";
+        var last = "B";
         if (byteCount >= 1024)
         {
             byteCount >>= 10;
@@ -232,7 +231,7 @@ partial class NetworkClient
             ParallelOptions = new()
             {
                 CancellationToken = token,
-                MaxDegreeOfParallelism = networkClient.config.MaxParallel,
+                MaxDegreeOfParallelism = networkClient.configSettings.MaxParallel,
             };
         }
 
@@ -317,7 +316,7 @@ partial class NetworkClient
                     {
                         var pair = Interlocked.Read(ref retryPair);
                         var myMatterIndex = pair >> 1;
-                        var timeSpan = networkClient.config.RetryTimeSpan;
+                        var timeSpan = networkClient.configSettings.RetryTimeSpan;
                         logger.LogError(e, $"let me just sleep for {timeSpan.TotalSeconds} seconds.");
                         await Task.Delay(timeSpan, ParallelOptions.CancellationToken).ConfigureAwait(false);
                         while (myMatterIndex == (Interlocked.Read(ref retryPair) >> 1))

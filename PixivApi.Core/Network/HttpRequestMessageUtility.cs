@@ -76,7 +76,7 @@ public static class HttpRequestMessageUtility
     private static void CreateHashString(Span<char> span, (byte[] Array, int Length) pair)
     {
         var source = pair.Array.AsSpan(0, pair.Length);
-        foreach (byte c in source)
+        foreach (var c in source)
         {
             if (!c.TryFormat(span, out var charsWritten, "x2"))
             {

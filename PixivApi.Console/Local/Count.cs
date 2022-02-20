@@ -1,9 +1,8 @@
 ﻿using PixivApi.Core.Local;
-using PixivApi.Core.Local.Filter;
 
 namespace PixivApi.Console;
 
-partial class LocalClient
+public partial class LocalClient
 {
     [Command("count", "")]
     public async ValueTask<int> CountAsync(
@@ -18,11 +17,11 @@ partial class LocalClient
             return -1;
         }
 
-        int count = 0;
+        var count = 0;
         if (artworkItemFilter is null)
         {
             using var handle = File.OpenHandle(input, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.Asynchronous);
-            long length = RandomAccess.GetLength(handle);
+            var length = RandomAccess.GetLength(handle);
             if (length == 0)
             {
                 logger.LogInformation("0");
@@ -64,7 +63,7 @@ partial class LocalClient
                 CancellationToken = token,
                 MaxDegreeOfParallelism = configSettings.MaxParallel,
             };
-            count = await ArtworkEnumerable.CountAsync(database, artworkItemFilter, parallelOptions).ConfigureAwait(false);
+            count = await ArtworkEnumerable.CountAsync(configSettings, database, artworkItemFilter, parallelOptions).ConfigureAwait(false);
         }
 
     END:

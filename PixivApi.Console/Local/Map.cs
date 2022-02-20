@@ -1,9 +1,8 @@
-﻿using PixivApi.Core.Local.Filter;
-using PixivApi.Core.Local;
+﻿using PixivApi.Core.Local;
 
 namespace PixivApi.Console;
 
-partial class LocalClient
+public partial class LocalClient
 {
     [Command("map")]
     public async ValueTask<int> MapAsync(
@@ -31,7 +30,7 @@ partial class LocalClient
         var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         var artworks = itemFilter is null
             ? database.Artworks
-            : await ArtworkEnumerable.CreateAsync(database, itemFilter, new() { CancellationToken = token, MaxDegreeOfParallelism = configSettings.MaxParallel, }).ConfigureAwait(false);
+            : await ArtworkEnumerable.CreateAsync(configSettings, database, itemFilter, new() { CancellationToken = token, MaxDegreeOfParallelism = configSettings.MaxParallel, }).ConfigureAwait(false);
 
         if (pipe)
         {

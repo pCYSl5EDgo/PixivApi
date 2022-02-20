@@ -96,7 +96,7 @@ public readonly struct PercentEncoding : ISpanFormattable, IEquatable<PercentEnc
             }
 
             var tmp = span[..length];
-            foreach (byte v in tmp)
+            foreach (var v in tmp)
             {
                 destination[0] = '%';
                 destination[1] = CalcNumber(v >> 4);

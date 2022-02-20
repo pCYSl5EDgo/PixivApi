@@ -1,9 +1,8 @@
-﻿using PixivApi.Core.Local.Filter;
-using PixivApi.Core.Local;
+﻿using PixivApi.Core.Local;
 
 namespace PixivApi.Console;
 
-partial class LocalClient : ConsoleAppBase
+public partial class LocalClient : ConsoleAppBase
 {
     [Command("markdown", "Generate markdown file.")]
     public async ValueTask<int> GenerateMarkdownAsync(
@@ -47,7 +46,7 @@ partial class LocalClient : ConsoleAppBase
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
         var template = new BookmarkMarkdownTemplate(
-            await ArtworkEnumerable.CreateAsync(database, artworkItemFilter, parallelOptions).ConfigureAwait(false),
+            await ArtworkEnumerable.CreateAsync(configSettings, database, artworkItemFilter, parallelOptions).ConfigureAwait(false),
             configSettings.OriginalFolder, configSettings.ThumbnailFolder, output,
             database.TagSet, database.UserDictionary
         );

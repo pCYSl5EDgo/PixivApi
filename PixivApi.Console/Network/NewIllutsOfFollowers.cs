@@ -2,7 +2,7 @@
 
 namespace PixivApi.Console;
 
-partial class NetworkClient
+public partial class NetworkClient
 {
     [Command("follows-new-work")]
     public async ValueTask<int> DownloadNewIllustsOfFollowersAsync
@@ -33,7 +33,7 @@ partial class NetworkClient
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
-            MaxDegreeOfParallelism = config.MaxParallel,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
         var add = 0UL;
         var update = 0UL;

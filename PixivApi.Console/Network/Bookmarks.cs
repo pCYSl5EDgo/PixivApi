@@ -2,7 +2,7 @@
 
 namespace PixivApi.Console;
 
-partial class NetworkClient
+public partial class NetworkClient
 {
     [Command("bookmarks")]
     public async ValueTask<int> DownloadBookmarksOfUserAsync
@@ -18,7 +18,7 @@ partial class NetworkClient
             return -1;
         }
 
-        if (config.UserId == 0UL)
+        if (configSettings.UserId == 0UL)
         {
             logger.LogError($"{ArgumentDescriptions.ErrorColor}User Id should be written in appsettings.json{ArgumentDescriptions.NormalizeColor}");
             return -1;
@@ -40,12 +40,12 @@ partial class NetworkClient
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
-            MaxDegreeOfParallelism = config.MaxParallel,
+            MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
 
         var add = 0UL;
         var update = 0UL;
-        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, GetUrl(config.UserId, isPublic)).GetAsyncEnumerator(token);
+        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, GetUrl(configSettings.UserId, isPublic)).GetAsyncEnumerator(token);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))

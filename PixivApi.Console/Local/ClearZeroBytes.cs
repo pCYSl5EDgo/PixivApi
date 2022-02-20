@@ -1,6 +1,6 @@
 namespace PixivApi.Console;
 
-partial class LocalClient
+public partial class LocalClient
 {
     [Command("clear-0-bytes", "")]
     public ValueTask ClearZeroBytes(
@@ -69,7 +69,7 @@ partial class LocalClient
 
     private static async ValueTask ForceClearAsync(ILogger logger, ConfigSettings configSettings, bool pipe, CancellationToken token)
     {
-        ulong clear = 0UL;
+        var clear = 0UL;
         ValueTask Delete(string path, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();

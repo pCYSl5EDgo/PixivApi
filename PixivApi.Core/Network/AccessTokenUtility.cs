@@ -192,7 +192,7 @@ public static partial class AccessTokenUtility
         {
             return string.Create(json.Length, (nint)ptr, (span, pointer) =>
             {
-                for (int i = 0; i < span.Length; i++)
+                for (var i = 0; i < span.Length; i++)
                 {
                     span[i] = (char)((byte*)pointer)[i];
                 }
@@ -208,14 +208,14 @@ public static partial class AccessTokenUtility
 
     private static byte[] Sha256Ascii(string text)
     {
-        byte[] bytes = Encoding.ASCII.GetBytes(text);
+        var bytes = Encoding.ASCII.GetBytes(text);
         using var sha256 = SHA256.Create();
         return sha256.ComputeHash(bytes);
     }
 
     private static string Base64UrlEncodeNoPadding(ReadOnlySpan<byte> span)
     {
-        string base64 = Convert.ToBase64String(span);
+        var base64 = Convert.ToBase64String(span);
 
         // Converts base64 to base64url.
         base64 = base64.Replace("+", "-");

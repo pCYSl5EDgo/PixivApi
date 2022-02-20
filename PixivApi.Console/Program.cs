@@ -112,7 +112,7 @@ public sealed class Program
 
                 const int StandardOutputHandle = -11;
                 var handle = GetStdHandle(StandardOutputHandle);
-                int mode = 0;
+                var mode = 0;
                 GetConsoleMode(handle, &mode);
                 const int EnableVirtualTerminalProcessing = 0x0004;
                 SetConsoleMode(handle, mode | EnableVirtualTerminalProcessing);

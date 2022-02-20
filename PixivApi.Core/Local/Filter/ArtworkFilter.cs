@@ -1,6 +1,6 @@
-﻿namespace PixivApi.Core.Local.Filter;
+﻿namespace PixivApi.Core.Local;
 
-public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonOnDeserialized
+public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>
 {
     [JsonPropertyName("bookmark")] public bool? IsBookmark = null;
     [JsonPropertyName("count")] public int? Count = null;
@@ -11,7 +11,7 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
     [JsonPropertyName("mute")] public bool? IsMuted = null;
     [JsonPropertyName("offset")] public int Offset = 0;
     [JsonPropertyName("officially-removed")] public bool? IsOfficiallyRemoved = null;
-    [JsonPropertyName("order")] public string? Order = null;
+    [JsonPropertyName("order")] public ArtworkOrderKind Order = ArtworkOrderKind.None;
     [JsonPropertyName("page-count")] public MinMaxFilter? PageCount = null;
     [JsonPropertyName("r18")] public bool? R18;
     [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
@@ -63,7 +63,7 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
         }
     }
 
-    public bool IsDateDescending() => OrderKind == ArtworkOrderKind.ReverseId;
+    public bool IsDateDescending() => Order == ArtworkOrderKind.ReverseId;
 
     public bool Filter(Artwork artwork)
     {
@@ -163,10 +163,7 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
     public bool IsLimit => Count.HasValue || Offset > 0;
 
     [JsonIgnore]
-    public bool IsOrder => OrderKind != ArtworkOrderKind.None;
-
-    [JsonIgnore]
-    public ArtworkOrderKind OrderKind;
+    public bool IsOrder => Order != ArtworkOrderKind.None;
 
     public int Compare(Artwork? x, Artwork? y)
     {
@@ -186,7 +183,7 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
         }
 
         int c;
-        switch (OrderKind)
+        switch (Order)
         {
             case ArtworkOrderKind.Id:
             default:
@@ -244,24 +241,13 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>, IJsonO
         }
     }
 
-    public void OnDeserialized()
+    public ValueTask InitializeAsync(ConfigSettings configSettings, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, ParallelOptions parallelOptions)
     {
-        OrderKind = Order switch
+        if (FileExistanceFilter is not null)
         {
-            "view" or "v" => ArtworkOrderKind.View,
-            "reverse-view" or "rv" => ArtworkOrderKind.ReverseView,
-            "id" or "i" => ArtworkOrderKind.Id,
-            "reverse" or "r" or "reverse-id" or "ri" => ArtworkOrderKind.ReverseId,
-            "bookmarks" or "b" => ArtworkOrderKind.Bookmarks,
-            "reverse-bookmarks" or "rb" => ArtworkOrderKind.ReverseBookmarks,
-            "user" or "u" => ArtworkOrderKind.UserId,
-            "reverse-user" or "ru" => ArtworkOrderKind.ReverseUserId,
-            _ => ArtworkOrderKind.None,
-        };
-    }
+            FileExistanceFilter.Initialize(configSettings.OriginalFolder, configSettings.ThumbnailFolder, configSettings.UgoiraFolder);
+        }
 
-    public ValueTask InitializeAsync(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, ParallelOptions parallelOptions)
-    {
         if (UserFilter is not null)
         {
             UserFilter.Dictionary = userDictionary;

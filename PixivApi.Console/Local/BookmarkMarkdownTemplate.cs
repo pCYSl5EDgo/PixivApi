@@ -29,7 +29,7 @@ public partial struct BookmarkMarkdownTemplate
                 return string.Create(relative.Length, relative, static (span, value) =>
                 {
                     var source = value.AsSpan();
-                    for (int i = 0; i < source.Length; i++)
+                    for (var i = 0; i < source.Length; i++)
                     {
                         var c = source[i];
                         span[i] = c == '\\' ? '/' : c;
@@ -41,7 +41,7 @@ public partial struct BookmarkMarkdownTemplate
                 return string.Create(relative.Length + 1, relative, static (span, value) =>
                 {
                     var source = value.AsSpan();
-                    for (int i = 0; i < source.Length; i++)
+                    for (var i = 0; i < source.Length; i++)
                     {
                         var c = source[i];
                         span[i] = c == '\\' ? '/' : c;

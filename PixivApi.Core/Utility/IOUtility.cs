@@ -11,7 +11,7 @@ public static class IOUtility
     {
         messagePackSerializerOptions = MessagePackSerializerOptions.Standard;
         var byteTexts = new string[256];
-        for (int i = 0; i < byteTexts.Length; i++)
+        for (var i = 0; i < byteTexts.Length; i++)
         {
             byteTexts[i] = string.Intern(i.ToString("X2"));
         }

@@ -2,7 +2,7 @@
 
 namespace PixivApi.Console;
 
-partial class LocalClient
+public partial class LocalClient
 {
     [Command("optimize")]
     public async ValueTask OptimizeAsync(

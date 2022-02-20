@@ -1,4 +1,4 @@
-﻿namespace PixivApi.Core.Local.Filter;
+﻿namespace PixivApi.Core.Local;
 
 public sealed class TagFilter
 {
