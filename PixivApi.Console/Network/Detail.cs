@@ -32,7 +32,7 @@ public partial class NetworkClient
             CancellationToken = token,
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
-        var search = (await ArtworkEnumerable.CreateAsync(configSettings, database, artworkFilter, parallelOptions).ConfigureAwait(false)!);
+        var search = await ArtworkEnumerable.CreateAsync(configSettings, database, artworkFilter, parallelOptions).ConfigureAwait(false)!;
         if (search is null)
         {
             return 0;
@@ -100,7 +100,7 @@ public partial class NetworkClient
                         }
 
                         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                        if (!(await Reconnect().ConfigureAwait(false)))
+                        if (!await Reconnect().ConfigureAwait(false))
                         {
                             ExceptionDispatchInfo.Throw(e);
                         }
