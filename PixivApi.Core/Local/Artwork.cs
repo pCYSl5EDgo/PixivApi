@@ -254,7 +254,7 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         if (!TryParseDate(page, out answer.FileDate))
         {
             answer.IsOfficiallyRemoved = true;
-            answer.FileDate = answer.CreateDate;
+            answer.FileDate = answer.CreateDate.ToLocalTime();
         }
 
         return answer;
