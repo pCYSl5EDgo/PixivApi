@@ -7,8 +7,8 @@ partial class NetworkClient
 {
     [Command("search")]
     public async ValueTask<int> SearchAsync(
-        [Option(0, "search text")] string text,
-        [Option(1, ArgumentDescriptions.DatabaseDescription)] string output,
+        [Option(0, ArgumentDescriptions.DatabaseDescription)] string output,
+        [Option(1, "search text")] string text,
         [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
         bool pipe = false
     )
