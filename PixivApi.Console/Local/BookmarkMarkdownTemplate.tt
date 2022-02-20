@@ -15,17 +15,11 @@ foreach (var artwork in Artworks)
 <#
     var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}/";
     var firstOriginal = $"{folder}{artwork.GetOriginalFileName(0)}";
-    var thumbnail = $"{folder}{artwork.GetThumbnailFileName()}";
-    if (!File.Exists(firstOriginal) && File.Exists(thumbnail))
+    var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}/{artwork.GetThumbnailFileName()}";
+    if (File.Exists(firstOriginal))
     {
 #>
-⚠ <#= artwork.PageCount #>
-![<#= artwork.Title #>](<#= thumbnail #> "<#= artwork.Id #>")        
-<#
-    }
-    else
-    {
-#>
+
 ![<#= artwork.Title #> - 0](<#= firstOriginal #> "<#= artwork.Id #>")
 <#
         for (uint i = 1; i < artwork.PageCount; ++i)
@@ -35,9 +29,18 @@ foreach (var artwork in Artworks)
                 break;
             }
 #>
+
 ![<#= artwork.Title #> - <#= i #>](<#= folder #><#= artwork.GetOriginalFileName(0) #> "<#= artwork.Id #>")
 <#
         }
+    }
+    else
+    {
+#>
+
+⚠ <#= artwork.PageCount #>
+![<#= artwork.Title #>](<#= thumbnail #> "<#= artwork.Id #>")        
+<#
     }
     if (!string.IsNullOrWhiteSpace(artwork.Caption)) {
 #>
