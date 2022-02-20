@@ -1,6 +1,5 @@
 using PixivApi.Core.Local;
 using System.Net;
-using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
