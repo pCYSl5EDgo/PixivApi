@@ -102,7 +102,7 @@ public partial class NetworkClient
                         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
                         if (!await Reconnect().ConfigureAwait(false))
                         {
-                            ExceptionDispatchInfo.Throw(e);
+                            throw;
                         }
 
                         goto RETRY;
