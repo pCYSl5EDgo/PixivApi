@@ -10,8 +10,11 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core", "PixivApi.Core\PixivApi.Core.csproj", "{AA5124D5-4D2B-4B20-8097-3544A70763EE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D5C1A651-D08D-41D1-885F-96E7568B1161}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.Core.Test", "PixivApi.Core.Test\PixivApi.Core.Test.csproj", "{DAD5393F-C528-4D4A-B543-BA4338D93C20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core.Test", "PixivApi.Core.Test\PixivApi.Core.Test.csproj", "{DAD5393F-C528-4D4A-B543-BA4338D93C20}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
