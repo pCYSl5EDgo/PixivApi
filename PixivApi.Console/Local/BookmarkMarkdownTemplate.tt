@@ -9,7 +9,7 @@ foreach (var artwork in Artworks)
     var user = UserDictionary[artwork.UserId];
     var time = artwork.FileDate;
 #>
-# <#= artwork.Title #>
+# [<#= artwork.Title #>](https://www.pixiv.net/artworks/<#= artwork.Id #>)
 
 <#if (user.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> [<#= user.Name #>](https://www.pixiv.net/users/<#= user.Id #>) 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= time.Year #>-<#= time.Month #>-<#= time.Day #>
 
