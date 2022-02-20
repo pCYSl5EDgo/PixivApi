@@ -2,17 +2,75 @@
 
 public sealed class SearchUrlUtility
 {
-    public static string CalculateNextUrl(ReadOnlySpan<char> noOffset, DateOnly date)
+    public static bool TryGetEndDate(ReadOnlySpan<char> span, out DateOnly date) => TryGetDate(span, out date, "&end_date=");
+
+    public static bool TryGetStartDate(ReadOnlySpan<char> span, out DateOnly date) => TryGetDate(span, out date, "&start_date=");
+
+    private static bool TryGetDate(ReadOnlySpan<char> span, out DateOnly date, ReadOnlySpan<char> dateText)
     {
-        const string end_date = "&end_date=";
-        var end = noOffset.IndexOf(end_date);
-        if (end == -1)
+        var index = span.IndexOf(dateText);
+        if (index == -1)
         {
-            return $"{noOffset}{end_date}{date.Year}-{date.Month}-{date.Day}";
+            goto FALSE;
+        }
+
+        span = span[(index + dateText.Length)..];
+        var yearIndex = span.IndexOf('-');
+        if (yearIndex == -1 || !uint.TryParse(span[..yearIndex], out var year))
+        {
+            goto FALSE;
+        }
+
+        span = span[(yearIndex + 1)..];
+        var monthIndex = span.IndexOf('-');
+        if (monthIndex == -1 || !byte.TryParse(span[..monthIndex], out var month))
+        {
+            goto FALSE;
+        }
+
+        span = span[(monthIndex + 1)..];
+        var ampersandIndex = span.IndexOf('&');
+        if (ampersandIndex != -1)
+        {
+            span = span[..ampersandIndex];
+        }
+
+        if (byte.TryParse(span, out var day))
+        {
+            date = new((int)year, month, day);
+            return true;
+        }
+
+    FALSE:
+        Unsafe.SkipInit(out date);
+        return false;
+    }
+
+    public static string CalculateNextEndDateUrl(ReadOnlySpan<char> noOffset, DateOnly date)
+    {
+        const string Date = "&end_date=";
+        var index = noOffset.IndexOf(Date);
+        if (index == -1)
+        {
+            return $"{noOffset}{Date}{date.Year}-{date.Month}-{date.Day}";
         }
         else
         {
-            return $"{noOffset[..end]}{end_date}{date.Year}-{date.Month}-{date.Day}";
+            return $"{noOffset[..index]}{Date}{date.Year}-{date.Month}-{date.Day}";
+        }
+    }
+
+    public static string CalculateNextStartDateUrl(ReadOnlySpan<char> noOffset, DateOnly date)
+    {
+        const string Date = "&start_date=";
+        var index = noOffset.IndexOf(Date);
+        if (index == -1)
+        {
+            return $"{noOffset}{Date}{date.Year}-{date.Month}-{date.Day}";
+        }
+        else
+        {
+            return $"{noOffset[..index]}{Date}{date.Year}-{date.Month}-{date.Day}";
         }
     }
 
@@ -26,6 +84,23 @@ public sealed class SearchUrlUtility
             if (date != other)
             {
                 Debug.Assert(date.CompareTo(other) < 0);
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    public static int GetIndexOfNewestDay(ReadOnlySpan<Artwork> oldToNew)
+    {
+        Debug.Assert(!oldToNew.IsEmpty);
+        var date = DateOnly.FromDateTime(oldToNew[^1].CreateDate);
+        for (int i = oldToNew.Length - 2; i >= 0; i--)
+        {
+            var other = DateOnly.FromDateTime(oldToNew[i].CreateDate);
+            if (date != other)
+            {
+                Debug.Assert(date.CompareTo(other) > 0);
                 return i;
             }
         }

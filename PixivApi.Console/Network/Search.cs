@@ -9,7 +9,8 @@ partial class NetworkClient
     public async ValueTask<int> SearchAsync(
         [Option(0, ArgumentDescriptions.DatabaseDescription)] string output,
         [Option(1, "search text")] string text,
-        [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
+        [Option("e", "end_date")] string? end_date = null,
+        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.add,
         bool pipe = false
     )
     {
@@ -23,12 +24,8 @@ partial class NetworkClient
             return -1;
         }
 
-        return await InternalSearchAsync(text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), output, OverwriteKindExtensions.Parse(overwrite), pipe);
-    }
-
-    private async ValueTask<int> InternalSearchAsync(string[] searchArray, string output, OverwriteKind overwriteKind, bool pipe)
-    {
-        if (CalcUrl(searchArray) is not string url)
+        var searchArray = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (CalcUrl(searchArray, end_date) is not string url)
         {
             if (!pipe)
             {
@@ -58,12 +55,7 @@ partial class NetworkClient
         };
         var add = 0UL;
         var update = 0UL;
-        var enumerator = new SearchArtworkAsyncEnumerable(RetryGetAsync, url, SearchUrlUtility.CalculateNextUrl, array =>
-        {
-            var index = SearchUrlUtility.GetIndexOfOldestDay(array);
-            var date = DateOnly.FromDateTime(array[index].CreateDate);
-            return (date, index == 0 ? Array.Empty<Artwork>() : array[..index]);
-        }, async (e, token) =>
+        var enumerator = new SearchArtworkAsyncNewToOldEnumerable(RetryGetAsync, url, async (e, token) =>
         {
             logger.LogInformation(e, $"{ArgumentDescriptions.WarningColor}Wait for {config.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ArgumentDescriptions.NormalizeColor}");
             await Task.Delay(config.RetryTimeSpan, token).ConfigureAwait(false);
@@ -111,7 +103,7 @@ partial class NetworkClient
                     return ValueTask.CompletedTask;
                 }).ConfigureAwait(false);
 
-                if (overwriteKind == OverwriteKind.Add && add == oldAdd)
+                if (overwrite == OverwriteKind.add && add == oldAdd)
                 {
                     break;
                 }
@@ -138,7 +130,7 @@ partial class NetworkClient
 
         return 0;
 
-        static string CalcUrl(string[] array)
+        static string CalcUrl(string[] array, string? end_date)
         {
             DefaultInterpolatedStringHandler handler = $"https://{ApiHost}/v1/search/illust?word=";
             handler.AppendFormatted(new PercentEncoding(array[0]));
@@ -148,8 +140,13 @@ partial class NetworkClient
                 handler.AppendFormatted(new PercentEncoding(array[i]));
             }
 
-            handler.AppendLiteral("&search_target=");
-            handler.AppendLiteral("partial_match_for_tags&sort=date_desc");
+            handler.AppendLiteral("&search_target=partial_match_for_tags&sort=date_desc");
+            if (!string.IsNullOrWhiteSpace(end_date))
+            {
+                handler.AppendLiteral("&end_date=");
+                handler.AppendLiteral(end_date);
+            }
+
             return handler.ToStringAndClear();
         }
     }

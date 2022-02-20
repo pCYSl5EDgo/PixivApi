@@ -1,7 +1,6 @@
 ﻿using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.Artwork>;
 using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreview>;
 using QueryAsync = System.Func<string, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>;
-using SplitFunc = System.Func<PixivApi.Core.Network.Artwork[], System.ValueTuple<System.DateOnly, PixivApi.Core.Network.Artwork[]>>;
 using ReconnectAsyncFunc = System.Func<System.Exception, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>;
 
 namespace PixivApi.Core.Network;
@@ -80,26 +79,22 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
     }
 }
 
-public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
+public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artworks>
 {
     public delegate string SearchNextUrl(ReadOnlySpan<char> url, DateOnly date);
 
     private readonly QueryAsync query;
     private readonly string initialUrl;
-    private readonly SearchNextUrl searchNextUrl;
-    private readonly SplitFunc split;
     private readonly ReconnectAsyncFunc reconnect;
 
-    public SearchArtworkAsyncEnumerable(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split, ReconnectAsyncFunc reconnect)
+    public SearchArtworkAsyncNewToOldEnumerable(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect)
     {
         this.query = query;
         this.initialUrl = initialUrl;
-        this.searchNextUrl = searchNextUrl;
-        this.split = split;
         this.reconnect = reconnect;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, searchNextUrl, split, reconnect, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, reconnect, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
@@ -109,16 +104,12 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
         private readonly CancellationToken cancellationToken;
 
         private string? url;
-        private readonly SearchNextUrl searchNextUrl;
-        private readonly SplitFunc split;
         private readonly ReconnectAsyncFunc reconnect;
         private Artwork[]? array;
 
-        public Enumerator(QueryAsync query, string initialUrl, SearchNextUrl searchNextUrl, SplitFunc split, ReconnectAsyncFunc reconnect, CancellationToken cancellationToken)
+        public Enumerator(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect, CancellationToken cancellationToken)
         {
             url = initialUrl;
-            this.searchNextUrl = searchNextUrl;
-            this.split = split;
             this.reconnect = reconnect;
             this.query = query;
             this.cancellationToken = cancellationToken;
@@ -175,12 +166,6 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
                 return false;
             }
 
-            if (array is not null && array.Length > container.Length)
-            {
-                url = null;
-                goto DEFAULT;
-            }
-
             url = response.NextUrl;
             if (url is null || array is not { Length: > 0 })
             {
@@ -188,11 +173,21 @@ public sealed class SearchArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
             }
 
             const string parts = "&offset=5010";
-            var index = url.IndexOf(parts);
-            if (index != -1)
+            var partsIndex = url.IndexOf(parts);
+            if (partsIndex != -1)
             {
-                (var date, array) = split(array);
-                url = searchNextUrl(url.AsSpan(0, index), date);
+                var dayIndex = SearchUrlUtility.GetIndexOfOldestDay(array);
+                var date = DateOnly.FromDateTime(array[dayIndex].CreateDate.ToLocalTime());
+                if (SearchUrlUtility.TryGetEndDate(url, out var searchDate) && date.Equals(searchDate))
+                {
+                    url = SearchUrlUtility.CalculateNextEndDateUrl(url.AsSpan(0, partsIndex), date.AddDays(-1));
+                }
+                else
+                {
+                    array = dayIndex == 0 ? Array.Empty<Artwork>() : array[..dayIndex];
+                    url = SearchUrlUtility.CalculateNextEndDateUrl(url.AsSpan(0, partsIndex), date);
+                }
+
                 return true;
             }
 
