@@ -48,7 +48,7 @@ partial class LocalClient : ConsoleAppBase
         };
         var template = new BookmarkMarkdownTemplate(
             await ArtworkEnumerable.CreateAsync(database, artworkItemFilter, parallelOptions).ConfigureAwait(false),
-            configSettings.OriginalFolder, output,
+            configSettings.OriginalFolder, configSettings.ThumbnailFolder, output,
             database.TagSet, database.UserDictionary
         );
         var builder = ZString.CreateUtf8StringBuilder();

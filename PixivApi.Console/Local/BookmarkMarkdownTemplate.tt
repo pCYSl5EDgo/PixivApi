@@ -1,7 +1,6 @@
 <#@ import namespace="System" #>
 <#@ import namespace="System.IO" #>
 <#
-var relativeFolder = Path.GetRelativePath(Environment.CurrentDirectory, RelativePath);
 ArtworkCount = 0;
 foreach (var artwork in Artworks)
 {
@@ -11,27 +10,45 @@ foreach (var artwork in Artworks)
 #>
 # [<#= artwork.Title #>](https://www.pixiv.net/artworks/<#= artwork.Id #>)
 
-<#if (user.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> [<#= user.Name #>](https://www.pixiv.net/users/<#= user.Id #>) 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= time.Year #>-<#= time.Month #>-<#= time.Day #>
+<#if (user.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> [<#= user.Name #>](https://www.pixiv.net/users/<#= user.Id #>) 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= time.Year #>-<#= time.Month #>-<#= time.Day #><# if (artwork.IsXRestricted) {#> 🔞<#} #>
 
 <#
-    for (uint i = 0; i < artwork.PageCount; ++i)
+    var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}/";
+    var firstOriginal = $"{folder}{artwork.GetOriginalFileName(0)}";
+    var thumbnail = $"{folder}{artwork.GetThumbnailFileName()}";
+    if (!File.Exists(firstOriginal) && File.Exists(thumbnail))
     {
-        if (i + 1U == artwork.PageCount && artwork.ExtraHideLast)
-        {
-            break;
-        }
 #>
-![<#= artwork.Title #> - <#= i #>](<# WritePath(ref builder, artwork.Id, artwork.GetOriginalFileName(i)); #> "<#= artwork.Id #>")
+⚠ <#= artwork.PageCount #>
+![<#= artwork.Title #>](<#= thumbnail #> "<#= artwork.Id #>")        
 <#
     }
-    if (!string.IsNullOrWhiteSpace(artwork.Caption)) {#>
+    else
+    {
+#>
+![<#= artwork.Title #> - 0](<#= firstOriginal #> "<#= artwork.Id #>")
+<#
+        for (uint i = 1; i < artwork.PageCount; ++i)
+        {
+            if (i + 1U == artwork.PageCount && artwork.ExtraHideLast)
+            {
+                break;
+            }
+#>
+![<#= artwork.Title #> - <#= i #>](<#= folder #><#= artwork.GetOriginalFileName(0) #> "<#= artwork.Id #>")
+<#
+        }
+    }
+    if (!string.IsNullOrWhiteSpace(artwork.Caption)) {
+#>
 
 <#= artwork.Caption #>
 <#
     }
     
     if (artwork.Tags.Length != 0)
-    {#>
+    {
+#>
 
 <#
         foreach (var tag in artwork.Tags)
