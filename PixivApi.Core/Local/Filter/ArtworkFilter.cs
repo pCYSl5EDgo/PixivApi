@@ -14,8 +14,8 @@ public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>
     [JsonPropertyName("order")] public ArtworkOrderKind Order = ArtworkOrderKind.None;
     [JsonPropertyName("page-count")] public MinMaxFilter? PageCount = null;
     [JsonPropertyName("r18")] public bool? R18;
-    [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
-    [JsonPropertyName("title-filter")] public TagFilter? TitleFilter = null;
+    [JsonPropertyName("tag-filter")] public TextFilter? TagFilter = null;
+    [JsonPropertyName("title-filter")] public TextFilter? TitleFilter = null;
     [JsonPropertyName("total-bookmarks")] public MinMaxFilter? TotalBookmarks = null;
     [JsonPropertyName("total-view")] public MinMaxFilter? TotalView = null;
     [JsonPropertyName("type")] public ArtworkType? Type = null;

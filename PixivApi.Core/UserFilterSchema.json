@@ -1,0 +1,47 @@
+﻿{
+  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/UserFilterSchema.json",
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "additionalProperties": false,
+  "description": "A filter for user json file",
+  "properties": {
+    "$schema": {
+      "format": "uri",
+      "type": "string"
+    },
+    "follow": {
+      "type": "boolean"
+    },
+    "id-filter": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "ignore-id": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "type": "object"
+    },
+    "only-registered": {
+      "type": "boolean"
+    },
+    "show-hidden": {
+      "type": "boolean"
+    }
+  },
+  "title": "UserFilter",
+  "type": "object"
+}

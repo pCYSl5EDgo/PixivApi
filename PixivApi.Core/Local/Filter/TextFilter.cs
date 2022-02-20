@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class TagFilter
+public sealed class TextFilter
 {
     [JsonPropertyName("exact")] public string[]? Exacts;
     [JsonPropertyName("partial")] public string[]? Partials;

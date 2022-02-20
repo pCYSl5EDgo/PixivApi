@@ -1,0 +1,124 @@
+﻿{
+  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/ArtworkFilterSchema.json",
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "additionalProperties": false,
+  "description": "A filter for artwork json file",
+  "properties": {
+    "$schema": {
+      "format": "uri",
+      "type": "string"
+    },
+    "bookmark": {
+      "type": "boolean"
+    },
+    "count": {
+      "minimum": 0,
+      "type": "integer"
+    },
+    "date": {
+      "additionalProperties": false,
+      "properties": {
+        "since": {
+          "format": "date",
+          "type": "string"
+        },
+        "until": { "$ref": "#/properties/date/properties/since" }
+      },
+      "type": "object"
+    },
+    "file-filter": {
+      "additionalProperties": false,
+      "properties": {
+        "original": {
+          "type": "boolean"
+        },
+        "thumbnail": {
+          "type": "boolean"
+        },
+        "ugoira": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "height": {
+      "additionalProperties": false,
+      "properties": {
+        "max": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "min": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "id-filter": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "ignore-id": { "$ref": "#/properties/id-filter/properties/id" }
+      },
+      "type": "object"
+    },
+    "mute": {
+      "type": "boolean"
+    },
+    "officially-removed": {
+      "type": "boolean"
+    },
+    "offset": { "$ref": "#/properties/count" },
+    "order": {
+      "enum": [
+        "reverse-id",
+        "id",
+        "reverse-bookmarks",
+        "bookmarks",
+        "reverse-view",
+        "view",
+        "user",
+        "reverse-user"
+      ]
+    },
+    "page-count": { "$ref": "#/properties/height" },
+    "r18": {
+      "type": "boolean"
+    },
+    "tag-filter": {
+      "type": "object",
+      "properties": { "$ref": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/TextFilterSchema.json#/properties" },
+      "additionalProperties": false
+    },
+    "title-filter": { "$ref": "#/properties/tag-filter" },
+    "total-bookmarks": { "$ref": "#/properties/height" },
+    "total-view": { "$ref": "#/properties/height" },
+    "type": {
+      "enum": [
+        "illust",
+        "manga",
+        "ugoira"
+      ]
+    },
+    "user-filter": {
+      "additionalProperties": false,
+      "properties": { "$ref": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/UserFilterSchema.json#/properties" },
+      "type": "object"
+    },
+    "visible": {
+      "type": "boolean"
+    },
+    "width": { "$ref": "#/properties/height" }
+  },
+  "title": "ArtworkFilter",
+  "type": "object"
+}
