@@ -8,7 +8,7 @@ partial class NetworkClient
     public async ValueTask<int> DownloadFollowsOfUserAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
+        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.add,
         bool pipe = false
     )
     {
@@ -29,7 +29,6 @@ partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var overwriteKind = OverwriteKindExtensions.Parse(overwrite);
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
         var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
         foreach (var item in database.Artworks)
@@ -100,7 +99,7 @@ partial class NetworkClient
                     return ValueTask.CompletedTask;
                 }).ConfigureAwait(false);
 
-                if (overwriteKind == OverwriteKind.Add && add == oldAdd)
+                if (overwrite == OverwriteKind.add && add == oldAdd)
                 {
                     break;
                 }

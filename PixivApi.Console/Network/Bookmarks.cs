@@ -8,8 +8,8 @@ partial class NetworkClient
     public async ValueTask<int> DownloadBookmarksOfUserAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(null, "public bookmarks?")] bool isPublic = true,
-        [Option(null, ArgumentDescriptions.OverwriteKindDescription)] string overwrite = "add",
+        [Option("p", "public bookmarks?")] bool isPublic = true,
+        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.add,
         bool pipe = false
     )
     {
@@ -30,15 +30,11 @@ partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var overwriteKind = OverwriteKindExtensions.Parse(overwrite);
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
         var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
-        if (overwriteKind == OverwriteKind.SearchAndAdd || overwriteKind == OverwriteKind.Add)
+        foreach (var item in database.Artworks)
         {
-            foreach (var item in database.Artworks)
-            {
-                dictionary.TryAdd(item.Id, item);
-            }
+            dictionary.TryAdd(item.Id, item);
         }
 
         var parallelOptions = new ParallelOptions()
@@ -87,7 +83,7 @@ partial class NetworkClient
                     return ValueTask.CompletedTask;
                 }).ConfigureAwait(false);
 
-                if (overwriteKind == OverwriteKind.Add && add == oldAdd)
+                if (overwrite == OverwriteKind.add && add == oldAdd)
                 {
                     break;
                 }
