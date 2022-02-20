@@ -229,6 +229,9 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             Title = artwork.Title,
             Caption = artwork.Caption,
             IsXRestricted = artwork.XRestrict != 0,
+            IsBookmarked = artwork.IsBookmarked,
+            IsMuted = artwork.IsMuted,
+            IsVisible = artwork.Visible,
         };
 
         userDictionary.TryAdd(artwork.User.Id, artwork.User);
