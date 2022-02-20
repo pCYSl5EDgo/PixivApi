@@ -247,7 +247,7 @@ partial class NetworkClient
 
         public async ValueTask<bool> DownloadAsync(string folder, ulong id, string url, string fileName)
         {
-            var fileInfo = new FileInfo(Path.Combine(folder, $"{id & 255:X2}", fileName));
+            var fileInfo = new FileInfo(Path.Combine(folder, IOUtility.GetHashPath(id), fileName));
             if (fileInfo.Exists)
             {
                 if (displayAlreadyExists)

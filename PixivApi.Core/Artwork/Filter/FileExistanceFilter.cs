@@ -12,7 +12,7 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
         public bool Filter(Artwork artwork)
         {
-            var folder = $"{Folder}/{(byte)(artwork.Id & 255):X2}/";
+            var folder = $"{Folder}/{IOUtility.GetHashPath(artwork.Id)}/";
             if (Exist)
             {
                 for (uint i = 0; i < artwork.PageCount; i++)
@@ -52,7 +52,9 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
         public bool Filter(Artwork artwork)
         {
-            DefaultInterpolatedStringHandler handler = $"{Folder}/{(byte)(artwork.Id & 255):X2}/";
+            DefaultInterpolatedStringHandler handler = $"{Folder}/";
+            IOUtility.AppendHashPath(ref handler, artwork.Id);
+            handler.AppendLiteral("/");
             artwork.AddThumbnailFileName(ref handler);
             return File.Exists(handler.ToStringAndClear()) == Exist;
         }
@@ -68,7 +70,11 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
         public bool Filter(Artwork artwork)
         {
-            return File.Exists($"{Folder}/{(byte)(artwork.Id & 255):X2}/{artwork.GetZipFileName()}") == Exist;
+            DefaultInterpolatedStringHandler handler = $"{Folder}/";
+            IOUtility.AppendHashPath(ref handler, artwork.Id);
+            handler.AppendLiteral("/");
+            handler.AppendFormatted(artwork.GetZipFileName());
+            return File.Exists(handler.ToStringAndClear()) == Exist;
         }
     }
 

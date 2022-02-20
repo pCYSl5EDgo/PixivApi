@@ -1,4 +1,5 @@
 ﻿using Cysharp.Collections;
+using System.Collections.Immutable;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 
@@ -9,17 +10,20 @@ public static class IOUtility
     static IOUtility()
     {
         messagePackSerializerOptions = MessagePackSerializerOptions.Standard;
-    }
-
-    public static string? GetFileNameFromUri(string uri)
-    {
-        if (!Uri.TryCreate(uri, UriKind.Absolute, out var uriObject))
+        var byteTexts = new string[256];
+        for (int i = 0; i < byteTexts.Length; i++)
         {
-            uriObject = new Uri("https://pixiv.net");
+            byteTexts[i] = string.Intern(i.ToString("X2"));
         }
 
-        return Path.GetFileName(uriObject.LocalPath);
+        ByteTexts = ImmutableArray.Create(byteTexts);
     }
+
+    public static readonly ImmutableArray<string> ByteTexts;
+
+    public static string GetHashPath(ulong id) => ByteTexts[(int)(id & 255UL)];
+
+    public static void AppendHashPath(ref DefaultInterpolatedStringHandler handler, ulong id) => handler.AppendLiteral(ByteTexts[(int)(id & 255UL)]);
 
     public static async ValueTask<NativeMemoryArray<byte>> ReadFromFileAsync(string path, CancellationToken token)
     {
