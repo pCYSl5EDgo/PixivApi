@@ -3,7 +3,7 @@ using System.Collections.Immutable;
 using System.Text.Encodings.Web;
 using System.Text.Unicode;
 
-namespace PixivApi;
+namespace PixivApi.Core;
 
 public static class IOUtility
 {
@@ -72,6 +72,7 @@ public static class IOUtility
         WriteIndented = true,
         Converters =
         {
+            CamelCaseArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },
     };
@@ -83,6 +84,7 @@ public static class IOUtility
         WriteIndented = false,
         Converters =
         {
+            CamelCaseArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },
     };
