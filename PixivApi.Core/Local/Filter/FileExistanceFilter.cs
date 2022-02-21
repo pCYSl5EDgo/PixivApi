@@ -19,9 +19,19 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
     public void Initialize(string originalFolder, string thumbnailFolder, string ugoiraFolder)
     {
-        this.originalFolder = originalFolder;
-        this.thumbnailFolder = thumbnailFolder;
-        this.ugoiraFolder = ugoiraFolder;
+        static string WithSeparator(string path)
+        {
+            if (path.Length > 0 && path[^1] != Path.DirectorySeparatorChar && path[^1] != Path.AltDirectorySeparatorChar)
+            {
+                return path + '/';
+            }
+
+            return path;
+        }
+
+        this.originalFolder = WithSeparator(originalFolder);
+        this.thumbnailFolder = WithSeparator(thumbnailFolder);
+        this.ugoiraFolder = WithSeparator(ugoiraFolder);
     }
 
     public bool Filter(Artwork artwork)
@@ -46,7 +56,7 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
     private bool UgoiraFilter(Artwork artwork, bool exist)
     {
-        DefaultInterpolatedStringHandler handler = $"{ugoiraFolder}/";
+        DefaultInterpolatedStringHandler handler = $"{ugoiraFolder}";
         IOUtility.AppendHashPath(ref handler, artwork.Id);
         handler.AppendFormatted(artwork.GetZipFileName());
         return File.Exists(handler.ToStringAndClear()) == exist;
@@ -54,7 +64,7 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
     private bool ThumbnailFilter(Artwork artwork, bool exist)
     {
-        DefaultInterpolatedStringHandler handler = $"{thumbnailFolder}/";
+        DefaultInterpolatedStringHandler handler = $"{thumbnailFolder}";
         IOUtility.AppendHashPath(ref handler, artwork.Id);
         artwork.AddThumbnailFileName(ref handler);
         return File.Exists(handler.ToStringAndClear()) == exist;
@@ -62,7 +72,7 @@ public sealed class FileExistanceFilter : IFilter<Artwork>
 
     public bool OriginalFilter(Artwork artwork, bool exist)
     {
-        var folder = $"{originalFolder}/{IOUtility.GetHashPath(artwork.Id)}";
+        var folder = $"{originalFolder}{IOUtility.GetHashPath(artwork.Id)}";
         if (exist)
         {
             for (uint i = 0; i < artwork.PageCount; i++)
