@@ -19,46 +19,18 @@ public partial class LocalClient
         }
 
         var count = 0;
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
+        if (database is not { Artworks.Length: > 0 })
+        {
+            goto END;
+        }
+
         if (artworkItemFilter is null)
         {
-            using var handle = File.OpenHandle(input, FileMode.Open, FileAccess.Read, FileShare.Read, FileOptions.Asynchronous);
-            var length = RandomAccess.GetLength(handle);
-            if (length == 0)
-            {
-                logger.LogInformation("0");
-                return 0;
-            }
-
-            const int SIZE = 20;
-            using var segment = ArraySegmentFromPool.Rent(SIZE);
-            var memory = segment.AsMemory()[..(length < SIZE ? (int)length : SIZE)];
-            var actualReadCount = await RandomAccess.ReadAsync(handle, memory, 0, token).ConfigureAwait(false);
-            static int ReadCount(ReadOnlyMemory<byte> memory)
-            {
-                var reader = new MessagePackReader(memory);
-                if (!reader.TryReadArrayHeader(out var header) || header == 0)
-                {
-                    return 0;
-                }
-
-                // skip major version
-                reader.Skip();
-                // skip minor version
-                reader.Skip();
-
-                return reader.TryReadArrayHeader(out var header2) ? header2 : 0;
-            }
-
-            count = ReadCount(segment.AsReadOnlyMemory()[..actualReadCount]);
+            count = database.Artworks.Length;
         }
         else
         {
-            var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
-            if (database is not { Artworks.Length: > 0 })
-            {
-                goto END;
-            }
-
             var parallelOptions = new ParallelOptions()
             {
                 CancellationToken = token,
