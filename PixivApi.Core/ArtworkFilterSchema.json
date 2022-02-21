@@ -22,7 +22,9 @@
           "format": "date",
           "type": "string"
         },
-        "until": { "$ref": "#/properties/date/properties/since" }
+        "until": {
+          "$ref": "#/properties/date/properties/since"
+        }
       },
       "type": "object"
     },
@@ -67,7 +69,9 @@
           "type": "array",
           "uniqueItems": true
         },
-        "ignore-id": { "$ref": "#/properties/id-filter/properties/id" }
+        "ignore-id": {
+          "$ref": "#/properties/id-filter/properties/id"
+        }
       },
       "type": "object"
     },
@@ -77,7 +81,9 @@
     "officially-removed": {
       "type": "boolean"
     },
-    "offset": { "$ref": "#/properties/count" },
+    "offset": {
+      "$ref": "#/properties/count"
+    },
     "order": {
       "enum": [
         "reverse-id",
@@ -90,18 +96,58 @@
         "reverse-user"
       ]
     },
-    "page-count": { "$ref": "#/properties/height" },
+    "page-count": {
+      "$ref": "#/properties/height"
+    },
     "r18": {
       "type": "boolean"
     },
     "tag-filter": {
-      "type": "object",
-      "properties": { "$ref": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/TextFilterSchema.json#/properties" },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "A filter for text json file",
+      "properties": {
+        "exact": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "exact-or": {
+          "type": "boolean"
+        },
+        "ignore-exact": {
+          "$ref": "#/properties/tag-filter/properties/exact"
+        },
+        "ignore-exact-or": {
+          "type": "boolean"
+        },
+        "ignore-partial": {
+          "$ref": "#/properties/tag-filter/properties/exact"
+        },
+        "ignore-partial-or": {
+          "type": "boolean"
+        },
+        "partial": {
+          "$ref": "#/properties/tag-filter/properties/exact"
+        },
+        "partial-or": {
+          "type": "boolean"
+        }
+      },
+      "title": "TextFilter",
+      "type": "object"
     },
-    "title-filter": { "$ref": "#/properties/tag-filter" },
-    "total-bookmarks": { "$ref": "#/properties/height" },
-    "total-view": { "$ref": "#/properties/height" },
+    "title-filter": {
+      "$ref": "#/properties/tag-filter"
+    },
+    "total-bookmarks": {
+      "$ref": "#/properties/height"
+    },
+    "total-view": {
+      "$ref": "#/properties/height"
+    },
     "type": {
       "enum": [
         "illust",
@@ -111,13 +157,88 @@
     },
     "user-filter": {
       "additionalProperties": false,
-      "properties": { "$ref": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/UserFilterSchema.json#/properties" },
+      "description": "A filter for user json file",
+      "properties": {
+        "follow": {
+          "type": "boolean"
+        },
+        "id-filter": {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "items": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "ignore-id": {
+              "items": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            }
+          },
+          "type": "object"
+        },
+        "name-filter": {
+          "additionalProperties": false,
+          "description": "A filter for text json file",
+          "properties": {
+            "exact": {
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array",
+              "uniqueItems": true
+            },
+            "exact-or": {
+              "type": "boolean"
+            },
+            "ignore-exact": {
+              "$ref": "#/properties/user-filter/properties/name-filter/properties/exact"
+            },
+            "ignore-exact-or": {
+              "type": "boolean"
+            },
+            "ignore-partial": {
+              "$ref": "#/properties/user-filter/properties/name-filter/properties/exact"
+            },
+            "ignore-partial-or": {
+              "type": "boolean"
+            },
+            "partial": {
+              "$ref": "#/properties/user-filter/properties/name-filter/properties/exact"
+            },
+            "partial-or": {
+              "type": "boolean"
+            }
+          },
+          "title": "TextFilter",
+          "type": "object"
+        },
+        "only-registered": {
+          "type": "boolean"
+        },
+        "show-hidden": {
+          "type": "boolean"
+        }
+      },
+      "title": "UserFilter",
       "type": "object"
     },
     "visible": {
       "type": "boolean"
     },
-    "width": { "$ref": "#/properties/height" }
+    "width": {
+      "$ref": "#/properties/height"
+    }
   },
   "title": "ArtworkFilter",
   "type": "object"

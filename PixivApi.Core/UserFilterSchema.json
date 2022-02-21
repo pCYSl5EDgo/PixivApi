@@ -36,9 +36,41 @@
       "type": "object"
     },
     "name-filter": {
-      "type": "object",
-      "properties": { "$ref": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/TextFilterSchema.json#/properties" },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "A filter for text json file",
+      "properties": {
+        "exact": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array",
+          "uniqueItems": true
+        },
+        "exact-or": {
+          "type": "boolean"
+        },
+        "ignore-exact": {
+          "$ref": "#/properties/name-filter/properties/exact"
+        },
+        "ignore-exact-or": {
+          "type": "boolean"
+        },
+        "ignore-partial": {
+          "$ref": "#/properties/name-filter/properties/exact"
+        },
+        "ignore-partial-or": {
+          "type": "boolean"
+        },
+        "partial": {
+          "$ref": "#/properties/name-filter/properties/exact"
+        },
+        "partial-or": {
+          "type": "boolean"
+        }
+      },
+      "title": "TextFilter",
+      "type": "object"
     },
     "only-registered": {
       "type": "boolean"
