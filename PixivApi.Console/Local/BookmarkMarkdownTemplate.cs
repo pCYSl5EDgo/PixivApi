@@ -76,7 +76,6 @@ public partial struct BookmarkMarkdownTemplate
     {
         builder.Append(RelativePathToOriginal);
         builder.Append(IOUtility.GetHashPath(id));
-        builder.Append('/');
         builder.Append(name);
     }
 }

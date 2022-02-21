@@ -14,9 +14,9 @@ foreach (var artwork in Artworks)
 <#if (user.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> [<#= user.Name #>](https://www.pixiv.net/users/<#= user.Id #>) 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= time.Year #>-<#= time.Month #>-<#= time.Day #><# if (artwork.IsXRestricted) {#> 🔞<#} #>
 
 <#
-    var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}/";
+    var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}";
     var firstOriginal = $"{folder}{artwork.GetOriginalFileName(0)}";
-    var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}/{artwork.GetThumbnailFileName()}";
+    var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetThumbnailFileName()}";
     if (File.Exists(firstOriginal))
     {
 #>

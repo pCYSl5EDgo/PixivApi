@@ -55,7 +55,7 @@ public partial class NetworkClient
             }
             else
             {
-                Interlocked.Exchange(ref failFlag, 1);
+                Interlocked.Increment(ref failFlag);
             }
         }
 
@@ -247,7 +247,20 @@ public partial class NetworkClient
 
         public async ValueTask<bool> DownloadAsync(string folder, ulong id, string url, string fileName)
         {
-            var fileInfo = new FileInfo(Path.Combine(folder, IOUtility.GetHashPath(id), fileName));
+            static string GetPath(string folder, ulong id, string fileName)
+            {
+                DefaultInterpolatedStringHandler handler = $"{folder}";
+                if (folder.Length != 0 && folder[^1] != '/' && folder[^1] != '\\')
+                {
+                    handler.AppendLiteral("/");
+                }
+
+                IOUtility.AppendHashPath(ref handler, id);
+                handler.AppendFormatted(fileName);
+                return handler.ToStringAndClear();
+            }
+
+            var fileInfo = new FileInfo(GetPath(folder, id, fileName));
             if (fileInfo.Exists)
             {
                 if (displayAlreadyExists)
