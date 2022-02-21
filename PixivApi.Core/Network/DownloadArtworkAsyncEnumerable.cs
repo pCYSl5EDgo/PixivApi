@@ -225,7 +225,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
         public Enumerator(QueryAsync query, string initialUrl, CancellationToken cancellationToken)
         {
             this.query = query;
-            this.url = initialUrl;
+            url = initialUrl;
             this.cancellationToken = cancellationToken;
         }
 
