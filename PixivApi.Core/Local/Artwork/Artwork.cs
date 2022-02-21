@@ -3,7 +3,7 @@
 namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
-public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
+public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnSerializing, IJsonOnSerialized
 {
     // 8 * 4
     public ulong Id;
@@ -31,12 +31,12 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
     public DateTime CreateDate;
     public DateTime FileDate;
-    public uint[] Tags = Array.Empty<uint>();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[] Tags = Array.Empty<uint>();
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[]? ExtraTags;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[]? ExtraFakeTags;
-    public uint[] Tools = Array.Empty<uint>();
-    public string Title = string.Empty;
-    public string Caption = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[] Tools = Array.Empty<uint>();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string Title = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string Caption = string.Empty;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string? ExtraMemo;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public ushort[]? UgoiraFrames;
@@ -311,6 +311,31 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         }
     }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IEnumerable<string>? StringifiedTags { get; private set; }
+
+    public void CalculateStringifiedTags(StringSet tagSet)
+    {
+        HashSet<uint> set = new(Tags);
+        if (ExtraTags is { Length: > 0 })
+        {
+            foreach (var item in ExtraTags)
+            {
+                set.Add(item);
+            }
+        }
+
+        if (ExtraFakeTags is { Length: > 0 })
+        {
+            foreach (var item in ExtraFakeTags)
+            {
+                set.Remove(item);
+            }
+        }
+
+        StringifiedTags = set.Count == 0 ? Array.Empty<string>() : set.Select(x => tagSet.Values[x]);
+    }
+
     public override string ToString() => Id.ToString();
 
     public override int GetHashCode() => Id.GetHashCode();
@@ -318,6 +343,36 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     public bool Equals(Artwork? other) => ReferenceEquals(this, other) || (other is not null && Id == other.Id && UserId == other.UserId);
 
     public override bool Equals(object? obj) => Equals(obj as Artwork);
+
+    private uint[]? _tags;
+    private uint[]? _extraFakeTags;
+    private uint[]? _extraTags;
+
+    public void OnSerializing()
+    {
+        if (StringifiedTags is not null)
+        {
+            _tags = Tags;
+            _extraFakeTags = ExtraFakeTags;
+            _extraTags = ExtraTags;
+            Tags = null!;
+            ExtraFakeTags = null!;
+            ExtraTags = null!;
+        }
+    }
+    
+    public void OnSerialized()
+    {
+        if (StringifiedTags is not null)
+        {
+            Tags = _tags!;
+            ExtraFakeTags = _extraFakeTags;
+            ExtraTags = _extraTags;
+            _tags = null;
+            _extraFakeTags = null;
+            _extraTags = null;
+        }
+    }
 
     public sealed class Formatter : IMessagePackFormatter<Artwork>
     {

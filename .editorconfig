@@ -29,7 +29,7 @@ csharp_new_line_before_finally = true
 #require members of object intializers to be on separate lines
 csharp_new_line_before_members_in_object_initializers = true
 #require braces to be on a new line for lambdas, object_collection_array_initializers, methods, control_blocks, and types (also known as "Allman" style)
-csharp_new_line_before_open_brace = lambdas, object_collection_array_initializers, methods, control_blocks, types
+csharp_new_line_before_open_brace = all
 
 #Formatting - organize using options
 
@@ -160,6 +160,7 @@ dotnet_style_parentheses_in_other_operators = never_if_unnecessary:silent
 dotnet_code_quality_unused_parameters = all:suggestion
 dotnet_style_readonly_field = true:suggestion
 dotnet_style_namespace_match_folder = false:suggestion
+end_of_line = crlf
 [*.cs]
 #### ñΩñºÉXÉ^ÉCÉã ####
 

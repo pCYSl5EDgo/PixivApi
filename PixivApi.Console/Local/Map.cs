@@ -9,6 +9,7 @@ public partial class LocalClient
     public async ValueTask<int> MapAsync(
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
+        bool toString = true,
         bool pipe = false
     )
     {
@@ -32,6 +33,21 @@ public partial class LocalClient
         var artworks = itemFilter is null
             ? database.Artworks
             : await ArtworkEnumerable.CreateAsync(configSettings, database, itemFilter, new() { CancellationToken = token, MaxDegreeOfParallelism = configSettings.MaxParallel, }).ConfigureAwait(false);
+
+        if (toString)
+        {
+            if (artworks is not Artwork[])
+            {
+                artworks = artworks.ToArray();
+            }
+
+            await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                artwork.CalculateStringifiedTags(database.TagSet);
+                return ValueTask.CompletedTask;
+            }).ConfigureAwait(false);
+        }
 
         if (pipe)
         {
