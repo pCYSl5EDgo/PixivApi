@@ -28,7 +28,6 @@ public sealed class Program
 
         var configSettings = await GetConfigSettingAsync(httpClient, cts.Token).ConfigureAwait(false);
 
-
         var builder = ConsoleApp
             .CreateBuilder(args, ConfigureOptions)
             .ConfigureHostOptions(ConfigureHostOptions)
@@ -55,12 +54,36 @@ public sealed class Program
         configSettings ??= new();
         if (string.IsNullOrWhiteSpace(configSettings.RefreshToken))
         {
-            configSettings.RefreshToken = await AccessTokenUtility.AuthAsync(httpClient, configSettings, token).ConfigureAwait(false) ?? string.Empty;
+            var valueTask = AccessTokenUtility.AuthAsync(httpClient, configSettings, token);
+            await InitializeDirectoriesAsync(configSettings.OriginalFolder, token).ConfigureAwait(false);
+            await InitializeDirectoriesAsync(configSettings.ThumbnailFolder, token).ConfigureAwait(false);
+            await InitializeDirectoriesAsync(configSettings.UgoiraFolder, token).ConfigureAwait(false);
+            configSettings.RefreshToken = await valueTask.ConfigureAwait(false) ?? string.Empty;
             await IOUtility.JsonSerializeAsync("appsettings.json", configSettings, FileMode.Create).ConfigureAwait(false);
         }
 
         return configSettings;
     }
+
+    private static Task InitializeDirectoriesAsync(string directory, CancellationToken token) => Parallel.ForEachAsync(Enumerable.Range(0, 256), token, (index, token) =>
+    {
+        var folder = Path.Combine(directory, IOUtility.ByteTexts[index]);
+        if (!Directory.Exists(folder))
+        {
+            Directory.CreateDirectory(folder);
+        }
+
+        for (var innerIndex = 0; innerIndex < 256; innerIndex++)
+        {
+            var innerFolder = Path.Combine(folder, IOUtility.ByteTexts[innerIndex]);
+            if (!Directory.Exists(innerFolder))
+            {
+                Directory.CreateDirectory(innerFolder);
+            }
+        }
+
+        return ValueTask.CompletedTask;
+    });
 
     private static void ConfigureOptions(HostBuilderContext context, ConsoleAppOptions options) => options.JsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
 
