@@ -1,4 +1,5 @@
-﻿using PixivApi.Core.Local;
+﻿using PixivApi.Core;
+using PixivApi.Core.Local;
 
 namespace PixivApi.Console;
 

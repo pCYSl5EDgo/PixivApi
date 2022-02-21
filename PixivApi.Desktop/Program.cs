@@ -1,3 +1,5 @@
+using PixivApi.Core;
+using PixivApi.Core.Network;
 using System.IO;
 
 namespace PixivApi.Desktop;

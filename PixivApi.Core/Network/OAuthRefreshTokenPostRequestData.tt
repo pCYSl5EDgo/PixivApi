@@ -1,1 +1,2 @@
-﻿client_id=<#= ClientId #>&client_secret=<#= ClientSecret #>&code=<#= Code #>&code_verifier=<#= CodeVerifier #>&grant_type=authorization_code&include_policy=true&redirect_uri=https%3A%2F%2Fapp-api.pixiv.net%2Fweb%2Fv1%2Fusers%2Fauth%2Fpixiv%2Fcallback
+﻿<#@ import namespace="PixivApi.Core" #>
+client_id=<#= ClientId #>&client_secret=<#= ClientSecret #>&code=<#= Code #>&code_verifier=<#= CodeVerifier #>&grant_type=authorization_code&include_policy=true&redirect_uri=https%3A%2F%2Fapp-api.pixiv.net%2Fweb%2Fv1%2Fusers%2Fauth%2Fpixiv%2Fcallback

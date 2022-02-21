@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace PixivApi;
+namespace PixivApi.Core.Network;
 
 public static class HttpRequestMessageUtility
 {

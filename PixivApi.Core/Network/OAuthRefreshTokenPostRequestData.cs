@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core;
 
 [T4("Network", kind: Kind.Utf8)]
 public partial record struct OAuthRefreshTokenPostRequestData(

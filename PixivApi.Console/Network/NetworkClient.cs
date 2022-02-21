@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using PixivApi.Core.Network;
+using System.Net;
 
 namespace PixivApi.Console;
 
@@ -13,7 +14,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
 
     public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, CancellationTokenSource cancellationTokenSource)
     {
-        this.configSettings = config;
+        configSettings = config;
         this.logger = logger;
         this.client = client;
         this.cancellationTokenSource = cancellationTokenSource;

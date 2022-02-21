@@ -1,3 +1,4 @@
+using PixivApi.Core;
 using PixivApi.Core.Local;
 using System.Net;
 

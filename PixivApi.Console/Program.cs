@@ -1,11 +1,13 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PixivApi.Core;
+using PixivApi.Core.Network;
 
 namespace PixivApi.Console;
 
 public sealed class Program
 {
-    private readonly static CancellationTokenSource cts = new();
+    private static readonly CancellationTokenSource cts = new();
 
     public static async Task Main(string[] args)
     {
@@ -84,10 +86,7 @@ public sealed class Program
         EnableConsoleVirtualCode();
     }
 
-    private static void ConfigureHostOptions(HostBuilderContext context, HostOptions options)
-    {
-        options.ShutdownTimeout = TimeSpan.FromDays(1);
-    }
+    private static void ConfigureHostOptions(HostBuilderContext context, HostOptions options) => options.ShutdownTimeout = TimeSpan.FromDays(1);
 
     private static unsafe void EnableConsoleVirtualCode()
     {

@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core;
 
 public interface IArrayContainer<T>
 {

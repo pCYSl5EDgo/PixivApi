@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Network;
 
 public sealed class ChromeLogJson
 {
