@@ -33,7 +33,6 @@ public sealed class Program
             .CreateBuilder(args, ConfigureOptions)
             .ConfigureHostOptions(ConfigureHostOptions)
             .ConfigureLogging(ConfigureLogger)
-            .ConfigureServices(ConfigureServices)
             .ConfigureServices(services => services.AddSingleton(configSettings))
             .ConfigureServices(services => services.AddSingleton(httpClient))
             .ConfigureServices(services => services.AddSingleton(cts))
@@ -63,19 +62,12 @@ public sealed class Program
         return configSettings;
     }
 
-    private static void ConfigureOptions(HostBuilderContext context, ConsoleAppOptions options)
-    {
-    }
+    private static void ConfigureOptions(HostBuilderContext context, ConsoleAppOptions options) => options.JsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
 
     private static void CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
     {
         e.Cancel = true;
         cts.Cancel();
-    }
-
-    private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
-    {
-
     }
 
     private static void ConfigureLogger(ILoggingBuilder builder)

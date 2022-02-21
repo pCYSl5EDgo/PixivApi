@@ -65,7 +65,7 @@ public static class IOUtility
     }
 
     private static readonly JavaScriptEncoder javaScriptEncoder = JavaScriptEncoder.Create(UnicodeRanges.All);
-    private static readonly JsonSerializerOptions jsonSerializerOptions = new()
+    public static readonly JsonSerializerOptions JsonSerializerOptionsWithIndent = new()
     {
         Encoder = javaScriptEncoder,
         IncludeFields = true,
@@ -77,7 +77,7 @@ public static class IOUtility
         },
     };
 
-    private static readonly JsonSerializerOptions jsonSerializerOptionsNoIndent = new()
+    public static readonly JsonSerializerOptions JsonSerializerOptionsNoIndent = new()
     {
         Encoder = javaScriptEncoder,
         IncludeFields = true,
@@ -97,7 +97,7 @@ public static class IOUtility
             CommentHandling = JsonCommentHandling.Skip,
         });
 
-        return JsonSerializer.Deserialize<T>(ref reader, jsonSerializerOptions);
+        return JsonSerializer.Deserialize<T>(ref reader, JsonSerializerOptionsWithIndent);
     }
 
     public static T? JsonDeserialize<T>(ReadOnlySequence<byte> sequence) where T : notnull
@@ -108,7 +108,7 @@ public static class IOUtility
             CommentHandling = JsonCommentHandling.Skip,
         });
 
-        return JsonSerializer.Deserialize<T>(ref reader, jsonSerializerOptions);
+        return JsonSerializer.Deserialize<T>(ref reader, JsonSerializerOptionsWithIndent);
     }
 
     public static async ValueTask<T?> JsonDeserializeAsync<T>(string path, CancellationToken token) where T : notnull
@@ -133,7 +133,7 @@ public static class IOUtility
     public static async ValueTask JsonSerializeAsync<T>(string path, T value, FileMode mode, bool indentation = true)
     {
         using var stream = new FileStream(path, mode, FileAccess.Write, FileShare.Read, 8192, FileOptions.Asynchronous);
-        await JsonSerializer.SerializeAsync(stream, value, indentation ? jsonSerializerOptions : jsonSerializerOptionsNoIndent, default).ConfigureAwait(false);
+        await JsonSerializer.SerializeAsync(stream, value, indentation ? JsonSerializerOptionsWithIndent : JsonSerializerOptionsNoIndent, default).ConfigureAwait(false);
     }
 
     public static Utf8ValueStringBuilder JsonUtf8Serialize<T>(T value) where T : ITransformAppend
@@ -143,7 +143,7 @@ public static class IOUtility
         return builder;
     }
 
-    public static string JsonStringSerialize<T>(T value, bool indentation = true) => JsonSerializer.Serialize(value, indentation ? jsonSerializerOptions : jsonSerializerOptionsNoIndent);
+    public static string JsonStringSerialize<T>(T value, bool indentation = true) => JsonSerializer.Serialize(value, indentation ? JsonSerializerOptionsWithIndent : JsonSerializerOptionsNoIndent);
 
     private static readonly MessagePackSerializerOptions messagePackSerializerOptions;
 
