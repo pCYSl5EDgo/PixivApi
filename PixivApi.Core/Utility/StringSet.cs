@@ -1,6 +1,6 @@
 ﻿[assembly: InternalsVisibleTo("PixivApi.Core.Test")]
 
-namespace PixivApi;
+namespace PixivApi.Core;
 
 [MessagePackFormatter(typeof(Formatter))]
 public sealed class StringSet

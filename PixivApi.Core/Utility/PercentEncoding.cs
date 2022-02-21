@@ -1,6 +1,6 @@
 ﻿using System.Text;
 
-namespace PixivApi;
+namespace PixivApi.Core;
 
 public readonly struct PercentEncoding : ISpanFormattable, IEquatable<PercentEncoding>
 {

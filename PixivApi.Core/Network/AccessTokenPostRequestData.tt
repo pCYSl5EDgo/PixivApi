@@ -1,1 +1,2 @@
+<#@ import namespace="PixivApi.Core" #>
 get_secure_url=1&client_id=<#= ClientId #>&client_secret=<#= ClientSecret #>&grant_type=refresh_token&refresh_token=<#= RefreshToken #>

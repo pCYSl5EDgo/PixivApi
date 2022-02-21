@@ -4,7 +4,7 @@ using OpenQA.Selenium.Chrome;
 using WebDriverManager;
 using WebDriverManager.DriverConfigs.Impl;
 
-namespace PixivApi;
+namespace PixivApi.Core.Network;
 
 public static partial class AccessTokenUtility
 {

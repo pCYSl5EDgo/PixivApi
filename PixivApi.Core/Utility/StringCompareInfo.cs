@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core;
 
 [MessagePackFormatter(typeof(Formatter))]
 public class StringCompareInfo : IEqualityComparer<string>
