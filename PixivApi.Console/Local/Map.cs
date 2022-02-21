@@ -9,7 +9,7 @@ public partial class LocalClient
     public async ValueTask<int> MapAsync(
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
-        bool toString = true,
+        bool toString = false,
         bool pipe = false
     )
     {
@@ -44,7 +44,7 @@ public partial class LocalClient
             await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
             {
                 token.ThrowIfCancellationRequested();
-                artwork.CalculateStringifiedTags(database.TagSet);
+                artwork.Stringify(database.UserDictionary, database.TagSet, database.ToolSet);
                 return ValueTask.CompletedTask;
             }).ConfigureAwait(false);
         }

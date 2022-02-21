@@ -6,40 +6,40 @@ namespace PixivApi.Core.Local;
 public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnSerializing, IJsonOnSerialized
 {
     // 8 * 4
-    public ulong Id;
-    public ulong UserId;
-    public ulong TotalView;
-    public ulong TotalBookmarks;
+    [JsonPropertyOrder(0x00)] public ulong Id;
+    [JsonPropertyOrder(0x02)] public ulong UserId;
+    [JsonPropertyOrder(0x05)] public ulong TotalView;
+    [JsonPropertyOrder(0x06)] public ulong TotalBookmarks;
 
     // 4 * 3
-    public uint PageCount;
-    public uint Width;
-    public uint Height;
+    [JsonPropertyOrder(0x07)] public uint PageCount;
+    [JsonPropertyOrder(0x08)] public uint Width;
+    [JsonPropertyOrder(0x09)] public uint Height;
 
     // 1 * 3
-    public ArtworkType Type;
-    public FileExtensionKind Extension;
-    public HideReason ExtraHideReason;
+    [JsonPropertyOrder(0x04)] public ArtworkType Type;
+    [JsonPropertyOrder(0x0f)] public FileExtensionKind Extension;
+    [JsonPropertyOrder(0x16)] public HideReason ExtraHideReason;
 
     // 6bit
-    public bool IsOfficiallyRemoved;
-    public bool IsXRestricted;
-    public bool IsBookmarked;
-    public bool IsVisible;
-    public bool IsMuted;
-    public bool ExtraHideLast;
+    [JsonPropertyOrder(0x19)] public bool IsOfficiallyRemoved;
+    [JsonPropertyOrder(0x10)] public bool IsXRestricted;
+    [JsonPropertyOrder(0x11)] public bool IsBookmarked;
+    [JsonPropertyOrder(0x12)] public bool IsVisible;
+    [JsonPropertyOrder(0x15)] public bool IsMuted;
+    [JsonPropertyOrder(0x17)] public bool ExtraHideLast;
 
-    public DateTime CreateDate;
-    public DateTime FileDate;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[] Tags = Array.Empty<uint>();
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[]? ExtraTags;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[]? ExtraFakeTags;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[] Tools = Array.Empty<uint>();
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string Title = string.Empty;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string Caption = string.Empty;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string? ExtraMemo;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public ushort[]? UgoiraFrames;
+    [JsonPropertyOrder(0x13)] public DateTime CreateDate;
+    [JsonPropertyOrder(0x14)] public DateTime FileDate;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0a)] public uint[] Tags = Array.Empty<uint>();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0b)] public uint[]? ExtraTags;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0c)] public uint[]? ExtraFakeTags;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0d)] public uint[] Tools = Array.Empty<uint>();
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x01)] public string Title = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x03)] public string Caption = string.Empty;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0e)] public string? ExtraMemo;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x18)] public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x19)] public ushort[]? UgoiraFrames;
 
     public void Overwrite(Artwork source)
     {
@@ -311,10 +311,30 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnS
         }
     }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public override string ToString() => Id.ToString();
+
+    public override int GetHashCode() => Id.GetHashCode();
+
+    public bool Equals(Artwork? other) => ReferenceEquals(this, other) || (other is not null && Id == other.Id && UserId == other.UserId);
+
+    public override bool Equals(object? obj) => Equals(obj as Artwork);
+
+    private uint[]? _tags;
+    private uint[]? _extraFakeTags;
+    private uint[]? _extraTags;
+
+    private bool stringify = false;
+
+    [JsonPropertyName("tags"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x20)]
     public IEnumerable<string>? StringifiedTags { get; private set; }
 
-    public void CalculateStringifiedTags(StringSet tagSet)
+    [JsonPropertyName("tools"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x21)]
+    public IEnumerable<string>? StringifiedTools { get; private set; }
+
+    [JsonPropertyName("user-name"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x22)]
+    public string? UserName { get; private set; }
+
+    public void Stringify(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet)
     {
         HashSet<uint> set = new(Tags);
         if (ExtraTags is { Length: > 0 })
@@ -334,23 +354,17 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnS
         }
 
         StringifiedTags = set.Count == 0 ? Array.Empty<string>() : set.Select(x => tagSet.Values[x]);
+
+        StringifiedTools = Tools.Select(x => toolSet.Values[x]);
+
+        UserName = userDictionary[UserId].Name;
+
+        stringify = true;
     }
-
-    public override string ToString() => Id.ToString();
-
-    public override int GetHashCode() => Id.GetHashCode();
-
-    public bool Equals(Artwork? other) => ReferenceEquals(this, other) || (other is not null && Id == other.Id && UserId == other.UserId);
-
-    public override bool Equals(object? obj) => Equals(obj as Artwork);
-
-    private uint[]? _tags;
-    private uint[]? _extraFakeTags;
-    private uint[]? _extraTags;
 
     public void OnSerializing()
     {
-        if (StringifiedTags is not null)
+        if (stringify)
         {
             _tags = Tags;
             _extraFakeTags = ExtraFakeTags;
@@ -360,23 +374,27 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnS
             ExtraTags = null!;
         }
     }
-    
+
     public void OnSerialized()
     {
-        if (StringifiedTags is not null)
+        if (stringify)
         {
             Tags = _tags!;
             ExtraFakeTags = _extraFakeTags;
             ExtraTags = _extraTags;
+            UserName = null;
+            StringifiedTags = null;
+            StringifiedTools = null;
             _tags = null;
             _extraFakeTags = null;
             _extraTags = null;
+            stringify = false;
         }
     }
 
     public sealed class Formatter : IMessagePackFormatter<Artwork>
     {
-        const int BinLength = sizeof(ulong) * 4 + sizeof(uint) * 3 + sizeof(ArtworkType) + sizeof(FileExtensionKind) + sizeof(HideReason) + 1;
+        private const int BinLength = sizeof(ulong) * 4 + sizeof(uint) * 3 + sizeof(ArtworkType) + sizeof(FileExtensionKind) + sizeof(HideReason) + 1;
 
         public void Serialize(ref MessagePackWriter writer, Artwork value, MessagePackSerializerOptions options) => SerializeStatic(ref writer, value);
 
