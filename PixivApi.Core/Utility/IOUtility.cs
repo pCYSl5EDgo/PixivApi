@@ -21,13 +21,13 @@ public static class IOUtility
 
     public static readonly ImmutableArray<string> ByteTexts;
 
-    public static string GetHashPath(ulong id) => $"{ByteTexts[(int)((id >> 8) & 255UL)]}/{ByteTexts[(int)(id & 255UL)]}/";
+    public static string GetHashPath(ulong id) => $"{ByteTexts[(int)(id & 255UL)]}/{ByteTexts[(int)((id >> 8) & 255UL)]}/";
 
     public static void AppendHashPath(ref DefaultInterpolatedStringHandler handler, ulong id)
     {
-        handler.AppendLiteral(ByteTexts[(int)((id >> 8) & 255UL)]);
-        handler.AppendLiteral("/");
         handler.AppendLiteral(ByteTexts[(int)(id & 255UL)]);
+        handler.AppendLiteral("/");
+        handler.AppendLiteral(ByteTexts[(int)((id >> 8) & 255UL)]);
         handler.AppendLiteral("/");
     }
 
