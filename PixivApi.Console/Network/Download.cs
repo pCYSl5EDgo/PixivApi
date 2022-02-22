@@ -203,25 +203,22 @@ public partial class NetworkClient
 
     private static string ToDisplayableByteAmount(ulong byteCount)
     {
-        var last = "B";
-        if (byteCount >= 1024)
+        if (byteCount < (1 << 10))
         {
-            byteCount >>= 10;
-            last = "KB";
-
-            if (byteCount > 1024)
-            {
-                byteCount >>= 10;
-                last = "MB";
-
-                if (byteCount > 1024)
-                {
-                    return $"{byteCount >> 10}GB + {byteCount & 1023} MB";
-                }
-            }
+            return $"{byteCount} B";
         }
-
-        return $"{byteCount} {last}";
+        else if (byteCount < (1 << 20))
+        {
+            return $"{byteCount >> 10} KB + {byteCount & 1023} B";
+        }
+        else if (byteCount < (1 << 30))
+        {
+            return $"{byteCount >> 20} MB + {(byteCount >> 10) & 1023} KB + {byteCount & 1023} B";
+        }
+        else
+        {
+            return $"{byteCount >> 30} GB + {(byteCount >> 20) & 1023} MB + {(byteCount >> 10) & 1023} KB + {byteCount & 1023} B";
+        }
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");
