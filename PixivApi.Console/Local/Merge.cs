@@ -5,7 +5,7 @@ namespace PixivApi.Console;
 
 public partial class LocalClient
 {
-    [Command("partition")]
+    [Command("merge")]
     public async ValueTask MergeAsync(
         [Option(0, ArgumentDescriptions.DatabaseDescription)] string outputPath,
         [Option(1, ArgumentDescriptions.DatabaseDescription)] string inputPath
