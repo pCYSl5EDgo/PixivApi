@@ -35,6 +35,11 @@ public partial class LocalClient
         ConcurrentBag<int> fBag = new();
         await Parallel.ForEachAsync(Enumerable.Range(0, database.Artworks.Length), parallelOptions, (index, token) =>
         {
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
             var artwork = database.Artworks[index];
             (artworkFilter.Filter(artwork) ? tBag : fBag).Add(index);
             return ValueTask.CompletedTask;

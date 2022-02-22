@@ -73,25 +73,41 @@ public partial class LocalClient
                 }
             }
 
-            token.ThrowIfCancellationRequested();
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
             foreach (ref var tag in artwork.Tags.AsSpan())
             {
                 Replace(ref tag);
             }
 
-            token.ThrowIfCancellationRequested();
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
             foreach (ref var tag in artwork.ExtraTags.AsSpan())
             {
                 Replace(ref tag);
             }
 
-            token.ThrowIfCancellationRequested();
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
             foreach (ref var tag in artwork.ExtraFakeTags.AsSpan())
             {
                 Replace(ref tag);
             }
 
-            token.ThrowIfCancellationRequested();
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
             foreach (ref var tool in artwork.Tools.AsSpan())
             {
                 if (toolDictionary.TryGetValue(tool, out var toTool))

@@ -53,7 +53,11 @@ public partial class NetworkClient
                 var oldUpdate = update;
                 await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
                 {
-                    token.ThrowIfCancellationRequested();
+                    if (token.IsCancellationRequested)
+                    {
+                        return ValueTask.FromCanceled(token);
+                    }
+
                     Core.Local.User converted = item;
                     database.UserDictionary.AddOrUpdate(item.User.Id,
                         _ =>
@@ -80,7 +84,11 @@ public partial class NetworkClient
                     {
                         foreach (var artwork in artworks)
                         {
-                            token.ThrowIfCancellationRequested();
+                            if (token.IsCancellationRequested)
+                            {
+                                return ValueTask.FromCanceled(token);
+                            }
+
                             var convertedArtwork = Core.Local.Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
                             dictionary.AddOrUpdate(artwork.Id,
                                 _ =>

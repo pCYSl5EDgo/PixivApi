@@ -76,7 +76,11 @@ public partial class NetworkClient
                 var oldUpdate = update;
                 await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
                 {
-                    token.ThrowIfCancellationRequested();
+                    if (token.IsCancellationRequested)
+                    {
+                        return ValueTask.FromCanceled(token);
+                    }
+
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
                     dictionary.AddOrUpdate(
                         item.Id,

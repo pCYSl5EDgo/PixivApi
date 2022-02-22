@@ -43,7 +43,11 @@ public partial class LocalClient
 
             await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
             {
-                token.ThrowIfCancellationRequested();
+                if (token.IsCancellationRequested)
+                {
+                    return ValueTask.FromCanceled(token);
+                }
+
                 artwork.Stringify(database.UserDictionary, database.TagSet, database.ToolSet);
                 return ValueTask.CompletedTask;
             }).ConfigureAwait(false);
