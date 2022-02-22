@@ -32,7 +32,7 @@ public partial class NetworkClient
             CancellationToken = token,
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
-        var search = await ArtworkEnumerable.CreateAsync(configSettings, database, artworkFilter, parallelOptions).ConfigureAwait(false)!;
+        var search = await ArtworkEnumerableHelper.CreateAsync(configSettings, database, artworkFilter, parallelOptions).ConfigureAwait(false)!;
         if (search is null)
         {
             return 0;

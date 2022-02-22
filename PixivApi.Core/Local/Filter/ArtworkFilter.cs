@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class ArtworkFilter : IComparer<Artwork>
+public sealed class ArtworkFilter
 {
     [JsonPropertyName("bookmark")] public bool? IsBookmark = null;
     [JsonPropertyName("count")] public int? Count = null;
@@ -23,49 +23,22 @@ public sealed class ArtworkFilter : IComparer<Artwork>
     [JsonPropertyName("visible")] public bool? IsVisible = null;
     [JsonPropertyName("width")] public MinMaxFilter? Width = null;
 
-    public IEnumerable<Artwork> Limit(IEnumerable<Artwork> collection)
+    public bool Filter(Artwork artwork)
     {
-        if (Offset == 0)
+        if (!FilterWithoutFileExistance(artwork))
         {
-            if (Count.HasValue)
-            {
-                if (Count.Value == 0)
-                {
-                    return Array.Empty<Artwork>();
-                }
-                else
-                {
-                    return collection.Take(Count.Value);
-                }
-            }
-            else
-            {
-                return collection;
-            }
+            return false;
         }
-        else
+
+        if (FileExistanceFilter is not null && !FileExistanceFilter.Filter(artwork))
         {
-            if (Count.HasValue)
-            {
-                if (Count.Value == 0)
-                {
-                    return Array.Empty<Artwork>();
-                }
-                else
-                {
-                    return collection.Skip(Offset).Take(Count.Value);
-                }
-            }
-            else
-            {
-                return collection.Skip(Offset);
-            }
+            return false;
         }
+
+        return true;
     }
 
-    public bool IsDateDescending() => Order == ArtworkOrderKind.ReverseId;
-
-    public bool Filter(Artwork artwork)
+    public bool FilterWithoutFileExistance(Artwork artwork)
     {
         if (IsOfficiallyRemoved.HasValue && IsOfficiallyRemoved.Value != artwork.IsOfficiallyRemoved)
         {
@@ -154,95 +127,20 @@ public sealed class ArtworkFilter : IComparer<Artwork>
             return false;
         }
 
-        if (FileExistanceFilter is not null && !FileExistanceFilter.Filter(artwork))
-        {
-            return false;
-        }
-
         return true;
     }
 
-    [JsonIgnore]
-    public bool IsLimit => Count.HasValue || Offset > 0;
-
-    [JsonIgnore]
-    public bool IsOrder => Order != ArtworkOrderKind.None;
-
-    public int Compare(Artwork? x, Artwork? y)
+    public ulong GetKey(Artwork artwork) => Order switch
     {
-        if (ReferenceEquals(x, y))
-        {
-            return 0;
-        }
-
-        if (x is null)
-        {
-            return -1;
-        }
-
-        if (y is null)
-        {
-            return 1;
-        }
-
-        int c;
-        switch (Order)
-        {
-            case ArtworkOrderKind.Id:
-            default:
-                return x.Id.CompareTo(y.Id);
-            case ArtworkOrderKind.ReverseId:
-                return y.Id.CompareTo(x.Id);
-            case ArtworkOrderKind.View:
-                c = x.TotalView.CompareTo(y.TotalView);
-                if (c != 0)
-                {
-                    return c;
-                }
-
-                goto default;
-            case ArtworkOrderKind.ReverseView:
-                c = y.TotalView.CompareTo(x.TotalView);
-                if (c != 0)
-                {
-                    return c;
-                }
-
-                goto default;
-            case ArtworkOrderKind.Bookmarks:
-                c = x.TotalBookmarks.CompareTo(y.TotalBookmarks);
-                if (c != 0)
-                {
-                    return c;
-                }
-
-                goto default;
-            case ArtworkOrderKind.ReverseBookmarks:
-                c = y.TotalBookmarks.CompareTo(x.TotalBookmarks);
-                if (c != 0)
-                {
-                    return c;
-                }
-
-                goto default;
-            case ArtworkOrderKind.UserId:
-                c = x.UserId.CompareTo(y.UserId);
-                if (c != 0)
-                {
-                    return c;
-                }
-
-                goto default;
-            case ArtworkOrderKind.ReverseUserId:
-                c = y.UserId.CompareTo(x.UserId);
-                if (c != 0)
-                {
-                    return c;
-                }
-
-                goto default;
-        }
-    }
+        ArtworkOrderKind.View => artwork.TotalView,
+        ArtworkOrderKind.ReverseView => ulong.MaxValue - artwork.TotalView,
+        ArtworkOrderKind.Bookmarks => artwork.TotalBookmarks,
+        ArtworkOrderKind.ReverseBookmarks => ulong.MaxValue - artwork.TotalBookmarks,
+        ArtworkOrderKind.UserId => artwork.UserId,
+        ArtworkOrderKind.ReverseUserId => ulong.MaxValue - artwork.UserId,
+        ArtworkOrderKind.ReverseId => ulong.MaxValue - artwork.Id,
+        _ => artwork.Id,
+    };
 
     public async ValueTask InitializeAsync(ConfigSettings configSettings, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, ParallelOptions parallelOptions)
     {

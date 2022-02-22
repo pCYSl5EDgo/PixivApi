@@ -47,7 +47,7 @@ public partial class LocalClient : ConsoleAppBase
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
         var template = new BookmarkMarkdownTemplate(
-            await ArtworkEnumerable.CreateAsync(configSettings, database, artworkItemFilter, parallelOptions).ConfigureAwait(false),
+            await ArtworkEnumerableHelper.CreateAsync(configSettings, database, artworkItemFilter, parallelOptions).ConfigureAwait(false),
             configSettings.OriginalFolder, configSettings.ThumbnailFolder, output,
             database.TagSet, database.UserDictionary
         );

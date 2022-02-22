@@ -9,4 +9,6 @@ public static class ConsoleUtility
     public const string SuccessColor = $"{ESC}[94m";
     public const string ReverseColor = $"{ESC}[7m";
     public const string NormalizeColor = $"{ESC}[0m";
+
+    public const string DeleteLine1 = $"{ESC}[1M";
 }

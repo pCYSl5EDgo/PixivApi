@@ -32,7 +32,7 @@ public partial class LocalClient
         var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         var artworks = itemFilter is null
             ? database.Artworks
-            : await ArtworkEnumerable.CreateAsync(configSettings, database, itemFilter, new() { CancellationToken = token, MaxDegreeOfParallelism = configSettings.MaxParallel, }).ConfigureAwait(false);
+            : await ArtworkEnumerableHelper.CreateAsync(configSettings, database, itemFilter, new() { CancellationToken = token, MaxDegreeOfParallelism = configSettings.MaxParallel, }).ConfigureAwait(false);
 
         if (toString)
         {
@@ -49,18 +49,40 @@ public partial class LocalClient
             }).ConfigureAwait(false);
         }
 
-        if (pipe)
+        var enumerator = artworks.GetEnumerator();
+        if (!enumerator.MoveNext())
         {
-            foreach (var item in artworks)
+            if (!pipe)
             {
-                logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
+                logger.LogInformation("[]");
             }
+
+            goto END;
         }
-        else
+        
+        if (!pipe)
         {
-            logger.LogInformation(IOUtility.JsonStringSerialize(artworks, true));
+            logger.LogInformation("[");
         }
 
+        logger.LogInformation(IOUtility.JsonStringSerialize(enumerator.Current, !pipe));
+        while (enumerator.MoveNext())
+        {
+            if (pipe)
+            {
+                logger.LogInformation(IOUtility.JsonStringSerialize(enumerator.Current, !pipe));
+            }
+            else
+            {
+                logger.LogInformation($", {IOUtility.JsonStringSerialize(enumerator.Current, !pipe)}");
+            }
+        }
+
+        if (!pipe)
+        {
+            logger.LogInformation("]");
+        }
+        
     END:
         return 0;
     }
