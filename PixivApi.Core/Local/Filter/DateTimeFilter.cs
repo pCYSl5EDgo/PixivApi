@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class DateTimeFilter : IFilter<DateTime>
+public sealed class DateTimeFilter
 {
     [JsonPropertyName("since")] public DateTime? Since;
     [JsonPropertyName("until")] public DateTime? Until;

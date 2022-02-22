@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class UserFilter : IFilter<User>
+public sealed class UserFilter
 {
     [JsonPropertyName("follow")] public bool? IsFollowed;
     [JsonPropertyName("only-registered")] public bool OnlyRegistered = false;

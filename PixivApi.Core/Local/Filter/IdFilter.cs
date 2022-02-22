@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class IdFilter : IFilter<ulong>
+public sealed class IdFilter
 {
     [JsonPropertyName("id")]
     public ulong[]? Ids;

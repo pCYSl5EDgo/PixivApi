@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class FileExistanceFilter : IFilter<Artwork>
+public sealed class FileExistanceFilter
 {
     [JsonPropertyName("original")]
     public bool? Original;

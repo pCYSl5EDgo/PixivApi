@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class ArtworkFilter : IComparer<Artwork>, IFilter<Artwork>
+public sealed class ArtworkFilter : IComparer<Artwork>
 {
     [JsonPropertyName("bookmark")] public bool? IsBookmark = null;
     [JsonPropertyName("count")] public int? Count = null;
