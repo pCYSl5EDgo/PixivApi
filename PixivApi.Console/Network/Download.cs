@@ -118,7 +118,7 @@ public partial class NetworkClient
                 goto FAIL;
             }
 
-            var file = machine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl());
+            var file = machine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName());
             if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(), file).ConfigureAwait(false))
             {
                 goto FAIL;
