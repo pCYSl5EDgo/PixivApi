@@ -49,6 +49,7 @@ public partial class LocalClient
             }).ConfigureAwait(false);
         }
 
+        token.ThrowIfCancellationRequested();
         var enumerator = artworks.GetEnumerator();
         if (!enumerator.MoveNext())
         {
@@ -59,7 +60,7 @@ public partial class LocalClient
 
             goto END;
         }
-        
+
         if (!pipe)
         {
             logger.LogInformation("[");
@@ -68,6 +69,7 @@ public partial class LocalClient
         logger.LogInformation(IOUtility.JsonStringSerialize(enumerator.Current, !pipe));
         while (enumerator.MoveNext())
         {
+            token.ThrowIfCancellationRequested();
             if (pipe)
             {
                 logger.LogInformation(IOUtility.JsonStringSerialize(enumerator.Current, !pipe));
@@ -82,7 +84,7 @@ public partial class LocalClient
         {
             logger.LogInformation("]");
         }
-        
+
     END:
         return 0;
     }
