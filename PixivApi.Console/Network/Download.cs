@@ -24,38 +24,72 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var failFlag = 0;
-        var machine = new DownloadAsyncMachine(this, displayAlreadyExists, token);
+        var machine = new DownloadAsyncMachine(this, token);
         async ValueTask DownloadEach(Artwork artwork, CancellationToken token)
         {
+            if (artwork.PageCount == 0)
+            {
+                return;
+            }
+
             if ((machine.downloadByteCount >> 30) >= gigaByteCount)
             {
                 cancellationTokenSource.Cancel();
                 return;
             }
 
-            var success = true;
-            if (detail)
+            var pageInfos = ArrayPool<FileInfo>.Shared.Rent((int)artwork.PageCount);
+            try
             {
-                success = await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false);
-            }
+                var haveAll = true;
+                for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
+                {
+                    pageInfos[pageIndex] = machine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalFileName(pageIndex));
+                    if (!pageInfos[pageIndex].Exists)
+                    {
+                        haveAll = false;
+                    }
+                }
 
-            if (success && artwork.Type == ArtworkType.Ugoira)
-            {
-                success = await machine.DownloadAsync(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipUrl(), artwork.GetZipFileName()).ConfigureAwait(false);
-            }
+                var ugoiraZipFile = artwork.Type == ArtworkType.Ugoira ? machine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipFileName()) : null;
+                if (ugoiraZipFile is { Exists: false })
+                {
+                    haveAll = false;
+                }
 
-            for (uint pageIndex = 0; success && pageIndex < artwork.PageCount; pageIndex++)
-            {
-                success = await machine.DownloadAsync(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalUrl(pageIndex), artwork.GetOriginalFileName(pageIndex)).ConfigureAwait(false);
-            }
+                if (haveAll)
+                {
+                    goto FAIL;
+                }
 
-            if (success)
-            {
+                if (detail && !await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false))
+                {
+                    goto FAIL;
+                }
+
+                if (ugoiraZipFile is not null && !ugoiraZipFile.Exists && !await machine.DownloadAsync(artwork.GetZipUrl(), ugoiraZipFile).ConfigureAwait(false))
+                {
+                    goto FAIL;
+                }
+
+                for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
+                {
+                    var pageFile = pageInfos[pageIndex];
+                    if (!pageFile.Exists && !await machine.DownloadAsync(artwork.GetOriginalUrl(pageIndex), pageFile).ConfigureAwait(false))
+                    {
+                        goto FAIL;
+                    }
+                }
+
                 Interlocked.Increment(ref downloadItemCount);
-            }
-            else
-            {
+                return;
+
+            FAIL:
                 Interlocked.Increment(ref failFlag);
+            }
+            finally
+            {
+                ArrayPool<FileInfo>.Shared.Return(pageInfos);
             }
         }
 
@@ -97,7 +131,7 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var failFlag = 0;
-        var machine = new DownloadAsyncMachine(this, displayAlreadyExists, token);
+        var machine = new DownloadAsyncMachine(this, token);
         async ValueTask DownloadEach(Artwork artwork, CancellationToken token)
         {
             if ((machine.downloadByteCount >> 30) >= gigaByteCount)
@@ -106,25 +140,28 @@ public partial class NetworkClient
                 return;
             }
 
-            var success = true;
-            if (detail)
+            var file = machine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl());
+            if (!file.Exists)
             {
-                success = await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false);
+                goto FAIL;
             }
 
-            if (success)
+            if (detail && !await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false))
             {
-                success = await machine.DownloadAsync(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl(), artwork.GetThumbnailFileName()).ConfigureAwait(false);
+                goto FAIL;
             }
 
-            if (success)
+            if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(), file).ConfigureAwait(false))
             {
-                Interlocked.Increment(ref downloadItemCount);
+                goto FAIL;
             }
-            else
-            {
-                Interlocked.Exchange(ref failFlag, 1);
-            }
+
+
+            Interlocked.Increment(ref downloadItemCount);
+            return;
+
+        FAIL:
+            Interlocked.Increment(ref failFlag);
         }
 
         try
@@ -223,12 +260,11 @@ public partial class NetworkClient
 
     private sealed class DownloadAsyncMachine
     {
-        public DownloadAsyncMachine(NetworkClient networkClient, bool displayAlreadyExists, CancellationToken token)
+        public DownloadAsyncMachine(NetworkClient networkClient, CancellationToken token)
         {
             client = networkClient.client;
             logger = networkClient.logger;
             this.networkClient = networkClient;
-            this.displayAlreadyExists = displayAlreadyExists;
             ParallelOptions = new()
             {
                 CancellationToken = token,
@@ -239,39 +275,28 @@ public partial class NetworkClient
         private readonly HttpClient client;
         private readonly ILogger logger;
         private readonly NetworkClient networkClient;
-        private readonly bool displayAlreadyExists;
         public readonly ParallelOptions ParallelOptions;
         public int downloadFileCount = 0;
         public ulong downloadByteCount = 0UL;
         private ulong retryPair = 0UL;
 
-        public async ValueTask<bool> DownloadAsync(string folder, ulong id, string url, string fileName)
+        public FileInfo PrepareFileInfo(string folder, ulong id, string fileName)
         {
-            static string GetPath(string folder, ulong id, string fileName)
+            DefaultInterpolatedStringHandler handler = $"{folder}";
+            if (folder.Length != 0 && folder[^1] != '/' && folder[^1] != '\\')
             {
-                DefaultInterpolatedStringHandler handler = $"{folder}";
-                if (folder.Length != 0 && folder[^1] != '/' && folder[^1] != '\\')
-                {
-                    handler.AppendLiteral("/");
-                }
-
-                IOUtility.AppendHashPath(ref handler, id);
-                handler.AppendFormatted(fileName);
-                return handler.ToStringAndClear();
+                handler.AppendLiteral("/");
             }
 
-            var fileInfo = new FileInfo(GetPath(folder, id, fileName));
-            if (fileInfo.Exists)
-            {
-                if (displayAlreadyExists)
-                {
-                    logger.LogInformation($"{ArgumentDescriptions.WarningColor}Already exists. Path: {fileInfo.FullName}{ArgumentDescriptions.NormalizeColor}");
-                }
+            IOUtility.AppendHashPath(ref handler, id);
+            handler.AppendFormatted(fileName);
+            var path = handler.ToStringAndClear();
+            return new(path);
+        }
 
-                return fileInfo.Length != 0;
-            }
-
-            var (byteCount, exception) = await PassThroughFromHttpGetQueryToFileAsync(url, fileInfo.FullName).ConfigureAwait(false);
+        public async ValueTask<bool> DownloadAsync(string url, FileInfo file)
+        {
+            var (byteCount, exception) = await PassThroughFromHttpGetQueryToFileAsync(url, file).ConfigureAwait(false);
             switch (exception)
             {
                 case null:
@@ -281,18 +306,18 @@ public partial class NetworkClient
                     return true;
                 case TaskCanceledException:
                     ExceptionDispatchInfo.Throw(exception);
-                    throw null;
+                    throw new Exception();
                 default:
                     logger.LogError(exception, $"{ArgumentDescriptions.ErrorColor}Download failed. Url: {url}{ArgumentDescriptions.NormalizeColor}");
                     return false;
             }
         }
 
-        private async ValueTask<(ulong ByteCount, Exception? Exception)> PassThroughFromHttpGetQueryToFileAsync(string url, string path)
+        private async ValueTask<(ulong ByteCount, Exception? Exception)> PassThroughFromHttpGetQueryToFileAsync(string url, FileInfo file)
         {
             try
             {
-                using var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
+                using var stream = new FileStream(file.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 var headers = request.Headers;
                 headers.Referrer = referer;
