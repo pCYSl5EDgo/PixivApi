@@ -198,13 +198,13 @@ public partial class NetworkClient
 
         if (string.IsNullOrWhiteSpace(path))
         {
-            logger.LogError($"{ArgumentDescriptions.ErrorColor}file does not exist. Path: {path}{ArgumentDescriptions.NormalizeColor}");
+            logger.LogError($"{ConsoleUtility.ErrorColor}file does not exist. Path: {path}{ConsoleUtility.NormalizeColor}");
             return default;
         }
 
         if (!Directory.Exists(destinationDirectory))
         {
-            logger.LogError($"{ArgumentDescriptions.ErrorColor}directory does not exist. Path: {destinationDirectory}{ArgumentDescriptions.NormalizeColor}");
+            logger.LogError($"{ConsoleUtility.ErrorColor}directory does not exist. Path: {destinationDirectory}{ConsoleUtility.NormalizeColor}");
             return default;
         }
 
@@ -212,7 +212,7 @@ public partial class NetworkClient
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(path, token).ConfigureAwait(false);
         if (database is not { Artworks.Length: > 0 })
         {
-            logger.LogError($"{ArgumentDescriptions.ErrorColor}database is empty. Path: {path}{ArgumentDescriptions.NormalizeColor}");
+            logger.LogError($"{ConsoleUtility.ErrorColor}database is empty. Path: {path}{ConsoleUtility.NormalizeColor}");
             return default;
         }
 
@@ -302,13 +302,13 @@ public partial class NetworkClient
                 case null:
                     Interlocked.Add(ref downloadByteCount, byteCount);
                     var donwloaded = Interlocked.Increment(ref downloadFileCount);
-                    logger.LogInformation($"{ArgumentDescriptions.SuccessColor}Download success. Index: {donwloaded,4} Transfer: {byteCount,20} Url: {url}{ArgumentDescriptions.NormalizeColor}");
+                    logger.LogInformation($"{ConsoleUtility.SuccessColor}Download success. Index: {donwloaded,4} Transfer: {byteCount,20} Url: {url}{ConsoleUtility.NormalizeColor}");
                     return true;
                 case TaskCanceledException:
                     ExceptionDispatchInfo.Throw(exception);
                     throw new Exception();
                 default:
-                    logger.LogError(exception, $"{ArgumentDescriptions.ErrorColor}Download failed. Url: {url}{ArgumentDescriptions.NormalizeColor}");
+                    logger.LogError(exception, $"{ConsoleUtility.ErrorColor}Download failed. Url: {url}{ConsoleUtility.NormalizeColor}");
                     return false;
             }
         }

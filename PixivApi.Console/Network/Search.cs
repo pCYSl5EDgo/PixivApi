@@ -58,14 +58,14 @@ public partial class NetworkClient
         var update = 0UL;
         var enumerator = new SearchArtworkAsyncNewToOldEnumerable(RetryGetAsync, url, async (e, token) =>
         {
-            logger.LogInformation(e, $"{ArgumentDescriptions.WarningColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ArgumentDescriptions.NormalizeColor}");
+            logger.LogInformation(e, $"{ConsoleUtility.WarningColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ConsoleUtility.NormalizeColor}");
             await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
             if (!await Reconnect().ConfigureAwait(false))
             {
                 ExceptionDispatchInfo.Throw(e);
             }
 
-            logger.LogInformation($"{ArgumentDescriptions.WarningColor}Reconnect.{ArgumentDescriptions.NormalizeColor}");
+            logger.LogInformation($"{ConsoleUtility.WarningColor}Reconnect.{ConsoleUtility.NormalizeColor}");
         }).GetAsyncEnumerator(token);
         try
         {
