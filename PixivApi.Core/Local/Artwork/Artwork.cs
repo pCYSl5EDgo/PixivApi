@@ -321,13 +321,10 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
     private bool stringify = false;
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x20)]
     public IEnumerable<string>? StringifiedTags { get; private set; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x21)]
     public IEnumerable<string>? StringifiedTools { get; private set; }
 
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x22)]
     public string? UserName { get; private set; }
 
     public void Stringify(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet)
@@ -674,6 +671,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         }
     }
 
+    #region Literals
     [StringLiteral.Utf8("id")] private static partial ReadOnlySpan<byte> LiteralId();
     [StringLiteral.Utf8("title")] private static partial ReadOnlySpan<byte> LiteralTitle();
     [StringLiteral.Utf8("caption")] private static partial ReadOnlySpan<byte> LiteralCaption();
@@ -728,9 +726,12 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     [StringLiteral.Utf8("ugoira-frames")] private static partial ReadOnlySpan<byte> LiteralUgoiraFrames();
 
     [StringLiteral.Utf8("page-hide-reason-dictionary")] private static partial ReadOnlySpan<byte> LiteralExtraPageHideReasonDictionary();
+    #endregion
 
     public sealed class JsonFormatter : JsonConverter<Artwork>
     {
+        public static readonly JsonFormatter Instance = new();
+
         public override Artwork? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => throw new NotSupportedException();
 
         private static ReadOnlySpan<byte> GetLiteral(HideReason hideReason) => hideReason switch

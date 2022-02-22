@@ -83,6 +83,7 @@ public static class IOUtility
         WriteIndented = true,
         Converters =
         {
+            Local.Artwork.JsonFormatter.Instance,
             CamelCaseArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },
@@ -95,6 +96,7 @@ public static class IOUtility
         WriteIndented = false,
         Converters =
         {
+            Local.Artwork.JsonFormatter.Instance,
             CamelCaseArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },
