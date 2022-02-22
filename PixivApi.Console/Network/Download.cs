@@ -11,8 +11,7 @@ public partial class NetworkClient
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
-        [Option("d")] bool detail = false,
-        bool displayAlreadyExists = false
+        [Option("d")] bool detail = false
     )
     {
         var token = Context.CancellationToken;
@@ -38,59 +37,34 @@ public partial class NetworkClient
                 return;
             }
 
-            var pageInfos = ArrayPool<FileInfo>.Shared.Rent((int)artwork.PageCount);
-            try
+            if (detail && !await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false))
             {
-                var haveAll = true;
-                for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
-                {
-                    pageInfos[pageIndex] = machine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalFileName(pageIndex));
-                    if (!pageInfos[pageIndex].Exists)
-                    {
-                        haveAll = false;
-                    }
-                }
-
-                var ugoiraZipFile = artwork.Type == ArtworkType.Ugoira ? machine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipFileName()) : null;
-                if (ugoiraZipFile is { Exists: false })
-                {
-                    haveAll = false;
-                }
-
-                if (haveAll)
-                {
-                    goto FAIL;
-                }
-
-                if (detail && !await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false))
-                {
-                    goto FAIL;
-                }
-
-                if (ugoiraZipFile is not null && !ugoiraZipFile.Exists && !await machine.DownloadAsync(artwork.GetZipUrl(), ugoiraZipFile).ConfigureAwait(false))
-                {
-                    goto FAIL;
-                }
-
-                for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
-                {
-                    var pageFile = pageInfos[pageIndex];
-                    if (!pageFile.Exists && !await machine.DownloadAsync(artwork.GetOriginalUrl(pageIndex), pageFile).ConfigureAwait(false))
-                    {
-                        goto FAIL;
-                    }
-                }
-
-                Interlocked.Increment(ref downloadItemCount);
-                return;
-
-            FAIL:
-                Interlocked.Increment(ref failFlag);
+                goto FAIL;
             }
-            finally
+
+            if (artwork.Type == ArtworkType.Ugoira)
             {
-                ArrayPool<FileInfo>.Shared.Return(pageInfos);
+                var ugoiraZipFile = machine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipFileName());
+                if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(artwork.GetZipUrl(), ugoiraZipFile).ConfigureAwait(false))
+                {
+                    goto FAIL;
+                }
             }
+
+            for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
+            {
+                var pageFile = machine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalFileName(pageIndex));
+                if (!pageFile.Exists && !await machine.DownloadAsync(artwork.GetOriginalUrl(pageIndex), pageFile).ConfigureAwait(false))
+                {
+                    goto FAIL;
+                }
+            }
+
+            Interlocked.Increment(ref downloadItemCount);
+            return;
+
+        FAIL:
+            Interlocked.Increment(ref failFlag);
         }
 
         try
@@ -118,8 +92,7 @@ public partial class NetworkClient
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
-        [Option("d")] bool detail = false,
-        bool displayAlreadyExists = false
+        [Option("d")] bool detail = false
     )
     {
         var token = Context.CancellationToken;
@@ -140,17 +113,12 @@ public partial class NetworkClient
                 return;
             }
 
-            var file = machine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl());
-            if (!file.Exists)
-            {
-                goto FAIL;
-            }
-
             if (detail && !await machine.DownloadFilePrepareDetailAsync(database, artwork).ConfigureAwait(false))
             {
                 goto FAIL;
             }
 
+            var file = machine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailUrl());
             if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(), file).ConfigureAwait(false))
             {
                 goto FAIL;
