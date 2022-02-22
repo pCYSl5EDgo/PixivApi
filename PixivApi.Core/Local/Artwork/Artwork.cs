@@ -3,43 +3,43 @@
 namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
-public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnSerializing, IJsonOnSerialized
+public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 {
     // 8 * 4
-    [JsonPropertyOrder(0x00)] public ulong Id;
-    [JsonPropertyOrder(0x02)] public ulong UserId;
-    [JsonPropertyOrder(0x05)] public ulong TotalView;
-    [JsonPropertyOrder(0x06)] public ulong TotalBookmarks;
+    public ulong Id;
+    public ulong UserId;
+    public ulong TotalView;
+    public ulong TotalBookmarks;
 
     // 4 * 3
-    [JsonPropertyOrder(0x07)] public uint PageCount;
-    [JsonPropertyOrder(0x08)] public uint Width;
-    [JsonPropertyOrder(0x09)] public uint Height;
+    public uint PageCount;
+    public uint Width;
+    public uint Height;
 
     // 1 * 3
-    [JsonPropertyOrder(0x04)] public ArtworkType Type;
-    [JsonPropertyOrder(0x0f)] public FileExtensionKind Extension;
-    [JsonPropertyOrder(0x16)] public HideReason ExtraHideReason;
+    public ArtworkType Type;
+    public FileExtensionKind Extension;
+    public HideReason ExtraHideReason;
 
     // 6bit
-    [JsonPropertyOrder(0x19)] public bool IsOfficiallyRemoved;
-    [JsonPropertyOrder(0x10)] public bool IsXRestricted;
-    [JsonPropertyOrder(0x11)] public bool IsBookmarked;
-    [JsonPropertyOrder(0x12)] public bool IsVisible;
-    [JsonPropertyOrder(0x15)] public bool IsMuted;
-    [JsonPropertyOrder(0x17)] public bool ExtraHideLast;
+    public bool IsOfficiallyRemoved;
+    public bool IsXRestricted;
+    public bool IsBookmarked;
+    public bool IsVisible;
+    public bool IsMuted;
+    public bool ExtraHideLast;
 
-    [JsonPropertyOrder(0x13)] public DateTime CreateDate;
-    [JsonPropertyOrder(0x14)] public DateTime FileDate;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0a)] public uint[] Tags = Array.Empty<uint>();
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0b)] public uint[]? ExtraTags;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0c)] public uint[]? ExtraFakeTags;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0d)] public uint[] Tools = Array.Empty<uint>();
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x01)] public string Title = string.Empty;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x03)] public string Caption = string.Empty;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x0e)] public string? ExtraMemo;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x18)] public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault), JsonPropertyOrder(0x19)] public ushort[]? UgoiraFrames;
+    public DateTime CreateDate;
+    public DateTime FileDate;
+    public uint[] Tags = Array.Empty<uint>();
+    public uint[]? ExtraTags;
+    public uint[]? ExtraFakeTags;
+    public uint[] Tools = Array.Empty<uint>();
+    public string Title = string.Empty;
+    public string Caption = string.Empty;
+    public string? ExtraMemo;
+    public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
+    public ushort[]? UgoiraFrames;
 
     public void Overwrite(Artwork source)
     {
@@ -319,19 +319,15 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnS
 
     public override bool Equals(object? obj) => Equals(obj as Artwork);
 
-    private uint[]? _tags;
-    private uint[]? _extraFakeTags;
-    private uint[]? _extraTags;
-
     private bool stringify = false;
 
-    [JsonPropertyName("tags"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x20)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x20)]
     public IEnumerable<string>? StringifiedTags { get; private set; }
 
-    [JsonPropertyName("tools"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x21)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x21)]
     public IEnumerable<string>? StringifiedTools { get; private set; }
 
-    [JsonPropertyName("user-name"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x22)]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull), JsonPropertyOrder(0x22)]
     public string? UserName { get; private set; }
 
     public void Stringify(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet)
@@ -354,42 +350,9 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnS
         }
 
         StringifiedTags = set.Count == 0 ? Array.Empty<string>() : set.Select(x => tagSet.Values[x]);
-
         StringifiedTools = Tools.Select(x => toolSet.Values[x]);
-
         UserName = userDictionary[UserId].Name;
-
         stringify = true;
-    }
-
-    public void OnSerializing()
-    {
-        if (stringify)
-        {
-            _tags = Tags;
-            _extraFakeTags = ExtraFakeTags;
-            _extraTags = ExtraTags;
-            Tags = null!;
-            ExtraFakeTags = null!;
-            ExtraTags = null!;
-        }
-    }
-
-    public void OnSerialized()
-    {
-        if (stringify)
-        {
-            Tags = _tags!;
-            ExtraFakeTags = _extraFakeTags;
-            ExtraTags = _extraTags;
-            UserName = null;
-            StringifiedTags = null;
-            StringifiedTools = null;
-            _tags = null;
-            _extraFakeTags = null;
-            _extraTags = null;
-            stringify = false;
-        }
     }
 
     public sealed class Formatter : IMessagePackFormatter<Artwork>
@@ -708,6 +671,249 @@ public sealed class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>, IJsonOnS
             var answer = new ushort[length];
             sequence.CopyTo(MemoryMarshal.AsBytes(answer.AsSpan()));
             return answer;
+        }
+    }
+
+    [StringLiteral.Utf8("id")] private static partial ReadOnlySpan<byte> LiteralId();
+    [StringLiteral.Utf8("title")] private static partial ReadOnlySpan<byte> LiteralTitle();
+    [StringLiteral.Utf8("caption")] private static partial ReadOnlySpan<byte> LiteralCaption();
+    [StringLiteral.Utf8("total-view")] private static partial ReadOnlySpan<byte> LiteralTotalView();
+    [StringLiteral.Utf8("total-bookmarks")] private static partial ReadOnlySpan<byte> LiteralTotalBookmarks();
+
+    [StringLiteral.Utf8("tags")] private static partial ReadOnlySpan<byte> LiteralTags();
+    [StringLiteral.Utf8("fake-tags")] private static partial ReadOnlySpan<byte> LiteralFakeTags();
+    [StringLiteral.Utf8("extra-tags")] private static partial ReadOnlySpan<byte> LiteralExtraTags();
+
+    [StringLiteral.Utf8("tools")] private static partial ReadOnlySpan<byte> LiteralTools();
+    [StringLiteral.Utf8("user-id")] private static partial ReadOnlySpan<byte> LiteralUserId();
+    [StringLiteral.Utf8("user-name")] private static partial ReadOnlySpan<byte> LiteralUserName();
+
+    [StringLiteral.Utf8("page-count")] private static partial ReadOnlySpan<byte> LiteralPageCount();
+    [StringLiteral.Utf8("width")] private static partial ReadOnlySpan<byte> LiteralWidth();
+    [StringLiteral.Utf8("height")] private static partial ReadOnlySpan<byte> LiteralHeight();
+
+    [StringLiteral.Utf8("create-date")] private static partial ReadOnlySpan<byte> LiteralCreateDate();
+    [StringLiteral.Utf8("file-date")] private static partial ReadOnlySpan<byte> LiteralFileDate();
+
+    [StringLiteral.Utf8("type")] private static partial ReadOnlySpan<byte> LiteralType();
+    [StringLiteral.Utf8("none")] private static partial ReadOnlySpan<byte> LiteralNone();
+    [StringLiteral.Utf8("illust")] private static partial ReadOnlySpan<byte> LiteralIllust();
+    [StringLiteral.Utf8("manga")] private static partial ReadOnlySpan<byte> LiteralManga();
+    [StringLiteral.Utf8("ugoira")] private static partial ReadOnlySpan<byte> LiteralUgoira();
+
+    [StringLiteral.Utf8("extension")] private static partial ReadOnlySpan<byte> LiteralExtension();
+    [StringLiteral.Utf8("jpg")] private static partial ReadOnlySpan<byte> LiteralJpg();
+    [StringLiteral.Utf8("png")] private static partial ReadOnlySpan<byte> LiteralPng();
+    [StringLiteral.Utf8("gif")] private static partial ReadOnlySpan<byte> LiteralGif();
+    [StringLiteral.Utf8("zip")] private static partial ReadOnlySpan<byte> LiteralZip();
+    [StringLiteral.Utf8("bmp")] private static partial ReadOnlySpan<byte> LiteralBmp();
+
+    [StringLiteral.Utf8("hide-reason")] private static partial ReadOnlySpan<byte> LiteralHideReason();
+    [StringLiteral.Utf8("not-hidden")] private static partial ReadOnlySpan<byte> LiteralNotHidden();
+    [StringLiteral.Utf8("low-quality")] private static partial ReadOnlySpan<byte> LiteralLowQuality();
+    [StringLiteral.Utf8("not-much")] private static partial ReadOnlySpan<byte> LiteralNotMuch();
+    [StringLiteral.Utf8("irrelevant")] private static partial ReadOnlySpan<byte> LiteralIrrelevant();
+    [StringLiteral.Utf8("external-link")] private static partial ReadOnlySpan<byte> LiteralExternalLink();
+    [StringLiteral.Utf8("dislike")] private static partial ReadOnlySpan<byte> LiteralDislike();
+    [StringLiteral.Utf8("unfollow")] private static partial ReadOnlySpan<byte> LiteralUnfollow();
+
+    [StringLiteral.Utf8("officially-removed")] private static partial ReadOnlySpan<byte> LiteralIsOfficiallyRemoved();
+    [StringLiteral.Utf8("r18")] private static partial ReadOnlySpan<byte> LiteralIsXRestricted();
+    [StringLiteral.Utf8("bookmarked")] private static partial ReadOnlySpan<byte> LiteralIsBookmarked();
+    [StringLiteral.Utf8("visible")] private static partial ReadOnlySpan<byte> LiteralIsVisible();
+    [StringLiteral.Utf8("muted")] private static partial ReadOnlySpan<byte> LiteralIsMuted();
+    [StringLiteral.Utf8("hide-last")] private static partial ReadOnlySpan<byte> LiteralExtraHideLast();
+
+    [StringLiteral.Utf8("memo")] private static partial ReadOnlySpan<byte> LiteralExtraMemo();
+    [StringLiteral.Utf8("ugoira-frames")] private static partial ReadOnlySpan<byte> LiteralUgoiraFrames();
+
+    [StringLiteral.Utf8("page-hide-reason-dictionary")] private static partial ReadOnlySpan<byte> LiteralExtraPageHideReasonDictionary();
+
+    public sealed class JsonFormatter : JsonConverter<Artwork>
+    {
+        public override Artwork? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => throw new NotSupportedException();
+
+        private static ReadOnlySpan<byte> GetLiteral(HideReason hideReason) => hideReason switch
+        {
+            HideReason.NotHidden => LiteralNotHidden(),
+            HideReason.LowQuality => LiteralLowQuality(),
+            HideReason.NotMuch => LiteralNotMuch(),
+            HideReason.Irrelevant => LiteralIrrelevant(),
+            HideReason.ExternalLink => LiteralExternalLink(),
+            HideReason.Dislike => LiteralDislike(),
+            HideReason.Unfollow => LiteralUnfollow(),
+            _ => throw new InvalidDataException(hideReason.ToString()),
+        };
+
+        public override void Write(Utf8JsonWriter writer, Artwork value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteNumber(LiteralId(), value.Id);
+            writer.WriteString(LiteralTitle(), value.Title);
+
+            writer.WriteNumber(LiteralUserId(), value.UserId);
+            if (value.stringify)
+            {
+                writer.WriteString(LiteralUserName(), value.UserName);
+            }
+
+            writer.WriteNumber(LiteralTotalView(), value.TotalView);
+            writer.WriteNumber(LiteralTotalBookmarks(), value.TotalBookmarks);
+
+            writer.WriteNumber(LiteralPageCount(), value.PageCount);
+            writer.WriteNumber(LiteralWidth(), value.Width);
+            writer.WriteNumber(LiteralHeight(), value.Height);
+
+            writer.WritePropertyName(LiteralCreateDate());
+            writer.WriteStringValue(value.CreateDate);
+            if (value.FileDate != value.CreateDate.ToLocalTime())
+            {
+                writer.WritePropertyName(LiteralFileDate());
+                writer.WriteStringValue(value.FileDate);
+            }
+
+            writer.WriteString(LiteralType(), value.Type switch
+            {
+                ArtworkType.Illust => LiteralIllust(),
+                ArtworkType.Manga => LiteralManga(),
+                ArtworkType.Ugoira => LiteralUgoira(),
+                ArtworkType.None or _ => LiteralNone(),
+            });
+
+            writer.WriteString(LiteralExtension(), value.Extension switch
+            {
+                FileExtensionKind.Jpg => LiteralJpg(),
+                FileExtensionKind.Png => LiteralPng(),
+                FileExtensionKind.Gif => LiteralGif(),
+                FileExtensionKind.Zip => LiteralZip(),
+                FileExtensionKind.Bmp => LiteralBmp(),
+                FileExtensionKind.None or _ => LiteralNone(),
+            });
+
+            writer.WriteBoolean(LiteralIsOfficiallyRemoved(), value.IsOfficiallyRemoved);
+            writer.WriteBoolean(LiteralIsXRestricted(), value.IsXRestricted);
+            writer.WriteBoolean(LiteralIsBookmarked(), value.IsBookmarked);
+            writer.WriteBoolean(LiteralIsVisible(), value.IsVisible);
+            writer.WriteBoolean(LiteralIsMuted(), value.IsMuted);
+
+            if (value.ExtraHideReason != HideReason.NotHidden)
+            {
+                writer.WriteString(LiteralHideReason(), GetLiteral(value.ExtraHideReason));
+            }
+
+            if (value.ExtraHideLast)
+            {
+                writer.WriteBoolean(LiteralExtraHideLast(), true);
+            }
+
+            if (value.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary)
+            {
+                writer.WriteStartObject(LiteralExtraPageHideReasonDictionary());
+                using var builder = ZString.CreateUtf8StringBuilder();
+                foreach (var (page, reason) in dictionary)
+                {
+                    if (reason == HideReason.NotHidden)
+                    {
+                        continue;
+                    }
+
+                    builder.Clear();
+                    builder.Append(page);
+                    writer.WriteString(builder.AsSpan(), GetLiteral(reason));
+                }
+                writer.WriteEndObject();
+            }
+
+            if (value.Type == ArtworkType.Ugoira)
+            {
+                if (value.UgoiraFrames is null)
+                {
+                    writer.WriteNull(LiteralUgoiraFrames());
+                }
+                else
+                {
+                    writer.WriteStartArray(LiteralUgoiraFrames());
+                    foreach (var frame in value.UgoiraFrames)
+                    {
+                        writer.WriteNumberValue(frame);
+                    }
+                    writer.WriteEndArray();
+                }
+            }
+
+            if (value.stringify)
+            {
+                if (value.StringifiedTags is { } tags)
+                {
+                    writer.WriteStartArray(LiteralTags());
+                    foreach (var tag in tags)
+                    {
+                        writer.WriteStringValue(tag);
+                    }
+                    writer.WriteEndArray();
+                }
+
+                if (value.StringifiedTools is { } tools)
+                {
+                    writer.WriteStartArray(LiteralTools());
+                    foreach (var tool in tools)
+                    {
+                        writer.WriteStringValue(tool);
+                    }
+                    writer.WriteEndArray();
+                }
+            }
+            else
+            {
+                if (value.Tags is { Length: > 0 } tags)
+                {
+                    writer.WriteStartArray(LiteralTags());
+                    foreach (var tag in tags)
+                    {
+                        writer.WriteNumberValue(tag);
+                    }
+                    writer.WriteEndArray();
+                }
+
+                if (value.ExtraTags is { Length: > 0 } extraTags)
+                {
+                    writer.WriteStartArray(LiteralExtraTags());
+                    foreach (var tag in extraTags)
+                    {
+                        writer.WriteNumberValue(tag);
+                    }
+                    writer.WriteEndArray();
+                }
+
+                if (value.ExtraFakeTags is { Length: > 0 } extraFakeTags)
+                {
+                    writer.WriteStartArray(LiteralFakeTags());
+                    foreach (var tag in extraFakeTags)
+                    {
+                        writer.WriteNumberValue(tag);
+                    }
+                    writer.WriteEndArray();
+                }
+
+                if (value.Tools is { Length: > 0 } tools)
+                {
+                    writer.WriteStartArray(LiteralTools());
+                    foreach (var tool in tools)
+                    {
+                        writer.WriteNumberValue(tool);
+                    }
+                    writer.WriteEndArray();
+                }
+            }
+
+            writer.WriteString(LiteralCaption(), value.Caption);
+
+            if (!string.IsNullOrWhiteSpace(value.ExtraMemo))
+            {
+                writer.WriteString(LiteralExtraMemo(), value.ExtraMemo);
+            }
+
+            writer.WriteEndObject();
         }
     }
 }
