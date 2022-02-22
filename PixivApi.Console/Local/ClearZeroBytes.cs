@@ -4,100 +4,58 @@ public partial class LocalClient
 {
     [Command("clear-0-bytes", "")]
     public ValueTask ClearZeroBytes(
-        bool pipe = false,
-        bool force = false
-    ) => ClearAsync(logger, configSettings, pipe, force, Context.CancellationToken);
+        [Option("mask")] int maskPowerOf2 = 10
+    ) => ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken);
 
-    internal static async ValueTask ClearAsync(ILogger logger, ConfigSettings configSettings, bool pipe, bool forceClear, CancellationToken token)
+    internal static async ValueTask ClearAsync(ILogger logger, ConfigSettings configSettings, int maskPowerOf2, CancellationToken token)
     {
-        if (!pipe)
-        {
-            logger.LogInformation("Start clearing.");
-        }
-
-        if (forceClear)
-        {
-            await ForceClearAsync(logger, configSettings, pipe, token).ConfigureAwait(false);
-            return;
-        }
-
-        ConcurrentBag<FileInfo> files = new();
-        ValueTask Collect(string path, CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            var info = new FileInfo(path);
-            if (info.Exists && info.Length == 0)
-            {
-                if (!pipe)
-                {
-                    logger.LogInformation(info.Name);
-                }
-
-                files.Add(info);
-            }
-
-            return ValueTask.CompletedTask;
-        }
-
+        logger.LogInformation("Start clearing.");
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
-        var tasks = new Task[3];
-        tasks[0] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories), parallelOptions, Collect);
-        tasks[1] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories), parallelOptions, Collect);
-        tasks[2] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories), parallelOptions, Collect);
-        await Task.WhenAll(tasks).ConfigureAwait(false);
 
-        if (!files.IsEmpty)
+        var mask = (1UL << maskPowerOf2) - 1UL;
+        async ValueTask<(ulong, ulong)> DeleteAsync(string[] files)
         {
-            logger.LogWarning($"{ConsoleUtility.WarningColor}Are you sure to delete {files.Count} files? Input 'yes'.{ConsoleUtility.NormalizeColor}");
-            var input = System.Console.ReadLine();
-            if (input == "yes")
+            System.Console.Write($"Remove: {0,6} {0,3}%({0,8} items of total {files.LongLength,8}) processed");
+            ulong count = 0UL, removed = 0UL;
+            await Parallel.ForEachAsync(files, parallelOptions, (file, token) =>
             {
-                await Parallel.ForEachAsync(files, token, (file, token) =>
+                if (token.IsCancellationRequested)
                 {
-                    file.Delete();
-                    return ValueTask.CompletedTask;
-                }).ConfigureAwait(false);
-
-                logger.LogWarning($"{ConsoleUtility.WarningColor}Done.{ConsoleUtility.NormalizeColor}");
-            }
-        }
-    }
-
-    private static async ValueTask ForceClearAsync(ILogger logger, ConfigSettings configSettings, bool pipe, CancellationToken token)
-    {
-        var clear = 0UL;
-        ValueTask Delete(string path, CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            var info = new FileInfo(path);
-            if (info.Exists && info.Length == 0)
-            {
-                if (!pipe)
-                {
-                    logger.LogInformation(info.Name);
+                    return ValueTask.FromCanceled(token);
                 }
 
-                Interlocked.Increment(ref clear);
-                info.Delete();
-            }
+                var myCount = Interlocked.Increment(ref count);
+                var info = new FileInfo(file);
+                if (info.Length == 0)
+                {
+                    Interlocked.Increment(ref removed);
+                    info.Delete();
+                }
 
-            return ValueTask.CompletedTask;
+                if ((myCount & mask) == 0UL)
+                {
+                    var percentage = (int)(myCount * 100d / files.LongLength);
+                    System.Console.Write($"{ConsoleUtility.DeleteLine1}Remove: {removed,6} {percentage,3}%({myCount,8} items of total {files.LongLength,8}) processed");
+                }
+
+                return ValueTask.CompletedTask;
+            }).ConfigureAwait(false);
+            System.Console.Write(ConsoleUtility.DeleteLine1);
+            return (count, removed);
         }
 
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
-        var tasks = new Task[3];
-        tasks[0] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
-        tasks[1] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
-        tasks[2] = Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories), parallelOptions, Delete);
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-        logger.LogInformation($"{ConsoleUtility.WarningColor}{clear} files are deleted.{ConsoleUtility.NormalizeColor}");
+        var originalFiles = Directory.GetFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories);
+        var (count, removed) = await DeleteAsync(originalFiles).ConfigureAwait(false);
+        logger.LogInformation($"Original: {removed} of {count} files removed.");
+        var thumbnailFiles = Directory.GetFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories);
+        (count, removed) = await DeleteAsync(thumbnailFiles).ConfigureAwait(false);
+        logger.LogInformation($"Thumbnail: {removed} of {count} files removed.");
+        var ugoiraFiles = Directory.GetFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories);
+        (count, removed) = await DeleteAsync(ugoiraFiles).ConfigureAwait(false);
+        logger.LogInformation($"Ugoira: {removed} of {count} files removed.");
     }
 }

@@ -11,7 +11,8 @@ public partial class NetworkClient
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
-        [Option("d")] bool detail = false
+        [Option("d")] bool detail = false,
+        [Option("mask")] int maskPowerOf2 = 10
     )
     {
         var token = Context.CancellationToken;
@@ -80,7 +81,7 @@ public partial class NetworkClient
             }
             if (failFlag != 0)
             {
-                await LocalClient.ClearAsync(logger, configSettings, false, true, Context.CancellationToken).ConfigureAwait(false);
+                await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -92,7 +93,8 @@ public partial class NetworkClient
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
-        [Option("d")] bool detail = false
+        [Option("d")] bool detail = false,
+        [Option("mask")] int maskPowerOf2 = 10
     )
     {
         var token = Context.CancellationToken;
@@ -145,7 +147,7 @@ public partial class NetworkClient
             }
             if (failFlag != 0)
             {
-                await LocalClient.ClearAsync(logger, configSettings, false, true, Context.CancellationToken).ConfigureAwait(false);
+                await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
             }
         }
 
