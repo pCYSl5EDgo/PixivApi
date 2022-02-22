@@ -9,7 +9,8 @@ public partial class LocalClient
     public async ValueTask<int> CountAsync(
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
-        bool pipe = false
+        bool pipe = false,
+        ulong mask = 1023
     )
     {
         var token = Context.CancellationToken;
@@ -19,7 +20,7 @@ public partial class LocalClient
             return -1;
         }
 
-        var count = 0;
+        var count = 0UL;
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
         if (database is not { Artworks.Length: > 0 })
         {
@@ -28,7 +29,7 @@ public partial class LocalClient
 
         if (artworkItemFilter is null)
         {
-            count = database.Artworks.Length;
+            count = (ulong)database.Artworks.Length;
             goto END;
         }
 
@@ -79,7 +80,7 @@ public partial class LocalClient
         }).ConfigureAwait(false);
         var maxCount = count;
         System.Console.Write($"{ConsoleUtility.WarningColor}Current: {count}    0% processed(0 items of total {count} items) {ConsoleUtility.NormalizeColor}");
-        var processed = 0;
+        var processed = 0UL;
         await Parallel.ForEachAsync(bag, parallelOptions, (artwork, token) =>
         {
             if (!fileFilter.Filter(artwork))
@@ -88,7 +89,7 @@ public partial class LocalClient
             }
 
             var currentProcessed = Interlocked.Increment(ref processed);
-            if ((currentProcessed & 1023) == 0)
+            if ((currentProcessed & mask) == 0UL)
             {
                 var percentage = (int)(processed * 100d / maxCount);
                 System.Console.Write($"{ConsoleUtility.DeleteLine1}{ConsoleUtility.WarningColor}Current: {count} {percentage,3}% processed({processed} items of total {maxCount} items){ConsoleUtility.NormalizeColor}");
