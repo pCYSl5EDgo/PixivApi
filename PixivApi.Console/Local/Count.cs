@@ -10,7 +10,7 @@ public partial class LocalClient
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
         bool pipe = false,
-        ulong mask = 1023
+        [Option("mask")] byte maskPowerOf2 = 10
     )
     {
         var token = Context.CancellationToken;
@@ -81,6 +81,7 @@ public partial class LocalClient
         var maxCount = count;
         System.Console.Write($"{ConsoleUtility.WarningColor}Current: {count}    0% processed(0 items of total {count} items) {ConsoleUtility.NormalizeColor}");
         var processed = 0UL;
+        var mask = (1UL << maskPowerOf2) - 1UL;
         await Parallel.ForEachAsync(bag, parallelOptions, (artwork, token) =>
         {
             if (!fileFilter.Filter(artwork))
