@@ -170,6 +170,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         return handler.ToStringAndClear();
     }
 
+    public string GetZipFileNameWithoutExtension() => $"{Id}_ugoira600x600";
     public string GetZipFileName() => $"{Id}_ugoira600x600.zip";
 
     public string GetExtensionText() => Extension switch
