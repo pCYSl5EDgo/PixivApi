@@ -38,7 +38,7 @@ public partial class NetworkClient
                 if (artwork.Type == ArtworkType.Ugoira)
                 {
                     var ugoiraZipFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipFileName());
-                    if (!await machine.DownloadAsync(artwork.GetZipUrl(), ugoiraZipFile).ConfigureAwait(false))
+                    if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(artwork.GetZipUrl(), ugoiraZipFile).ConfigureAwait(false))
                     {
                         goto FAIL;
                     }
@@ -47,6 +47,11 @@ public partial class NetworkClient
                 for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
                 {
                     var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalFileName(pageIndex));
+                    if (pageFile.Exists)
+                    {
+                        continue;
+                    }
+
                     if (!await machine.DownloadAsync(artwork.GetOriginalUrl(pageIndex), pageFile).ConfigureAwait(false))
                     {
                         goto FAIL;
@@ -123,7 +128,7 @@ public partial class NetworkClient
                 if (artwork.Type == ArtworkType.Ugoira)
                 {
                     var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(0));
-                    if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(0), thumbnailFile).ConfigureAwait(false))
+                    if (!thumbnailFile.Exists && !await machine.DownloadAsync(artwork.GetThumbnailUrl(0), thumbnailFile).ConfigureAwait(false))
                     {
                         goto FAIL;
                     }
@@ -133,6 +138,11 @@ public partial class NetworkClient
                     for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
                     {
                         var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(pageIndex));
+                        if (pageFile.Exists)
+                        {
+                            continue;
+                        }
+
                         if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(pageIndex), pageFile).ConfigureAwait(false))
                         {
                             goto FAIL;
@@ -287,11 +297,6 @@ public partial class NetworkClient
 
         public async ValueTask<bool> DownloadAsync(string url, FileInfo file)
         {
-            if (file.Exists)
-            {
-                return false;
-            }
-
             ulong byteCount = 0;
         RETRY:
             try
