@@ -17,8 +17,9 @@ public partial class LocalClient
         };
 
         var mask = (1UL << maskPowerOf2) - 1UL;
-        async ValueTask<(ulong, ulong)> DeleteAsync(string[] files)
+        async ValueTask<(ulong, ulong)> DeleteAsync(string root)
         {
+            var files = Directory.GetFiles(root, "*", SearchOption.AllDirectories);
             System.Console.Write($"Remove: {0,6} {0,3}%({0,8} items of total {files.LongLength,8}) processed");
             ulong count = 0UL, removed = 0UL;
             await Parallel.ForEachAsync(files, parallelOptions, (file, token) =>
@@ -45,17 +46,15 @@ public partial class LocalClient
                 return ValueTask.CompletedTask;
             }).ConfigureAwait(false);
             System.Console.Write(ConsoleUtility.DeleteLine1);
+            Array.Clear(files);
             return (count, removed);
         }
 
-        var originalFiles = Directory.GetFiles(configSettings.OriginalFolder, "*", SearchOption.AllDirectories);
-        var (count, removed) = await DeleteAsync(originalFiles).ConfigureAwait(false);
+        var (count, removed) = await DeleteAsync(configSettings.OriginalFolder).ConfigureAwait(false);
         logger.LogInformation($"Original: {removed} of {count} files removed.");
-        var thumbnailFiles = Directory.GetFiles(configSettings.ThumbnailFolder, "*", SearchOption.AllDirectories);
-        (count, removed) = await DeleteAsync(thumbnailFiles).ConfigureAwait(false);
+        (count, removed) = await DeleteAsync(configSettings.ThumbnailFolder).ConfigureAwait(false);
         logger.LogInformation($"Thumbnail: {removed} of {count} files removed.");
-        var ugoiraFiles = Directory.GetFiles(configSettings.UgoiraFolder, "*", SearchOption.AllDirectories);
-        (count, removed) = await DeleteAsync(ugoiraFiles).ConfigureAwait(false);
+        (count, removed) = await DeleteAsync(configSettings.UgoiraFolder).ConfigureAwait(false);
         logger.LogInformation($"Ugoira: {removed} of {count} files removed.");
     }
 }
