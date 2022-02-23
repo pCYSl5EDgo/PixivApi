@@ -320,7 +320,7 @@ public partial class NetworkClient
                 await response.Content.CopyToAsync(stream, token).ConfigureAwait(false);
                 byteCount = (ulong)stream.Length;
             }
-            catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 if (await DownloadFilePrepareDetailAsync().ConfigureAwait(false))
                 {
@@ -330,6 +330,11 @@ public partial class NetworkClient
                 {
                     return false;
                 }
+            }
+            catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            {
+                await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
+                goto RETRY;
             }
             catch (Exception e)
             {
