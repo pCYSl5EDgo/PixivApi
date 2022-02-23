@@ -34,48 +34,45 @@ public partial class NetworkClient
         var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
         foreach (var item in database.Artworks)
         {
+            if (token.IsCancellationRequested)
+            {
+                return 0;
+            }
+
             dictionary.TryAdd(item.Id, item);
         }
 
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
-        var enumerator = new DownloadUserPreviewAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}").GetAsyncEnumerator(token);
         try
         {
-            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}", ReconnectAsync, pipe).WithCancellation(token))
             {
-                var c = enumerator.Current;
                 var oldAdd = add;
-                var oldUpdate = update;
-                await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
+                foreach (var item in userPreviewCollection)
                 {
                     if (token.IsCancellationRequested)
                     {
-                        return ValueTask.FromCanceled(token);
+                        return 0;
                     }
 
                     Core.Local.User converted = item;
                     database.UserDictionary.AddOrUpdate(item.User.Id,
                         _ =>
                         {
-                            var added = Interlocked.Increment(ref add);
+                            ++add;
                             if (pipe)
                             {
                                 logger.LogInformation($"{converted.Id}");
                             }
                             else
                             {
-                                logger.LogInformation($"{added,4}: {converted.Id,20}");
+                                logger.LogInformation($"{add,4}: {converted.Id,20}");
                             }
                             return converted;
                         },
                         (_, v) =>
                         {
-                            Interlocked.Increment(ref update);
+                            ++update;
                             v.Overwrite(converted);
                             return v;
                         });
@@ -86,27 +83,25 @@ public partial class NetworkClient
                         {
                             if (token.IsCancellationRequested)
                             {
-                                return ValueTask.FromCanceled(token);
+                                return 0;
                             }
 
                             var convertedArtwork = Core.Local.Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
                             dictionary.AddOrUpdate(artwork.Id,
                                 _ =>
                                 {
-                                    Interlocked.Increment(ref addArtwork);
+                                    ++addArtwork;
                                     return convertedArtwork;
                                 },
                                 (_, v) =>
                                 {
-                                    Interlocked.Increment(ref updateArtwork);
+                                    ++updateArtwork;
                                     v.Overwrite(convertedArtwork);
                                     return v;
                                 });
                         }
                     }
-
-                    return ValueTask.CompletedTask;
-                }).ConfigureAwait(false);
+                }
 
                 if (overwrite == OverwriteKind.add && add == oldAdd)
                 {
@@ -116,17 +111,12 @@ public partial class NetworkClient
         }
         finally
         {
-            if (enumerator is not null)
-            {
-                await enumerator.DisposeAsync().ConfigureAwait(false);
-            }
-
             if (addArtwork != 0 || updateArtwork != 0)
             {
                 database.Artworks = dictionary.Values.ToArray();
             }
 
-            if (add != 0 || update != 0)
+            if (add != 0 || update != 0 || addArtwork != 0 || updateArtwork != 0)
             {
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
             }

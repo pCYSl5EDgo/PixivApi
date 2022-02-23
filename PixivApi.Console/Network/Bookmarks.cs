@@ -9,7 +9,6 @@ public partial class NetworkClient
     public async ValueTask<int> DownloadBookmarksOfUserAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option("p", "public bookmarks?")] bool isPublic = true,
         [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.add,
         bool pipe = false
     )
@@ -35,30 +34,26 @@ public partial class NetworkClient
         var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
         foreach (var item in database.Artworks)
         {
+            if (token.IsCancellationRequested)
+            {
+                return 0;
+            }
+
             dictionary.TryAdd(item.Id, item);
         }
 
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
-
         var add = 0UL;
         var update = 0UL;
-        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, GetUrl(configSettings.UserId, isPublic)).GetAsyncEnumerator(token);
         try
         {
-            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+            await foreach (var artworkEnumerable in new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/bookmarks/illust?user_id={configSettings.UserId}&restrict=public", ReconnectAsync, pipe).WithCancellation(token))
             {
-                var c = enumerator.Current;
                 var oldAdd = add;
-                var oldUpdate = update;
-                await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
+                foreach (var item in artworkEnumerable)
                 {
                     if (token.IsCancellationRequested)
                     {
-                        return ValueTask.FromCanceled(token);
+                        return 0;
                     }
 
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
@@ -66,27 +61,25 @@ public partial class NetworkClient
                         item.Id,
                         _ =>
                         {
-                            var added = Interlocked.Increment(ref add);
+                            ++add;
                             if (pipe)
                             {
                                 logger.LogInformation($"{converted.Id}");
                             }
                             else
                             {
-                                logger.LogInformation($"{added,4}: {converted.Id,20}");
+                                logger.LogInformation($"{add,4}: {converted.Id,20}");
                             }
                             return converted;
                         },
                         (_, v) =>
                         {
-                            Interlocked.Increment(ref update);
+                            ++update;
                             v.Overwrite(converted);
                             return v;
                         }
                     );
-
-                    return ValueTask.CompletedTask;
-                }).ConfigureAwait(false);
+                }
 
                 if (overwrite == OverwriteKind.add && add == oldAdd)
                 {
@@ -96,11 +89,6 @@ public partial class NetworkClient
         }
         finally
         {
-            if (enumerator is not null)
-            {
-                await enumerator.DisposeAsync().ConfigureAwait(false);
-            }
-
             if (add != 0 || update != 0)
             {
                 database.Artworks = dictionary.Values.ToArray();
@@ -114,20 +102,5 @@ public partial class NetworkClient
         }
 
         return 0;
-
-        static string GetUrl(ulong userId, bool isPublic)
-        {
-            DefaultInterpolatedStringHandler url = $"https://{ApiHost}/v1/user/bookmarks/illust?user_id={userId}&restrict=";
-            if (isPublic)
-            {
-                url.AppendLiteral("public");
-            }
-            else
-            {
-                url.AppendLiteral("private");
-            }
-
-            return url.ToString();
-        }
     }
 }

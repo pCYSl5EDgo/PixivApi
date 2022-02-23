@@ -41,13 +41,8 @@ public sealed partial class LocalClient
             return 0;
         }
 
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
         var template = new HtmlTemplate(
-            await ArtworkEnumerableHelper.CreateAsync(configSettings, database, artworkItemFilter, parallelOptions).ConfigureAwait(false),
+            await FilterExtensions.CreateEnumerableAsync(configSettings, database, artworkItemFilter, token).ConfigureAwait(false),
             configSettings.OriginalFolder, configSettings.ThumbnailFolder, configSettings.UgoiraFolder, output,
             database.TagSet, database.UserDictionary
         );

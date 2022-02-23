@@ -1,30 +1,13 @@
 ﻿namespace PixivApi.Core.Local;
 
-public static class ArtworkEnumerableHelper
+public static class FilterExtensions
 {
-    public static async ValueTask<IEnumerable<Artwork>> CreateAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, ParallelOptions parallelOptions)
+    public static async ValueTask<IEnumerable<Artwork>> CreateEnumerableAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
-        if (filter.Count == 0 || filter.Offset >= database.Artworks.Length)
+        var answer = await PrivateSelectAsync(configSettings, database, filter, cancellationToken).ConfigureAwait(false);
+        if (answer.TryGetNonEnumeratedCount(out var count) && count == 0)
         {
             return Array.Empty<Artwork>();
-        }
-
-        await filter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
-        ConcurrentBag<Artwork> bag = new();
-        await Parallel.ForEachAsync(database.Artworks, parallelOptions, (artwork, token) =>
-        {
-            if (filter.FilterWithoutFileExistance(artwork))
-            {
-                bag.Add(artwork);
-            }
-
-            return ValueTask.CompletedTask;
-        }).ConfigureAwait(false);
-
-        IEnumerable<Artwork> answer = bag;
-        if (filter.Order != ArtworkOrderKind.None)
-        {
-            answer = answer.OrderBy(filter.GetKey);
         }
 
         if (filter.FileExistanceFilter is { } fileFilter)
@@ -43,5 +26,66 @@ public static class ArtworkEnumerableHelper
         }
 
         return answer;
+    }
+
+    public static async IAsyncEnumerable<Artwork> CreateAsyncEnumerable(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        var artworks = await PrivateSelectAsync(configSettings, database, filter, cancellationToken).ConfigureAwait(false);
+        if (artworks.TryGetNonEnumeratedCount(out var count) && count == 0)
+        {
+            yield break;
+        }
+
+        var index = 0;
+        foreach (var artwork in artworks)
+        {
+            if (filter.FileExistanceFilter is not null && !filter.FileExistanceFilter.Filter(artwork))
+            {
+                continue;
+            }
+
+            if (++index > filter.Offset)
+            {
+                yield return artwork;
+                if (filter.Count.HasValue && index >= filter.Count.Value + filter.Offset)
+                {
+                    yield break;
+                }
+            }
+        }
+    }
+
+    private static async ValueTask<IEnumerable<Artwork>> PrivateSelectAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
+    {
+        if (filter.Count == 0 || filter.Offset >= database.Artworks.Length)
+        {
+            return Array.Empty<Artwork>();
+        }
+
+        await filter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
+        ConcurrentBag<Artwork> bag = new();
+        await Parallel.ForEachAsync(database.Artworks, cancellationToken, (artwork, token) =>
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
+            if (filter.FilterWithoutFileExistance(artwork))
+            {
+                bag.Add(artwork);
+            }
+
+            return ValueTask.CompletedTask;
+        }).ConfigureAwait(false);
+
+        if (filter.Order == ArtworkOrderKind.None)
+        {
+            return bag;
+        }
+        else
+        {
+            return bag.OrderBy(filter.GetKey);
+        }
     }
 }

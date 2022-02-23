@@ -16,7 +16,7 @@ public sealed class TagFilter
     [JsonIgnore] public HashSet<uint>? PartialSet;
     [JsonIgnore] public HashSet<uint>? IgnorePartialSet;
 
-    public async ValueTask InitializeAsync(StringSet? set, ParallelOptions parallelOptions)
+    public async ValueTask InitializeAsync(StringSet? set, CancellationToken cancellationToken)
     {
         if (ReferenceEquals(tagSet, set))
         {
@@ -41,13 +41,18 @@ public sealed class TagFilter
                 bag.Clear();
             }
 
-            await Parallel.ForEachAsync(set.Values, parallelOptions, (pair, token) =>
+            await Parallel.ForEachAsync(set.Values, cancellationToken, (pair, token) =>
             {
                 var (key, value) = pair;
                 if (value is { Length: > 0 })
                 {
                     foreach (var text in Partials)
                     {
+                        if (token.IsCancellationRequested)
+                        {
+                            return ValueTask.FromCanceled(token);
+                        }
+
                         if (value.Contains(text))
                         {
                             bag.Add(key);
@@ -71,13 +76,18 @@ public sealed class TagFilter
                 bag.Clear();
             }
 
-            await Parallel.ForEachAsync(set.Values, parallelOptions, (pair, token) =>
+            await Parallel.ForEachAsync(set.Values, cancellationToken, (pair, token) =>
             {
                 var (key, value) = pair;
                 if (value is { Length: > 0 })
                 {
                     foreach (var text in IgnorePartials)
                     {
+                        if (token.IsCancellationRequested)
+                        {
+                            return ValueTask.FromCanceled(token);
+                        }
+
                         if (value.Contains(text))
                         {
                             bag.Add(key);

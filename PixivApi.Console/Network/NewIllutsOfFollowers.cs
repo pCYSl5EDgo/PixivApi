@@ -38,7 +38,7 @@ public partial class NetworkClient
         };
         var add = 0UL;
         var update = 0UL;
-        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v2/illust/follow?restrict=public").GetAsyncEnumerator(token);
+        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v2/illust/follow?restrict=public", ReconnectAsync, pipe).GetAsyncEnumerator(token);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))

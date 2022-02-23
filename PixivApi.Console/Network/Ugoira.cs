@@ -65,7 +65,7 @@ public sealed partial class NetworkClient
                 byte[]? content;
                 try
                 {
-                    content = await RetryGetAsync(url, token).ConfigureAwait(false);
+                    content = await RetryGetAsync(url, pipe, token).ConfigureAwait(false);
                 }
                 catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {

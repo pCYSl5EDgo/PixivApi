@@ -31,11 +31,6 @@ public partial class NetworkClient
             return -3;
         }
 
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
         var add = 0UL;
         var update = 0UL;
         try
@@ -47,59 +42,44 @@ public partial class NetworkClient
                     continue;
                 }
 
-                var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/illusts?user_id={id}").GetAsyncEnumerator(token);
-                try
+                await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/illusts?user_id={id}", ReconnectAsync, pipe).WithCancellation(token))
                 {
-                    while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+                    var oldAdd = add;
+                    foreach (var item in artworkCollection)
                     {
-                        var c = enumerator.Current;
-                        var oldAdd = add;
-                        var oldUpdate = update;
-                        await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
+                        if (token.IsCancellationRequested)
                         {
-                            if (token.IsCancellationRequested)
-                            {
-                                return ValueTask.FromCanceled(token);
-                            }
-
-                            var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
-                            dictionary.AddOrUpdate(
-                                item.Id,
-                                _ =>
-                                {
-                                    var added = Interlocked.Increment(ref add);
-                                    if (pipe)
-                                    {
-                                        logger.LogInformation($"{converted.Id}");
-                                    }
-                                    else
-                                    {
-                                        logger.LogInformation($"{added,4}: {converted.Id,20}");
-                                    }
-                                    return converted;
-                                },
-                                (_, v) =>
-                                {
-                                    Interlocked.Increment(ref update);
-                                    v.Overwrite(converted);
-                                    return v;
-                                }
-                            );
-
-                            return ValueTask.CompletedTask;
-                        }).ConfigureAwait(false);
-
-                        if (overwrite == OverwriteKind.add && add == oldAdd)
-                        {
-                            break;
+                            return 0;
                         }
+
+                        var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
+                        dictionary.AddOrUpdate(
+                            item.Id,
+                            _ =>
+                            {
+                                ++add;
+                                if (pipe)
+                                {
+                                    logger.LogInformation($"{converted.Id}");
+                                }
+                                else
+                                {
+                                    logger.LogInformation($"{add,4}: {converted.Id,20}");
+                                }
+                                return converted;
+                            },
+                            (_, v) =>
+                            {
+                                ++update;
+                                v.Overwrite(converted);
+                                return v;
+                            }
+                        );
                     }
-                }
-                finally
-                {
-                    if (enumerator is not null)
+
+                    if (overwrite == OverwriteKind.add && add == oldAdd)
                     {
-                        await enumerator.DisposeAsync().ConfigureAwait(false);
+                        break;
                     }
                 }
             }

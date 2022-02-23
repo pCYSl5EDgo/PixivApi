@@ -142,7 +142,7 @@ public sealed class ArtworkFilter
         _ => artwork.Id,
     };
 
-    public async ValueTask InitializeAsync(ConfigSettings configSettings, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, ParallelOptions parallelOptions)
+    public async ValueTask InitializeAsync(ConfigSettings configSettings, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken cancellationToken)
     {
         if (FileExistanceFilter is not null)
         {
@@ -156,7 +156,7 @@ public sealed class ArtworkFilter
 
         if (TagFilter is not null)
         {
-            await TagFilter.InitializeAsync(tagSet, parallelOptions).ConfigureAwait(false);
+            await TagFilter.InitializeAsync(tagSet, cancellationToken).ConfigureAwait(false);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using PixivApi.Core.Network;
 using System.Net;
+using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 
@@ -10,14 +11,12 @@ public sealed partial class NetworkClient : ConsoleAppBase
     private readonly ConfigSettings configSettings;
     private readonly ILogger<NetworkClient> logger;
     private readonly HttpClient client;
-    private readonly CancellationTokenSource cancellationTokenSource;
 
-    public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, CancellationTokenSource cancellationTokenSource)
+    public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client)
     {
         configSettings = config;
         this.logger = logger;
         this.client = client;
-        this.cancellationTokenSource = cancellationTokenSource;
     }
 
     private void AddToHeader(HttpRequestMessage request)
@@ -54,7 +53,31 @@ public sealed partial class NetworkClient : ConsoleAppBase
         return true;
     }
 
-    private async ValueTask<byte[]?> RetryGetAsync(string url, CancellationToken token)
+    private async ValueTask ReconnectAsync(Exception exception, bool pipe, CancellationToken token)
+    {
+        if (!pipe)
+        {
+            logger.LogInformation(exception, $"{ConsoleUtility.WarningColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ConsoleUtility.NormalizeColor}");
+        }
+
+        await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
+        if (!await Reconnect().ConfigureAwait(false))
+        {
+            if (!pipe)
+            {
+                logger.LogError($"{ConsoleUtility.ErrorColor}Reconnection failed.{ConsoleUtility.NormalizeColor}");
+            }
+
+            ExceptionDispatchInfo.Throw(exception);
+        }
+
+        if (!pipe)
+        {
+            logger.LogInformation($"{ConsoleUtility.WarningColor}Reconnect.{ConsoleUtility.NormalizeColor}");
+        }
+    }
+
+    private async ValueTask<byte[]?> RetryGetAsync(string url, bool pipe, CancellationToken token)
     {
         do
         {
@@ -76,9 +99,17 @@ public sealed partial class NetworkClient : ConsoleAppBase
                     {
                         case HttpStatusCode.Forbidden:
                             token.ThrowIfCancellationRequested();
-                            logger.LogWarning($"{ConsoleUtility.WarningColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{ConsoleUtility.NormalizeColor}");
+                            if (!pipe)
+                            {
+                                logger.LogWarning($"{ConsoleUtility.WarningColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{ConsoleUtility.NormalizeColor}");
+                            }
+
                             await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                            logger.LogWarning($"{ConsoleUtility.WarningColor}Restart.{ConsoleUtility.NormalizeColor}");
+                            if (!pipe)
+                            {
+                                logger.LogWarning($"{ConsoleUtility.WarningColor}Restart.{ConsoleUtility.NormalizeColor}");
+                            }
+
                             continue;
                         #region Http Status Code
                         case HttpStatusCode.OK:
@@ -154,7 +185,11 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 }
                 else
                 {
-                    logger.LogError(e, $"{ConsoleUtility.ErrorColor}Long wait {configSettings.RetrySeconds} seconds to reconnect. Status Code: {e.StatusCode}\r\nCurrent Url: {url}{ConsoleUtility.NormalizeColor}");
+                    if (!pipe)
+                    {
+                        logger.LogError(e, $"{ConsoleUtility.ErrorColor}Long wait {configSettings.RetrySeconds} seconds to reconnect. Status Code: {e.StatusCode}\r\nCurrent Url: {url}{ConsoleUtility.NormalizeColor}");
+                    }
+
                     await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
                     if (await Reconnect().ConfigureAwait(false))
                     {
@@ -162,7 +197,11 @@ public sealed partial class NetworkClient : ConsoleAppBase
                     }
                 }
 
-                logger.LogError(e, $"{ConsoleUtility.ErrorColor}Reason: {reasonPhrase} Url: {url}{ConsoleUtility.NormalizeColor}");
+                if (!pipe)
+                {
+                    logger.LogError(e, $"{ConsoleUtility.ErrorColor}Reason: {reasonPhrase} Url: {url}{ConsoleUtility.NormalizeColor}");
+                }
+
                 throw;
             }
         } while (true);

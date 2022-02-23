@@ -33,15 +33,10 @@ public partial class LocalClient
             goto END;
         }
 
-        ParallelOptions parallelOptions = new()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
-        await artworkItemFilter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, parallelOptions);
+        await artworkItemFilter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, token);
         if (pipe)
         {
-            await Parallel.ForEachAsync(database.Artworks, parallelOptions, (artwork, token) =>
+            await Parallel.ForEachAsync(database.Artworks, token, (artwork, token) =>
             {
                 if (artworkItemFilter.Filter(artwork))
                 {
@@ -55,8 +50,13 @@ public partial class LocalClient
 
         if (artworkItemFilter.FileExistanceFilter is not { } fileFilter)
         {
-            await Parallel.ForEachAsync(database.Artworks, parallelOptions, (artwork, token) =>
+            await Parallel.ForEachAsync(database.Artworks, token, (artwork, token) =>
             {
+                if (token.IsCancellationRequested)
+                {
+                    return ValueTask.FromCanceled(token);
+                }
+
                 if (artworkItemFilter.FilterWithoutFileExistance(artwork))
                 {
                     Interlocked.Increment(ref count);
@@ -68,8 +68,13 @@ public partial class LocalClient
         }
 
         ConcurrentBag<Artwork> bag = new();
-        await Parallel.ForEachAsync(database.Artworks, parallelOptions, (artwork, token) =>
+        await Parallel.ForEachAsync(database.Artworks, token, (artwork, token) =>
         {
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
             if (artworkItemFilter.FilterWithoutFileExistance(artwork))
             {
                 Interlocked.Increment(ref count);
@@ -82,8 +87,13 @@ public partial class LocalClient
         System.Console.Write($"{ConsoleUtility.WarningColor}Current: {count}    0% processed(0 items of total {count} items) {ConsoleUtility.NormalizeColor}");
         var processed = 0UL;
         var mask = (1UL << maskPowerOf2) - 1UL;
-        await Parallel.ForEachAsync(bag, parallelOptions, (artwork, token) =>
+        await Parallel.ForEachAsync(bag, token, (artwork, token) =>
         {
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
             if (!fileFilter.Filter(artwork))
             {
                 Interlocked.Decrement(ref count);

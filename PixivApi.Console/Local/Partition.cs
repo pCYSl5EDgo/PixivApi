@@ -24,16 +24,11 @@ public partial class LocalClient
             return;
         }
 
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
-        await artworkFilter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, parallelOptions).ConfigureAwait(false);
+        await artworkFilter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, token).ConfigureAwait(false);
 
         ConcurrentBag<int> tBag = new();
         ConcurrentBag<int> fBag = new();
-        await Parallel.ForEachAsync(Enumerable.Range(0, database.Artworks.Length), parallelOptions, (index, token) =>
+        await Parallel.ForEachAsync(Enumerable.Range(0, database.Artworks.Length), token, (index, token) =>
         {
             if (token.IsCancellationRequested)
             {
@@ -54,7 +49,11 @@ public partial class LocalClient
         var index = 0;
         foreach (var item in tBag)
         {
-            token.ThrowIfCancellationRequested();
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
             trues[index++] = database.Artworks[item];
         }
 
@@ -62,15 +61,27 @@ public partial class LocalClient
         index = 0;
         foreach (var item in fBag)
         {
-            token.ThrowIfCancellationRequested();
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
             falses[index++] = database.Artworks[item];
         }
 
         var trueDatabase = new DatabaseFile(0, 0, trues, database.UserDictionary, database.TagSet, database.ToolSet);
-        token.ThrowIfCancellationRequested();
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
         await IOUtility.MessagePackSerializeAsync(path + ".true", trueDatabase, FileMode.CreateNew).ConfigureAwait(false);
         var falseDatabase = new DatabaseFile(0, 0, falses, database.UserDictionary, database.TagSet, database.ToolSet);
-        token.ThrowIfCancellationRequested();
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
         await IOUtility.MessagePackSerializeAsync(path + ".false", falseDatabase, FileMode.CreateNew).ConfigureAwait(false);
 
         logger.LogInformation($"True: {trues.Length} False: {falses.Length}");

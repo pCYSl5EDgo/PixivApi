@@ -32,7 +32,7 @@ public partial class LocalClient
         var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         var artworks = itemFilter is null
             ? database.Artworks
-            : await ArtworkEnumerableHelper.CreateAsync(configSettings, database, itemFilter, new() { CancellationToken = token, MaxDegreeOfParallelism = configSettings.MaxParallel, }).ConfigureAwait(false);
+            : await FilterExtensions.CreateEnumerableAsync(configSettings, database, itemFilter, token).ConfigureAwait(false);
 
         if (toString)
         {

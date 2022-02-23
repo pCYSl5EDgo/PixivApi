@@ -27,17 +27,6 @@ public partial class NetworkClient
         }
 
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
-        var search = await ArtworkEnumerableHelper.CreateAsync(configSettings, database, artworkFilter, parallelOptions).ConfigureAwait(false)!;
-        if (search is null)
-        {
-            return 0;
-        }
-
         if (!await Connect().ConfigureAwait(false))
         {
             return -3;
@@ -46,12 +35,12 @@ public partial class NetworkClient
         ulong update = 0;
         try
         {
-            foreach (var item in search)
+            await foreach (var item in FilterExtensions.CreateAsyncEnumerable(configSettings, database, artworkFilter, token))
             {
             RETRY:
                 try
                 {
-                    var artwork = await GetArtworkDetailAsync(item.Id, token).ConfigureAwait(false);
+                    var artwork = await GetArtworkDetailAsync(item.Id, pipe, token).ConfigureAwait(false);
                     if (artwork.User.Id == 0)
                     {
                         item.IsOfficiallyRemoved = true;
@@ -63,7 +52,7 @@ public partial class NetworkClient
                         if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                         {
                             var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
-                            var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, token).ConfigureAwait(false)).AsSpan());
+                            var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, pipe, token).ConfigureAwait(false)).AsSpan());
                             item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
                             for (var frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
                             {
@@ -96,7 +85,7 @@ public partial class NetworkClient
                     {
                         if (!pipe)
                         {
-                            logger.LogWarning($"Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds.");
+                            logger.LogWarning($"{ConsoleUtility.WarningColor}Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds.{ConsoleUtility.NormalizeColor}");
                         }
 
                         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
@@ -130,10 +119,10 @@ public partial class NetworkClient
         return 0;
     }
 
-    private async ValueTask<Core.Network.Artwork> GetArtworkDetailAsync(ulong id, CancellationToken token)
+    private async ValueTask<Core.Network.Artwork> GetArtworkDetailAsync(ulong id, bool pipe, CancellationToken token)
     {
         var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
-        var content = await RetryGetAsync(url, token).ConfigureAwait(false);
+        var content = await RetryGetAsync(url, pipe, token).ConfigureAwait(false);
         var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
         return response.Illust;
     }

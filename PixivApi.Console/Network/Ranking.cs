@@ -33,21 +33,16 @@ public partial class NetworkClient
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
 
-        var add = 0UL;
-        var update = 0UL;
-        var enumerator = new DownloadArtworkAsyncEnumerable(RetryGetAsync, GetUrl(ranking, date)).GetAsyncEnumerator(token);
+        ulong add = 0UL, update = 0UL;
         try
         {
-            while (await enumerator.MoveNextAsync().ConfigureAwait(false))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(RetryGetAsync, GetUrl(ranking, date), ReconnectAsync, pipe).WithCancellation(token))
             {
-                var c = enumerator.Current;
-                var oldAdd = add;
-                var oldUpdate = update;
-                await Parallel.ForEachAsync(c, parallelOptions, (item, token) =>
+                foreach (var item in artworkCollection)
                 {
                     if (token.IsCancellationRequested)
                     {
-                        return ValueTask.FromCanceled(token);
+                        return 0;
                     }
 
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
@@ -55,36 +50,29 @@ public partial class NetworkClient
                         item.Id,
                         _ =>
                         {
-                            var added = Interlocked.Increment(ref add);
+                            ++add;
                             if (pipe)
                             {
                                 logger.LogInformation($"{converted.Id}");
                             }
                             else
                             {
-                                logger.LogInformation($"{added,4}: {converted.Id,20}");
+                                logger.LogInformation($"{add,4}: {converted.Id,20}");
                             }
                             return converted;
                         },
                         (_, v) =>
                         {
-                            Interlocked.Increment(ref update);
+                            ++update;
                             v.Overwrite(converted);
                             return v;
                         }
                     );
-
-                    return ValueTask.CompletedTask;
-                }).ConfigureAwait(false);
+                }
             }
         }
         finally
         {
-            if (enumerator is not null)
-            {
-                await enumerator.DisposeAsync().ConfigureAwait(false);
-            }
-
             if (add != 0 || update != 0)
             {
                 database.Artworks = dictionary.Values.ToArray();
