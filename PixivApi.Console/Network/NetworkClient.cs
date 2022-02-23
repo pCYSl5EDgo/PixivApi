@@ -61,7 +61,14 @@ public sealed partial class NetworkClient : ConsoleAppBase
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        if (!await Reconnect().ConfigureAwait(false))
+        if (await Reconnect().ConfigureAwait(false))
+        {
+            if (!pipe)
+            {
+                logger.LogInformation($"{ConsoleUtility.WarningColor}Reconnect.{ConsoleUtility.NormalizeColor}");
+            }
+        }
+        else
         {
             if (!pipe)
             {
@@ -70,14 +77,9 @@ public sealed partial class NetworkClient : ConsoleAppBase
 
             ExceptionDispatchInfo.Throw(exception);
         }
-
-        if (!pipe)
-        {
-            logger.LogInformation($"{ConsoleUtility.WarningColor}Reconnect.{ConsoleUtility.NormalizeColor}");
-        }
     }
 
-    private async ValueTask<byte[]?> RetryGetAsync(string url, bool pipe, CancellationToken token)
+    private async ValueTask<byte[]> RetryGetAsync(string url, bool pipe, CancellationToken token)
     {
         do
         {
@@ -91,118 +93,21 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 responseMessage.EnsureSuccessStatusCode();
                 return await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.Forbidden)
             {
-                if (e.StatusCode.HasValue)
-                {
-                    switch (e.StatusCode.Value)
-                    {
-                        case HttpStatusCode.Forbidden:
-                            token.ThrowIfCancellationRequested();
-                            if (!pipe)
-                            {
-                                logger.LogWarning($"{ConsoleUtility.WarningColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{ConsoleUtility.NormalizeColor}");
-                            }
-
-                            await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                            if (!pipe)
-                            {
-                                logger.LogWarning($"{ConsoleUtility.WarningColor}Restart.{ConsoleUtility.NormalizeColor}");
-                            }
-
-                            continue;
-                        #region Http Status Code
-                        case HttpStatusCode.OK:
-                        case HttpStatusCode.Created:
-                        case HttpStatusCode.Accepted:
-                        case HttpStatusCode.NonAuthoritativeInformation:
-                        case HttpStatusCode.NoContent:
-                        case HttpStatusCode.ResetContent:
-                        case HttpStatusCode.PartialContent:
-                        case HttpStatusCode.MultiStatus:
-                        case HttpStatusCode.AlreadyReported:
-                        case HttpStatusCode.IMUsed:
-                            throw new InvalidProgramException("Http Success cannot happen.", e);
-                        case HttpStatusCode.Continue:
-                        case HttpStatusCode.SwitchingProtocols:
-                        case HttpStatusCode.Processing:
-                        case HttpStatusCode.EarlyHints:
-                        case HttpStatusCode.Ambiguous:
-                        // case HttpStatusCode.MultipleChoices:
-                        case HttpStatusCode.Moved:
-                        //case HttpStatusCode.MovedPermanently:
-                        case HttpStatusCode.Found:
-                        //case HttpStatusCode.Redirect:
-                        case HttpStatusCode.RedirectMethod:
-                        // case HttpStatusCode.SeeOther:
-                        case HttpStatusCode.NotModified:
-                        case HttpStatusCode.UseProxy:
-                        case HttpStatusCode.Unused:
-                        case HttpStatusCode.RedirectKeepVerb:
-                        // case HttpStatusCode.TemporaryRedirect:
-                        case HttpStatusCode.PermanentRedirect:
-                        case HttpStatusCode.BadRequest:
-                        case HttpStatusCode.Unauthorized:
-                        case HttpStatusCode.PaymentRequired:
-                        case HttpStatusCode.NotFound:
-                        case HttpStatusCode.MethodNotAllowed:
-                        case HttpStatusCode.NotAcceptable:
-                        case HttpStatusCode.ProxyAuthenticationRequired:
-                        case HttpStatusCode.RequestTimeout:
-                        case HttpStatusCode.Conflict:
-                        case HttpStatusCode.Gone:
-                        case HttpStatusCode.LengthRequired:
-                        case HttpStatusCode.PreconditionFailed:
-                        case HttpStatusCode.RequestEntityTooLarge:
-                        case HttpStatusCode.RequestUriTooLong:
-                        case HttpStatusCode.UnsupportedMediaType:
-                        case HttpStatusCode.RequestedRangeNotSatisfiable:
-                        case HttpStatusCode.ExpectationFailed:
-                        case HttpStatusCode.MisdirectedRequest:
-                        case HttpStatusCode.UnprocessableEntity:
-                        case HttpStatusCode.Locked:
-                        case HttpStatusCode.FailedDependency:
-                        case HttpStatusCode.UpgradeRequired:
-                        case HttpStatusCode.PreconditionRequired:
-                        case HttpStatusCode.TooManyRequests:
-                        case HttpStatusCode.RequestHeaderFieldsTooLarge:
-                        case HttpStatusCode.UnavailableForLegalReasons:
-                        case HttpStatusCode.InternalServerError:
-                        case HttpStatusCode.NotImplemented:
-                        case HttpStatusCode.BadGateway:
-                        case HttpStatusCode.ServiceUnavailable:
-                        case HttpStatusCode.GatewayTimeout:
-                        case HttpStatusCode.HttpVersionNotSupported:
-                        case HttpStatusCode.VariantAlsoNegotiates:
-                        case HttpStatusCode.InsufficientStorage:
-                        case HttpStatusCode.LoopDetected:
-                        case HttpStatusCode.NotExtended:
-                        case HttpStatusCode.NetworkAuthenticationRequired:
-                        default:
-                            break;
-                            #endregion
-                    }
-                }
-                else
-                {
-                    if (!pipe)
-                    {
-                        logger.LogError(e, $"{ConsoleUtility.ErrorColor}Long wait {configSettings.RetrySeconds} seconds to reconnect. Status Code: {e.StatusCode}\r\nCurrent Url: {url}{ConsoleUtility.NormalizeColor}");
-                    }
-
-                    await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                    if (await Reconnect().ConfigureAwait(false))
-                    {
-                        continue;
-                    }
-                }
-
+                token.ThrowIfCancellationRequested();
                 if (!pipe)
                 {
-                    logger.LogError(e, $"{ConsoleUtility.ErrorColor}Reason: {reasonPhrase} Url: {url}{ConsoleUtility.NormalizeColor}");
+                    logger.LogWarning($"{ConsoleUtility.WarningColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{ConsoleUtility.NormalizeColor}");
                 }
 
-                throw;
+                await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
+                if (!pipe)
+                {
+                    logger.LogWarning($"{ConsoleUtility.WarningColor}Restart.{ConsoleUtility.NormalizeColor}");
+                }
+
+                continue;
             }
         } while (true);
     }

@@ -36,7 +36,7 @@ public partial class NetworkClient
         ulong add = 0UL, update = 0UL;
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(RetryGetAsync, GetUrl(ranking, date), ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(GetRankingUrl(ranking, date), RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {
@@ -86,22 +86,22 @@ public partial class NetworkClient
         }
 
         return 0;
+    }
 
-        static string GetUrl(RankingKind ranking, DateOnly? date)
+    private static string GetRankingUrl(RankingKind ranking, DateOnly? date)
+    {
+        DefaultInterpolatedStringHandler url = $"https://{ApiHost}/v1/illust/ranking?mode={ranking}";
+        if (date.HasValue)
         {
-            DefaultInterpolatedStringHandler url = $"https://{ApiHost}/v1/illust/ranking?mode={ranking}";
-            if (date.HasValue)
-            {
-                url.AppendLiteral("&date=");
-                var d = date.Value;
-                url.AppendFormatted(d.Year);
-                url.AppendLiteral("-");
-                url.AppendFormatted(d.Month);
-                url.AppendLiteral("-");
-                url.AppendFormatted(d.Day);
-            }
-
-            return url.ToString();
+            url.AppendLiteral("&date=");
+            var d = date.Value;
+            url.AppendFormatted(d.Year);
+            url.AppendLiteral("-");
+            url.AppendFormatted(d.Month);
+            url.AppendLiteral("-");
+            url.AppendFormatted(d.Day);
         }
+
+        return url.ToString();
     }
 }

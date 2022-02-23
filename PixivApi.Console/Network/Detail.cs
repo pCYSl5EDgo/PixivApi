@@ -43,26 +43,23 @@ public partial class NetworkClient
                     var artwork = await GetArtworkDetailAsync(item.Id, pipe, token).ConfigureAwait(false);
                     if (artwork.User.Id == 0)
                     {
-                        item.IsOfficiallyRemoved = true;
+                        goto REMOVED;
                     }
-                    else
+
+                    var converted = Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
+                    ++update;
+                    if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                     {
-                        var converted = Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
-                        var updated = Interlocked.Increment(ref update);
-                        if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
+                        var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
+                        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, pipe, token).ConfigureAwait(false)).AsSpan());
+                        item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
+                        for (var frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
                         {
-                            var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
-                            var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, pipe, token).ConfigureAwait(false)).AsSpan());
-                            item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
-                            for (var frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
-                            {
-                                item.UgoiraFrames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
-                            }
+                            item.UgoiraFrames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
                         }
-
-                        item.Overwrite(converted);
                     }
 
+                    item.Overwrite(converted);
                     if (pipe)
                     {
                         logger.LogInformation($"{item.Id}");
@@ -71,35 +68,41 @@ public partial class NetworkClient
                     {
                         logger.LogInformation($"{update,4}: {item.Id,20}");
                     }
+
+                    continue;
                 }
                 catch (HttpRequestException e) when (e.StatusCode.HasValue)
                 {
                     if (e.StatusCode.Value == HttpStatusCode.NotFound)
                     {
-                        item.IsOfficiallyRemoved = true;
-                        var updated = Interlocked.Increment(ref update);
-                        logger.LogInformation($"{updated,4}: {item.Id,20} removed");
-                        continue;
+                        goto REMOVED;
                     }
-                    else if (e.StatusCode.Value == HttpStatusCode.BadRequest)
-                    {
-                        if (!pipe)
-                        {
-                            logger.LogWarning($"{ConsoleUtility.WarningColor}Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds.{ConsoleUtility.NormalizeColor}");
-                        }
 
-                        await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                        if (!await Reconnect().ConfigureAwait(false))
-                        {
-                            throw;
-                        }
-
-                        goto RETRY;
-                    }
-                    else
+                    if (e.StatusCode.Value != HttpStatusCode.BadRequest)
                     {
                         logger.LogError(e, "");
+                        continue;
                     }
+
+                    if (!pipe)
+                    {
+                        logger.LogWarning($"{ConsoleUtility.WarningColor}Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds.{ConsoleUtility.NormalizeColor}");
+                    }
+
+                    await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
+                    if (!await Reconnect().ConfigureAwait(false))
+                    {
+                        throw;
+                    }
+
+                    goto RETRY;
+                }
+            
+            REMOVED:
+                item.IsOfficiallyRemoved = true;
+                if (!pipe)
+                {
+                    logger.LogInformation($"{++update,4}: {item.Id,20} removed");
                 }
             }
         }

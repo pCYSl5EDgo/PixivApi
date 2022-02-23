@@ -27,7 +27,7 @@ public partial class NetworkClient
         }
 
         var searchArray = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (CalcUrl(searchArray, end_date, offset) is not string url)
+        if (CalcSearchUrl(searchArray, end_date, offset) is not string url)
         {
             if (!pipe)
             {
@@ -59,7 +59,7 @@ public partial class NetworkClient
         var update = 0UL;
         try
         {
-            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(RetryGetAsync, url, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
@@ -115,31 +115,31 @@ public partial class NetworkClient
         }
 
         return 0;
+    }
 
-        static string CalcUrl(string[] array, string? end_date, ushort offset)
+    private static string CalcSearchUrl(string[] array, string? end_date, ushort offset)
+    {
+        DefaultInterpolatedStringHandler handler = $"https://{ApiHost}/v1/search/illust?word=";
+        handler.AppendFormatted(new PercentEncoding(array[0]));
+        for (var i = 1; i < array.Length; i++)
         {
-            DefaultInterpolatedStringHandler handler = $"https://{ApiHost}/v1/search/illust?word=";
-            handler.AppendFormatted(new PercentEncoding(array[0]));
-            for (var i = 1; i < array.Length; i++)
-            {
-                handler.AppendLiteral("%20");
-                handler.AppendFormatted(new PercentEncoding(array[i]));
-            }
-
-            handler.AppendLiteral("&search_target=partial_match_for_tags&sort=date_desc");
-            if (!string.IsNullOrWhiteSpace(end_date))
-            {
-                handler.AppendLiteral("&end_date=");
-                handler.AppendLiteral(end_date);
-            }
-
-            if (offset != 0)
-            {
-                handler.AppendLiteral("&offset=");
-                handler.AppendFormatted(offset);
-            }
-
-            return handler.ToStringAndClear();
+            handler.AppendLiteral("%20");
+            handler.AppendFormatted(new PercentEncoding(array[i]));
         }
+
+        handler.AppendLiteral("&search_target=partial_match_for_tags&sort=date_desc");
+        if (!string.IsNullOrWhiteSpace(end_date))
+        {
+            handler.AppendLiteral("&end_date=");
+            handler.AppendLiteral(end_date);
+        }
+
+        if (offset != 0)
+        {
+            handler.AppendLiteral("&offset=");
+            handler.AppendFormatted(offset);
+        }
+
+        return handler.ToStringAndClear();
     }
 }

@@ -1,40 +1,40 @@
 ﻿using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.Artwork>;
 using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreview>;
-using QueryAsync = System.Func<string, bool, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>;
+using QueryAsync = System.Func<string, bool, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]>>;
 using ReconnectAsyncFunc = System.Func<System.Exception, bool, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>;
 
 namespace PixivApi.Core.Network;
 
 public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
 {
-    private readonly QueryAsync query;
     private readonly string initialUrl;
+    private readonly QueryAsync query;
     private readonly ReconnectAsyncFunc reconnect;
     private readonly bool pipe;
 
-    public DownloadArtworkAsyncEnumerable(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect, bool pipe)
+    public DownloadArtworkAsyncEnumerable(string initialUrl, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe)
     {
-        this.query = query;
         this.initialUrl = initialUrl;
+        this.query = query;
         this.reconnect = reconnect;
         this.pipe = pipe;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, reconnect, pipe, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, reconnect, pipe, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
     public sealed class Enumerator : IAsyncEnumerator<Artworks>
     {
-        private readonly QueryAsync query;
-        private readonly CancellationToken cancellationToken;
-
         private string? url;
+        private readonly QueryAsync query;
         private readonly ReconnectAsyncFunc reconnect;
         private readonly bool pipe;
+        private readonly CancellationToken cancellationToken;
+
         private Artwork[]? array;
 
-        public Enumerator(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
         {
             this.query = query;
             url = initialUrl;
@@ -59,7 +59,7 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
                 return false;
             }
 
-            byte[]? responseByteArray;
+            byte[] responseByteArray;
             do
             {
                 try
@@ -75,7 +75,7 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
                 break;
             } while (true);
 
-            if (responseByteArray is not { Length: > 0 })
+            if (responseByteArray.Length == 0)
             {
                 return false;
             }
@@ -105,20 +105,20 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
 {
     public delegate string SearchNextUrl(ReadOnlySpan<char> url, DateOnly date);
 
-    private readonly QueryAsync query;
     private readonly string initialUrl;
+    private readonly QueryAsync query;
     private readonly ReconnectAsyncFunc reconnect;
     private readonly bool pipe;
 
-    public SearchArtworkAsyncNewToOldEnumerable(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect, bool pipe)
+    public SearchArtworkAsyncNewToOldEnumerable(string initialUrl, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe)
     {
-        this.query = query;
         this.initialUrl = initialUrl;
+        this.query = query;
         this.reconnect = reconnect;
         this.pipe = pipe;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, reconnect, pipe, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, reconnect, pipe, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
@@ -132,10 +132,10 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
         private readonly bool pipe;
         private Artwork[]? array;
 
-        public Enumerator(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
         {
-            this.query = query;
             url = initialUrl;
+            this.query = query;
             this.reconnect = reconnect;
             this.pipe = pipe;
             this.cancellationToken = cancellationToken;
@@ -157,7 +157,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
                 return false;
             }
 
-            byte[]? responseByteArray;
+            byte[] responseByteArray;
             do
             {
                 try
@@ -173,7 +173,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
                 break;
             } while (true);
 
-            if (responseByteArray is not { Length: > 0 })
+            if (responseByteArray.Length == 0)
             {
                 return false;
             }
@@ -224,7 +224,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
     private readonly ReconnectAsyncFunc reconnect;
     private readonly bool pipe;
 
-    public DownloadUserPreviewAsyncEnumerable(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect, bool pipe)
+    public DownloadUserPreviewAsyncEnumerable(string initialUrl, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe)
     {
         this.query = query;
         this.initialUrl = initialUrl;
@@ -232,24 +232,24 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
         this.pipe = pipe;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(query, initialUrl, reconnect, pipe, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, reconnect, pipe, cancellationToken);
 
     IAsyncEnumerator<Users> IAsyncEnumerable<Users>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
     public sealed class Enumerator : IAsyncEnumerator<Users>
     {
+        private string? url;
         private readonly QueryAsync query;
+        private readonly ReconnectAsyncFunc reconnect;
+        private readonly bool pipe;
         private readonly CancellationToken cancellationToken;
 
         private UserPreview[]? array;
-        private string? url;
-        private readonly ReconnectAsyncFunc reconnect;
-        private readonly bool pipe;
 
-        public Enumerator(QueryAsync query, string initialUrl, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
         {
-            this.query = query;
             url = initialUrl;
+            this.query = query;
             this.reconnect = reconnect;
             this.pipe = pipe;
             this.cancellationToken = cancellationToken;
@@ -271,7 +271,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
                 return false;
             }
 
-            byte[]? responseByteArray;
+            byte[] responseByteArray;
             do
             {
                 try
@@ -287,7 +287,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
                 break;
             } while (true);
 
-            if (responseByteArray is not { Length: > 0 })
+            if (responseByteArray.Length == 0)
             {
                 return false;
             }

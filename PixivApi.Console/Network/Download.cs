@@ -293,6 +293,7 @@ public partial class NetworkClient
             }
 
             ulong byteCount = 0;
+        RETRY:
             try
             {
                 if (token.IsCancellationRequested)
@@ -316,7 +317,14 @@ public partial class NetworkClient
             }
             catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == System.Net.HttpStatusCode.BadRequest)
             {
-                return await DownloadFilePrepareDetailAsync().ConfigureAwait(false);
+                if (await DownloadFilePrepareDetailAsync().ConfigureAwait(false))
+                {
+                    goto RETRY;
+                }
+                else
+                {
+                    return false;
+                }
             }
             catch (Exception e)
             {
@@ -342,7 +350,7 @@ public partial class NetworkClient
         {
             if (artwork is null)
             {
-                throw new NullReferenceException();
+                return false;
             }
 
             noDetailDownload = false;
@@ -363,18 +371,7 @@ public partial class NetworkClient
                 }
                 else if (e.StatusCode.Value == System.Net.HttpStatusCode.BadRequest)
                 {
-                    var timeSpan = networkClient.configSettings.RetryTimeSpan;
-                    if (!pipe)
-                    {
-                        logger.LogError(e, $"let me just sleep for {timeSpan.TotalSeconds} seconds.");
-                    }
-
-                    await Task.Delay(timeSpan, token).ConfigureAwait(false);
-                    if (!await networkClient.Reconnect().ConfigureAwait(false))
-                    {
-                        throw;
-                    }
-
+                    await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
                     goto RETRY;
                 }
 

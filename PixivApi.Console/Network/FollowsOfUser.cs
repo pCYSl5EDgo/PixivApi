@@ -45,7 +45,7 @@ public partial class NetworkClient
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
         try
         {
-            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}", ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable($"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}", RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 var oldAdd = add;
                 foreach (var item in userPreviewCollection)

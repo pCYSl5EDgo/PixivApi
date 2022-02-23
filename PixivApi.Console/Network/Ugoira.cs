@@ -61,6 +61,7 @@ public sealed partial class NetworkClient
 
             if (artwork.UgoiraFrames is not { Length: > 0 })
             {
+                await Task.Delay(TimeSpan.FromMinutes(1d), token).ConfigureAwait(false);
                 var url = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
                 byte[]? content;
                 try
@@ -80,6 +81,7 @@ public sealed partial class NetworkClient
                 {
                     artwork.UgoiraFrames[i] = (ushort)frames[i].Delay;
                 }
+
                 Interlocked.Increment(ref update);
             }
 

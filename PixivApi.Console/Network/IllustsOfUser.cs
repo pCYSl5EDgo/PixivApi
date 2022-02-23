@@ -42,7 +42,7 @@ public partial class NetworkClient
                     continue;
                 }
 
-                await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/illusts?user_id={id}", ReconnectAsync, pipe).WithCancellation(token))
+                await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable($"https://{ApiHost}/v1/user/illusts?user_id={id}", RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
                 {
                     var oldAdd = add;
                     foreach (var item in artworkCollection)

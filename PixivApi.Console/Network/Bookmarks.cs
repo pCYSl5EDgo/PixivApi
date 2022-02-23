@@ -46,7 +46,7 @@ public partial class NetworkClient
         var update = 0UL;
         try
         {
-            await foreach (var artworkEnumerable in new DownloadArtworkAsyncEnumerable(RetryGetAsync, $"https://{ApiHost}/v1/user/bookmarks/illust?user_id={configSettings.UserId}&restrict=public", ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkEnumerable in new DownloadArtworkAsyncEnumerable($"https://{ApiHost}/v1/user/bookmarks/illust?user_id={configSettings.UserId}&restrict=public", RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 var oldAdd = add;
                 foreach (var item in artworkEnumerable)
