@@ -680,8 +680,9 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             }
 
             ushort[] answer;
-            if (reader.TryReadMapHeader(out var mapHeader))
+            if (reader.NextMessagePackType == MessagePackType.Map)
             {
+                var mapHeader = reader.ReadMapHeader();
                 if (mapHeader == 0)
                 {
                     return Array.Empty<ushort>();
@@ -731,7 +732,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
                 }
 
                 var sequence = bytes.Value;
-                mapHeader = (int)(sequence.Length >> 1);
+                var mapHeader = sequence.Length >> 1;
                 if (mapHeader == 0)
                 {
                     return Array.Empty<ushort>();
