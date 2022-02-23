@@ -1,0 +1,96 @@
+﻿<#@ import namespace="System" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="PixivApi.Core" #>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="generator" content="PixivApi" />
+    <meta name="keywords" content="pixiv,image" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta name="format-detection" content="telephone=no,email=no,address=no">
+    <meta name="google" content="notranslate">
+    <title><#= FileName #></title>
+    <style>
+        .tag li {
+            float: left;
+            list-style: none;
+        }
+    </style>
+</head>
+
+<body><#
+ArtworkCount = 0;
+foreach (var artwork in Artworks)
+{
+    ++ArtworkCount;
+    var user = UserDictionary[artwork.UserId];
+    var time = artwork.FileDate;
+#>
+
+    <div>
+        <h1><a href="https://www.pixiv.net/artworks/<#= artwork.Id #>" rel="external noreferrer" target="_blank"><#= artwork.Title #></a></h1>
+        <div>
+            <p class="summary"><#if (user.IsFollowed) {#>👩‍🎨<#} if (artwork.IsBookmarked) {#>⭐<#}#> <a href="https://www.pixiv.net/users/<#= user.Id #>" rel="external noreferrer" target="_blank"><#= user.Name #></a> 👁 <#= artwork.TotalView #> ♡ <#= artwork.TotalBookmarks #> 📅 <#= time.Year #>-<#= time.Month #>-<#= time.Day #><# if (artwork.IsXRestricted) {#> 🔞<#} #></p>
+            <div class="image">
+<#
+    var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetThumbnailFileName()}";
+    if (artwork.Type == ArtworkType.Ugoira)
+    {
+        var folder = $"{RelativePathToUgoira}{IOUtility.GetHashPath(artwork.Id)}";
+#>
+                <video width="<#= artwork.Width #>" height="<#= artwork.Height #>" muted autoplay controls loop poster="<#= thumbnail #>">
+                    <source src="<#= folder #><#= artwork.GetZipFileNameWithoutExtension() #>.webm" type="video/webm" />
+                    <source src="<#= folder #><#= artwork.GetZipFileNameWithoutExtension() #>.mp4" type="video/mp4" />
+                    <p>no video.</p>
+                </video>
+<#
+    }
+    else
+    {
+        var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}";
+        var firstOriginal = $"{folder}{artwork.GetOriginalFileName(0)}";
+        if (File.Exists(firstOriginal))
+        {
+#>
+                <img width="<#= artwork.Width #>" height="<#= artwork.Height #>" src="<#= firstOriginal #>" alt="<#= artwork.Id #> - 0" decoding="async" loading="lazy" />
+<#
+            for (uint i = 1; i < artwork.PageCount; ++i)
+            {
+                if (i + 1U == artwork.PageCount && artwork.ExtraHideLast)
+                {
+                    break;
+                }
+#>
+                <img width="<#= artwork.Width #>" height="<#= artwork.Height #>" src="<#= folder #><#= artwork.GetOriginalFileName(i) #>" alt="<#= artwork.Id #> - <#= i #>" decoding="async" loading="lazy" />
+<#
+            }
+        }
+        else
+        {
+#>
+                <p>⚠ <#= artwork.PageCount #></p>
+                <img width="360" height="360" src="<#= thumbnail #>" alt="<#= artwork.Id #> - thumbnail" decoding="async" loading="lazy" />
+<#
+        }
+    }
+#>
+            </div>
+            <div class="caption"><#= artwork.Caption #></div>
+            <ul class="tag">
+<#
+foreach (var tag in artwork.Tags)
+{
+#>
+                <li><b><#= TagSet.Values[tag] #></b></li>
+<#
+}
+#>
+            </ul>
+        </div>
+    </div>
+<#}#>
+</body>
+
+</html>
