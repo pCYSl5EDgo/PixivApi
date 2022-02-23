@@ -9,7 +9,7 @@ public partial class LocalClient : ConsoleAppBase
     public async ValueTask<int> GenerateMarkdownAsync(
             [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
             [Option(1, ArgumentDescriptions.FilterDescription)] string filter
-        )
+    )
     {
         if (string.IsNullOrWhiteSpace(input))
         {
