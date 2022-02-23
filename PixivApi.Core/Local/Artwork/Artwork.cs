@@ -606,12 +606,34 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
         private static void WriteArray(ref MessagePackWriter writer, ushort[]? value)
         {
-            writer.WriteBinHeader(value is null ? 0 : value.Length << 1);
-            if (value is not { Length: > 0 })
+            if (value is null)
             {
+                writer.WriteNil();
                 return;
             }
 
+            if (value.Length == 0)
+            {
+                writer.WriteBinHeader(0);
+                return;
+            }
+
+            var first = value[0];
+            for (var i = 1; i < value.Length; i++)
+            {
+                if (value[i] != first)
+                {
+                    goto ARRAY;
+                }
+            }
+
+            writer.WriteMapHeader(1);
+            writer.Write(value.Length);
+            writer.Write(first);
+            return;
+
+        ARRAY:
+            writer.WriteBinHeader(value.Length << 1);
             var span = writer.GetSpan(value.Length << 1);
             MemoryMarshal.AsBytes(value.AsSpan()).CopyTo(span);
             writer.Advance(value.Length << 1);
@@ -652,21 +674,73 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
         private static ushort[]? ReadUInt16Array(ref MessagePackReader reader)
         {
-            var bytes = reader.ReadBytes();
-            if (!bytes.HasValue)
+            if (reader.TryReadNil())
             {
                 return null;
             }
 
-            var sequence = bytes.Value;
-            var length = sequence.Length >> 1;
-            if (length == 0)
+            ushort[] answer;
+            if (reader.TryReadMapHeader(out var mapHeader))
             {
-                return Array.Empty<ushort>();
+                if (mapHeader == 0)
+                {
+                    return Array.Empty<ushort>();
+                }
+
+                if (mapHeader == 1)
+                {
+                    var count = reader.ReadInt32();
+                    if (count == 0)
+                    {
+                        return Array.Empty<ushort>();
+                    }
+
+                    answer = new ushort[count];
+                    Array.Fill(answer, reader.ReadUInt16());
+                }
+                else
+                {
+                    Span<(int, ushort)> pairs = stackalloc (int, ushort)[mapHeader];
+                    var sum = 0;
+                    for (var i = 0; i < mapHeader; i++)
+                    {
+                        pairs[i] = (reader.ReadInt32(), reader.ReadUInt16());
+                        sum += pairs[i].Item1;
+                    }
+
+                    if (sum == 0)
+                    {
+                        return Array.Empty<ushort>();
+                    }
+
+                    answer = new ushort[sum];
+                    var index = 0;
+                    foreach (var (count, value) in pairs)
+                    {
+                        answer.AsSpan(index, count).Fill(value);
+                        index += count;
+                    }
+                }
+            }
+            else
+            {
+                var bytes = reader.ReadBytes();
+                if (!bytes.HasValue)
+                {
+                    return null;
+                }
+
+                var sequence = bytes.Value;
+                mapHeader = (int)(sequence.Length >> 1);
+                if (mapHeader == 0)
+                {
+                    return Array.Empty<ushort>();
+                }
+
+                answer = new ushort[mapHeader];
+                sequence.CopyTo(MemoryMarshal.AsBytes(answer.AsSpan()));
             }
 
-            var answer = new ushort[length];
-            sequence.CopyTo(MemoryMarshal.AsBytes(answer.AsSpan()));
             return answer;
         }
     }
