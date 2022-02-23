@@ -29,6 +29,11 @@ public partial class NetworkClient
         {
             await foreach (var artwork in artworks)
             {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
                 {
                     break;
@@ -119,6 +124,11 @@ public partial class NetworkClient
         {
             await foreach (var artwork in artworks)
             {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
                 {
                     break;
