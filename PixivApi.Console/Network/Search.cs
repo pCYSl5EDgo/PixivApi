@@ -11,6 +11,7 @@ public partial class NetworkClient
         [Option(0, ArgumentDescriptions.DatabaseDescription)] string output,
         [Option(1, "search text")] string text,
         [Option("e", "end_date")] string? end_date = null,
+        ushort offset = 0,
         [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.add,
         bool pipe = false
     )
@@ -26,7 +27,7 @@ public partial class NetworkClient
         }
 
         var searchArray = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (CalcUrl(searchArray, end_date) is not string url)
+        if (CalcUrl(searchArray, end_date, offset) is not string url)
         {
             if (!pipe)
             {
@@ -135,7 +136,7 @@ public partial class NetworkClient
 
         return 0;
 
-        static string CalcUrl(string[] array, string? end_date)
+        static string CalcUrl(string[] array, string? end_date, ushort offset)
         {
             DefaultInterpolatedStringHandler handler = $"https://{ApiHost}/v1/search/illust?word=";
             handler.AppendFormatted(new PercentEncoding(array[0]));
@@ -150,6 +151,12 @@ public partial class NetworkClient
             {
                 handler.AppendLiteral("&end_date=");
                 handler.AppendLiteral(end_date);
+            }
+
+            if (offset != 0)
+            {
+                handler.AppendLiteral("&offset=");
+                handler.AppendFormatted(offset);
             }
 
             return handler.ToStringAndClear();
