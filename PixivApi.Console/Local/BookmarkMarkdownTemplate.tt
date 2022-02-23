@@ -31,7 +31,7 @@ foreach (var artwork in Artworks)
             }
 #>
 
-![<#= artwork.Title #> - <#= i #>](<#= folder #><#= artwork.GetOriginalFileName(0) #> "<#= artwork.Id #>")
+![<#= artwork.Title #> - <#= i #>](<#= folder #><#= artwork.GetOriginalFileName(i) #> "<#= artwork.Id #>")
 <#
         }
     }
