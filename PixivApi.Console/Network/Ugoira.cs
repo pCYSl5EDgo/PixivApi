@@ -8,9 +8,10 @@ namespace PixivApi.Console;
 
 public sealed partial class NetworkClient
 {
-    [Command("create-ugoira-webm")]
+    [Command("create-ugoira")]
     public async ValueTask CreateUgoiraWebmAsync(
         [Option(0, ArgumentDescriptions.DatabaseDescription)] string path,
+        string extension = "webm",
         string ffmpegDirectory = "Chrome",
         bool pipe = false
     )
@@ -30,6 +31,11 @@ public sealed partial class NetworkClient
             System.Console.Write(ConsoleUtility.DeleteLine1);
         }
 
+        if (!await Connect().ConfigureAwait(false))
+        {
+            return;
+        }
+
         static ulong GetId(string path)
         {
             var name = Path.GetFileNameWithoutExtension(path.AsSpan());
@@ -38,10 +44,9 @@ public sealed partial class NetworkClient
 
         var update = 0UL;
         var zipCount = 0UL;
-        const string videExtension = ".webm";
-        foreach (var zipPath in Directory.EnumerateFiles(configSettings.UgoiraFolder, "*.zip", SearchOption.AllDirectories))
+        await Parallel.ForEachAsync(Directory.EnumerateFiles(configSettings.UgoiraFolder, "*.zip", SearchOption.AllDirectories), token, async (zipPath, token) =>
         {
-            var videoPath = $"{zipPath.AsSpan(0, zipPath.Length - 4)}{videExtension}";
+            var videoPath = $"{zipPath.AsSpan(0, zipPath.Length - 4)}.{extension}";
             if (File.Exists(videoPath))
             {
                 return;
@@ -56,8 +61,20 @@ public sealed partial class NetworkClient
 
             if (artwork.UgoiraFrames is not { Length: > 0 })
             {
-                var frames = await GetUgoiraMetadataAsync(id, token).ConfigureAwait(false);
-                Array.Sort(frames, (x, y) => GetId(x.File).CompareTo(GetId(y.File)));
+                var url = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
+                byte[]? content;
+                try
+                {
+                    content = await RetryGetAsync(url, token).ConfigureAwait(false);
+                }
+                catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    artwork.IsOfficiallyRemoved = true;
+                    Interlocked.Increment(ref update);
+                    return;
+                }
+
+                var frames = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>(content.AsSpan()).Value.Frames;
                 artwork.UgoiraFrames = frames.Length == 0 ? Array.Empty<ushort>() : new ushort[frames.Length];
                 for (var i = 0; i < frames.Length; i++)
                 {
@@ -73,29 +90,26 @@ public sealed partial class NetworkClient
             {
                 var conversion = FFmpeg.Conversions.New();
                 conversion = conversion.SetInputFrameRate(30d);
-                conversion = conversion.BuildVideoFromImages(artwork.UgoiraFrames.Select((x, i) => Path.Combine(folder, $"{i:D6}{artwork.GetExtensionText()}")));
-                conversion.SetFrameRate(30);
-                conversion.SetOutput(videoPath);
-                var conversionResult = await conversion.Start().ConfigureAwait(false);
-                logger.LogInformation($"{videoPath}: Duration: {conversionResult.Duration} Arguments: {conversionResult.Arguments}");
+                conversion = conversion.BuildVideoFromImages(artwork.UgoiraFrames.Select((x, i) => Path.Combine(folder, $"{i:D6}.jpg")));
+                conversion = conversion.SetFrameRate(30);
+                conversion = conversion.SetOutput(videoPath);
+                if (extension == "webm")
+                {
+                    conversion = conversion.UseHardwareAcceleration(HardwareAccelerator.auto, VideoCodec.vp9, VideoCodec.vp9);
+                }
+
+                var conversionResult = await conversion.Start(token).ConfigureAwait(false);
+                logger.LogInformation($"Duration: {conversionResult.Duration} Arguments: {conversionResult.Arguments}");
             }
             finally
             {
                 Directory.Delete(folder, true);
             }
-        }
+        }).ConfigureAwait(false);
 
         if (update != 0)
         {
             await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
         }
-    }
-
-    private async ValueTask<Core.Network.UgoiraMetadataResponseData.Frame[]> GetUgoiraMetadataAsync(ulong id, CancellationToken token)
-    {
-        var url = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
-        var content = await RetryGetAsync(url, token).ConfigureAwait(false);
-        var response = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>(content.AsSpan());
-        return response.Value.Frames;
     }
 }
