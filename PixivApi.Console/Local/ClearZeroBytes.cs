@@ -19,8 +19,18 @@ public partial class LocalClient
         var mask = (1UL << maskPowerOf2) - 1UL;
         async ValueTask<(ulong, ulong)> DeleteAsync(string root)
         {
-            var files = Directory.GetFiles(root, "*", SearchOption.AllDirectories);
-            System.Console.Write($"Remove: {0,6} {0,3}%({0,8} items of total {files.LongLength,8}) processed");
+            var files = new List<string>(1 << 14);
+            System.Console.Write($"Start collecting files under {root}");
+            foreach (var file in Directory.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+            {
+                files.Add(file);
+                if (((ulong)files.Count & mask) == 0)
+                {
+                    System.Console.Write($"{ConsoleUtility.DeleteLine1}{files.Count} files collected");
+                }
+            }
+
+            System.Console.Write($"{ConsoleUtility.DeleteLine1}Remove: {0,6} {0,3}%({0,8} items of total {files.Count,8}) processed");
             ulong count = 0UL, removed = 0UL;
             await Parallel.ForEachAsync(files, parallelOptions, (file, token) =>
             {
@@ -39,14 +49,13 @@ public partial class LocalClient
 
                 if ((myCount & mask) == 0UL)
                 {
-                    var percentage = (int)(myCount * 100d / files.LongLength);
-                    System.Console.Write($"{ConsoleUtility.DeleteLine1}Remove: {removed,6} {percentage,3}%({myCount,8} items of total {files.LongLength,8}) processed");
+                    var percentage = (int)(myCount * 100d / files.Count);
+                    System.Console.Write($"{ConsoleUtility.DeleteLine1}Remove: {removed,6} {percentage,3}%({myCount,8} items of total {files.Count,8}) processed");
                 }
 
                 return ValueTask.CompletedTask;
             }).ConfigureAwait(false);
             System.Console.Write(ConsoleUtility.DeleteLine1);
-            Array.Clear(files);
             return (count, removed);
         }
 
