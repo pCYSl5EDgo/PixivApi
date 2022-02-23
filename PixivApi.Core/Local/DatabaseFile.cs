@@ -142,7 +142,7 @@ public sealed class DatabaseFile
                         artworks = new Artwork[artworkHeader];
                         for (var i = 0; i < artworks.Length; i++)
                         {
-                            artworks[i] = Artwork.Formatter.DeserializeStatic(ref reader, options);
+                            artworks[i] = Artwork.Formatter.DeserializeStatic(ref reader);
                         }
                         break;
                     case 3:

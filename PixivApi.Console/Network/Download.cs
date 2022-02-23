@@ -120,20 +120,41 @@ public partial class NetworkClient
                 }
 
                 machine.Initialize(artwork);
-                var file = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName());
-                if (await machine.DownloadAsync(artwork.GetThumbnailUrl(), file).ConfigureAwait(false))
+                if (artwork.Type == ArtworkType.Ugoira)
                 {
-                    ++downloadItemCount;
+                    var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(0));
+                    if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(0), thumbnailFile).ConfigureAwait(false))
+                    {
+                        goto FAIL;
+                    }
                 }
                 else
                 {
-                    ++alreadyCount;
+                    for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
+                    {
+                        var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(pageIndex));
+                        if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(pageIndex), pageFile).ConfigureAwait(false))
+                        {
+                            goto FAIL;
+                        }
+                    }
                 }
 
                 if (machine.IsUpdated)
                 {
                     updateFlag = true;
                 }
+
+                ++downloadItemCount;
+                continue;
+
+            FAIL:
+                if (machine.IsUpdated)
+                {
+                    updateFlag = true;
+                }
+
+                ++alreadyCount;
             }
         }
         finally

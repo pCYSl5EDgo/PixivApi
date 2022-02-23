@@ -104,20 +104,20 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/img-original/img/";
         AddDateToUrl(ref handler);
         handler.AppendFormatted('/');
-        AddOriginalFileName(pageIndex, ref handler);
+        AddOriginalFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
-    public string GetThumbnailUrl()
+    public string GetThumbnailUrl(uint pageIndex)
     {
         DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/c/360x360_70/img-master/img/";
         AddDateToUrl(ref handler);
         handler.AppendFormatted('/');
-        AddThumbnailFileName(ref handler);
+        AddThumbnailFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
-    public void AddOriginalFileName(uint pageIndex, ref DefaultInterpolatedStringHandler handler)
+    public void AddOriginalFileName(ref DefaultInterpolatedStringHandler handler, uint pageIndex)
     {
         handler.AppendFormatted(Id);
         if (Type == ArtworkType.Ugoira)
@@ -136,11 +136,11 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     public string GetOriginalFileName(uint pageIndex)
     {
         DefaultInterpolatedStringHandler handler = new();
-        AddOriginalFileName(pageIndex, ref handler);
+        AddOriginalFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
-    public void AddThumbnailFileName(ref DefaultInterpolatedStringHandler handler)
+    public void AddThumbnailFileName(ref DefaultInterpolatedStringHandler handler, uint pageIndex)
     {
         handler.AppendFormatted(Id);
         if (Type == ArtworkType.Ugoira)
@@ -149,14 +149,16 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         }
         else
         {
-            handler.AppendLiteral("_p0_square1200.jpg");
+            handler.AppendLiteral("_p");
+            handler.AppendFormatted(pageIndex);
+            handler.AppendLiteral("_square1200.jpg");
         }
     }
 
-    public string GetThumbnailFileName()
+    public string GetThumbnailFileName(uint pageIndex)
     {
         DefaultInterpolatedStringHandler handler = new();
-        AddThumbnailFileName(ref handler);
+        AddThumbnailFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
@@ -408,9 +410,9 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             WriteArray(ref writer, value.UgoiraFrames);
         }
 
-        public Artwork Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => DeserializeStatic(ref reader, options);
+        public Artwork Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => DeserializeStatic(ref reader);
 
-        public static Artwork DeserializeStatic(ref MessagePackReader reader, MessagePackSerializerOptions options)
+        public static Artwork DeserializeStatic(ref MessagePackReader reader)
         {
             if (!reader.TryReadArrayHeader(out var header))
             {

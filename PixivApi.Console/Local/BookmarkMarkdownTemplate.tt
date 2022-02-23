@@ -16,7 +16,7 @@ foreach (var artwork in Artworks)
 <#
     var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}";
     var firstOriginal = $"{folder}{artwork.GetOriginalFileName(0)}";
-    var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetThumbnailFileName()}";
+    var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetThumbnailFileName(0)}";
     if (File.Exists(firstOriginal))
     {
 #>

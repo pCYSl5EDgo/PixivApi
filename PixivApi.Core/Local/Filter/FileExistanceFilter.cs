@@ -64,21 +64,13 @@ public sealed class FileExistanceFilter
 
     private bool ThumbnailFilter(Artwork artwork, bool exist)
     {
-        DefaultInterpolatedStringHandler handler = $"{thumbnailFolder}";
-        IOUtility.AppendHashPath(ref handler, artwork.Id);
-        artwork.AddThumbnailFileName(ref handler);
-        return File.Exists(handler.ToStringAndClear()) == exist;
-    }
-
-    public bool OriginalFilter(Artwork artwork, bool exist)
-    {
-        var folder = $"{originalFolder}{IOUtility.GetHashPath(artwork.Id)}";
+        var folder = $"{thumbnailFolder}{IOUtility.GetHashPath(artwork.Id)}";
         if (exist)
         {
             for (uint i = 0; i < artwork.PageCount; i++)
             {
                 DefaultInterpolatedStringHandler handler = $"{folder}";
-                artwork.AddOriginalFileName(i, ref handler);
+                artwork.AddThumbnailFileName(ref handler, i);
                 if (!File.Exists(handler.ToStringAndClear()))
                 {
                     return false;
@@ -90,7 +82,38 @@ public sealed class FileExistanceFilter
             for (uint i = 0; i < artwork.PageCount; i++)
             {
                 DefaultInterpolatedStringHandler handler = $"{folder}";
-                artwork.AddOriginalFileName(i, ref handler);
+                artwork.AddThumbnailFileName(ref handler, i);
+                if (File.Exists(handler.ToStringAndClear()))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    public bool OriginalFilter(Artwork artwork, bool exist)
+    {
+        var folder = $"{originalFolder}{IOUtility.GetHashPath(artwork.Id)}";
+        if (exist)
+        {
+            for (uint i = 0; i < artwork.PageCount; i++)
+            {
+                DefaultInterpolatedStringHandler handler = $"{folder}";
+                artwork.AddOriginalFileName(ref handler, i);
+                if (!File.Exists(handler.ToStringAndClear()))
+                {
+                    return false;
+                }
+            }
+        }
+        else
+        {
+            for (uint i = 0; i < artwork.PageCount; i++)
+            {
+                DefaultInterpolatedStringHandler handler = $"{folder}";
+                artwork.AddOriginalFileName(ref handler, i);
                 if (File.Exists(handler.ToStringAndClear()))
                 {
                     return false;
