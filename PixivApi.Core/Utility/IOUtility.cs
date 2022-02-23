@@ -84,6 +84,7 @@ public static class IOUtility
         Converters =
         {
             Local.Artwork.JsonFormatter.Instance,
+            Local.FileExistanceTypeFormatter.Instance,
             CamelCaseArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },
@@ -97,6 +98,7 @@ public static class IOUtility
         Converters =
         {
             Local.Artwork.JsonFormatter.Instance,
+            Local.FileExistanceTypeFormatter.Instance,
             CamelCaseArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },

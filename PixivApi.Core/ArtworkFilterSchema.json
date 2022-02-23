@@ -32,13 +32,18 @@
       "additionalProperties": false,
       "properties": {
         "original": {
-          "type": "boolean"
+          "enum": [
+            "exist-all",
+            "exist-any",
+            "not-exist-all",
+            "not-exist-any"
+          ]
         },
         "thumbnail": {
-          "type": "boolean"
+          "$ref": "#/properties/file-filter/properties/original"
         },
         "ugoira": {
-          "type": "boolean"
+          "$ref": "#/properties/file-filter/properties/original"
         }
       },
       "type": "object"
