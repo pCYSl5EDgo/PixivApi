@@ -45,6 +45,7 @@ foreach (var artwork in Artworks)
                     <source src="<#= folder #><#= artwork.GetZipFileNameWithoutExtension() #>.mp4" type="video/mp4" />
                     <p>no video.</p>
                 </video>
+                <p>Frame Count: <#= artwork.UgoiraFrames?.Length ?? 0 #></p>
 <#
     }
     else
