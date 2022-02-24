@@ -40,6 +40,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     public string? ExtraMemo;
     public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
     public ushort[]? UgoiraFrames;
+    public (uint Width, uint Height)[]? ExtraPageWidthHeightPairArray;
 
     public void Overwrite(Artwork source)
     {
@@ -82,6 +83,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         OverwriteExtensions.Overwrite(ref ExtraMemo, source.ExtraMemo);
         OverwriteExtensions.Overwrite(ref ExtraPageHideReasonDictionary, source.ExtraPageHideReasonDictionary);
         OverwriteExtensions.Overwrite(ref UgoiraFrames, source.UgoiraFrames);
+        OverwriteExtensions.Overwrite(ref ExtraPageWidthHeightPairArray, source.ExtraPageWidthHeightPairArray);
     }
 
     private void AddDateToUrl(ref DefaultInterpolatedStringHandler handler)
@@ -375,7 +377,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
         public static void SerializeStatic(ref MessagePackWriter writer, Artwork value)
         {
-            writer.WriteArrayHeader(12);
+            writer.WriteArrayHeader(13);
             // 0
             {
                 writer.WriteBinHeader(BinLength);
@@ -420,6 +422,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             writer.Write(value.ExtraMemo);
             WriteDictionary(ref writer, value.ExtraPageHideReasonDictionary);
             WriteArray(ref writer, value.UgoiraFrames);
+            WriteArray(ref writer, value.ExtraPageWidthHeightPairArray);
         }
 
         public Artwork Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => DeserializeStatic(ref reader);
@@ -516,6 +519,9 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
                         break;
                     case 0x0b:
                         answer.UgoiraFrames = ReadUInt16Array(ref reader);
+                        break;
+                    case 0x0c:
+                        answer.ExtraPageWidthHeightPairArray = ReadUInt32UInt32PairArray(ref reader);
                         break;
                     default:
                         reader.Skip();
@@ -656,7 +662,13 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
         private static void WriteArray(ref MessagePackWriter writer, uint[]? value)
         {
-            writer.WriteBinHeader(value is null ? 0 : value.Length << 2);
+            if (value is null)
+            {
+                writer.WriteNil();
+                return;
+            }
+
+            writer.WriteBinHeader(value.Length << 2);
             if (value is not { Length: > 0 })
             {
                 return;
@@ -665,6 +677,45 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             var span = writer.GetSpan(value.Length << 2);
             MemoryMarshal.AsBytes(value.AsSpan()).CopyTo(span);
             writer.Advance(value.Length << 2);
+        }
+
+        private static void WriteArray(ref MessagePackWriter writer, (uint, uint)[]? value)
+        {
+            if (value is null)
+            {
+                writer.WriteNil();
+                return;
+            }
+
+            writer.WriteBinHeader(value.Length << 3);
+            if (value is not { Length: > 0 })
+            {
+                return;
+            }
+
+            var span = writer.GetSpan(value.Length << 3);
+            MemoryMarshal.AsBytes(value.AsSpan()).CopyTo(span);
+            writer.Advance(value.Length << 3);
+        }
+
+        private static (uint, uint)[]? ReadUInt32UInt32PairArray(ref MessagePackReader reader)
+        {
+            var bytes = reader.ReadBytes();
+            if (!bytes.HasValue)
+            {
+                return null;
+            }
+
+            var sequence = bytes.Value;
+            var length = sequence.Length >> 3;
+            if (length == 0)
+            {
+                return Array.Empty<(uint, uint)>();
+            }
+
+            var answer = new (uint, uint)[length];
+            sequence.CopyTo(MemoryMarshal.AsBytes(answer.AsSpan()));
+            return answer;
         }
 
         private static uint[]? ReadUInt32Array(ref MessagePackReader reader)
