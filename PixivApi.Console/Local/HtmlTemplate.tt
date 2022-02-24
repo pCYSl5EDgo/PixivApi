@@ -14,8 +14,9 @@
     <title><#= FileName #></title>
     <style>
         .tag li {
-            float: left;
+            display: inline;
             list-style: none;
+            padding: 0 10px
         }
     </style>
 </head>
@@ -62,7 +63,7 @@ foreach (var artwork in Artworks)
                 break;
             }
 #>
-                <img width="<#= artwork.Width #>" height="<#= artwork.Height #>" src="<#= folder #><#= artwork.GetOriginalFileName(i) #>" alt="<#= artwork.Id #> - <#= i #>" decoding="async" loading="lazy" onerror="this.onerror = null; this.width = 360; this.height = 360; this.src = '<#= folder #><#= artwork.GetThumbnailFileName(i) #>';" />
+                <img width="auto" height="auto" src="<#= folder #><#= artwork.GetOriginalFileName(i) #>" alt="<#= artwork.Id #> - <#= i #>" decoding="async" loading="lazy" onerror="this.onerror = null; this.width = 360; this.height = 360; this.src = '<#= folder #><#= artwork.GetThumbnailFileName(i) #>';" />
 <#
         }
     }
