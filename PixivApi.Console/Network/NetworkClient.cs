@@ -57,7 +57,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
     {
         if (!pipe)
         {
-            logger.LogInformation(exception, $"{ConsoleUtility.WarningColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect.{ConsoleUtility.NormalizeColor}");
+            logger.LogInformation(exception, $"{ConsoleUtility.WarningColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now}{ConsoleUtility.NormalizeColor}");
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
