@@ -1,3 +1,5 @@
+using PixivApi.Core;
+
 namespace PixivApi.Console;
 
 public partial class LocalClient

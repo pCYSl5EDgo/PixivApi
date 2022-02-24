@@ -1,4 +1,4 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core;
 
 public partial class ConfigSettings : IEquatable<ConfigSettings>
 {
