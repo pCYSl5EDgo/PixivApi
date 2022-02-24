@@ -135,6 +135,11 @@ public partial class NetworkClient
             }
             catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
+                if (!pipe)
+                {
+                    logger.LogError($"{ConsoleUtility.ErrorColor}Not Found: {url}{ConsoleUtility.NormalizeColor}");
+                }
+
                 if (await DownloadFilePrepareDetailAsync(artwork).ConfigureAwait(false))
                 {
                     goto RETRY;
