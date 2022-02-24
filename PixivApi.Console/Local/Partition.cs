@@ -69,14 +69,14 @@ public partial class LocalClient
             falses[index++] = database.Artworks[item];
         }
 
-        var trueDatabase = new DatabaseFile(0, 0, trues, database.UserDictionary, database.TagSet, database.ToolSet);
+        var trueDatabase = new DatabaseFile(0, 0, trues, database.UserDictionary, database.TagSet, database.ToolSet, database.RankingSet);
         if (token.IsCancellationRequested)
         {
             return;
         }
 
         await IOUtility.MessagePackSerializeAsync(path + ".true", trueDatabase, FileMode.CreateNew).ConfigureAwait(false);
-        var falseDatabase = new DatabaseFile(0, 0, falses, database.UserDictionary, database.TagSet, database.ToolSet);
+        var falseDatabase = new DatabaseFile(0, 0, falses, database.UserDictionary, database.TagSet, database.ToolSet, database.RankingSet);
         if (token.IsCancellationRequested)
         {
             return;

@@ -9,6 +9,7 @@ public sealed class DatabaseFile
     [Key(0x03)] public ConcurrentDictionary<ulong, User> UserDictionary;
     [Key(0x04)] public StringSet TagSet;
     [Key(0x05)] public StringSet ToolSet;
+    [Key(0x06)] public RankingSet RankingSet;
 
     public DatabaseFile()
     {
@@ -18,9 +19,10 @@ public sealed class DatabaseFile
         UserDictionary = new();
         TagSet = new(4096);
         ToolSet = new(256);
+        RankingSet = new();
     }
 
-    public DatabaseFile(uint majorVersion, uint minorVersion, Artwork[] artworks, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet)
+    public DatabaseFile(uint majorVersion, uint minorVersion, Artwork[] artworks, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet, RankingSet rankingSet)
     {
         MajorVersion = majorVersion;
         MinorVersion = minorVersion;
@@ -28,6 +30,7 @@ public sealed class DatabaseFile
         UserDictionary = userDictionary;
         TagSet = tagSet;
         ToolSet = toolSet;
+        RankingSet = rankingSet;
     }
 
     public async ValueTask OptimizeAsync(ParallelOptions parallelOptions)
@@ -89,7 +92,7 @@ public sealed class DatabaseFile
                 return;
             }
 
-            writer.WriteArrayHeader(6);
+            writer.WriteArrayHeader(7);
             writer.Write(value.MajorVersion);
             writer.Write(value.MinorVersion);
             writer.WriteArrayHeader(value.Artworks.Length);
@@ -106,6 +109,7 @@ public sealed class DatabaseFile
             }
             StringSet.Formatter.SerializeStatic(ref writer, value.TagSet);
             StringSet.Formatter.SerializeStatic(ref writer, value.ToolSet);
+            RankingSet.Formatter.SerializeStatic(ref writer, value.RankingSet);
         }
 
         public DatabaseFile? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => DeserializeStatic(ref reader, options);
@@ -123,6 +127,7 @@ public sealed class DatabaseFile
             ConcurrentDictionary<ulong, User>? users = null;
             StringSet? tags = null;
             StringSet? tools = null;
+            RankingSet? rankings = null;
             for (var memberIndex = 0; memberIndex < header; memberIndex++)
             {
                 switch (memberIndex)
@@ -165,13 +170,16 @@ public sealed class DatabaseFile
                     case 5:
                         tools = StringSet.Formatter.DeserializeStatic(ref reader);
                         break;
+                    case 6:
+                        rankings = RankingSet.Formatter.DeserializeStatic(ref reader);
+                        break;
                     default:
                         reader.Skip();
                         break;
                 }
             }
 
-            return new(major, minor, artworks, users ?? new(), tags ?? new(0), tools ?? new(0));
+            return new(major, minor, artworks, users ?? new(), tags ?? new(0), tools ?? new(0), rankings ?? new());
         }
     }
 }

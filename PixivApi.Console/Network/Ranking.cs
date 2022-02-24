@@ -9,7 +9,7 @@ public partial class NetworkClient
     public async ValueTask<int> DownloadRankingAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(1, ArgumentDescriptions.RankingDescription)] RankingKind ranking = RankingKind.day,
+        [Option(1, ArgumentDescriptions.RankingDescription)] Core.Local.RankingKind ranking = Core.Local.RankingKind.day,
         DateOnly? date = null,
         bool pipe = false
     )
@@ -33,10 +33,11 @@ public partial class NetworkClient
             MaxDegreeOfParallelism = configSettings.MaxParallel,
         };
 
-        ulong add = 0UL, update = 0UL;
+        var add = 0UL;
+        var rankingList = new List<ulong>();
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(GetRankingUrl(ranking, date), RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(GetRankingUrl(date, ranking), RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {
@@ -46,6 +47,7 @@ public partial class NetworkClient
                     }
 
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
+                    rankingList.Add(converted.Id);
                     dictionary.AddOrUpdate(
                         item.Id,
                         _ =>
@@ -63,7 +65,6 @@ public partial class NetworkClient
                         },
                         (_, v) =>
                         {
-                            ++update;
                             v.Overwrite(converted);
                             return v;
                         }
@@ -73,22 +74,24 @@ public partial class NetworkClient
         }
         finally
         {
-            if (add != 0 || update != 0)
+            if (rankingList.Count != 0)
             {
                 database.Artworks = dictionary.Values.ToArray();
+                var rankingArray = rankingList.ToArray();
+                database.RankingSet.AddOrUpdate(new(date ?? DateOnly.FromDateTime(DateTime.Now), ranking), rankingArray, (_, _) => rankingArray);
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
             }
 
             if (!pipe)
             {
-                logger.LogInformation($"Total: {database.Artworks.Length} Add: {add} Update: {update}");
+                logger.LogInformation($"Total: {database.Artworks.Length} Add: {add} Update: {(ulong)rankingList.Count - add}");
             }
         }
 
         return 0;
     }
 
-    private static string GetRankingUrl(RankingKind ranking, DateOnly? date)
+    private static string GetRankingUrl(DateOnly? date, Core.Local.RankingKind ranking)
     {
         DefaultInterpolatedStringHandler url = $"https://{ApiHost}/v1/illust/ranking?mode={ranking}";
         if (date.HasValue)
