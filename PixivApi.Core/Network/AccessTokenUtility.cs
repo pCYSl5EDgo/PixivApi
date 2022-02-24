@@ -89,12 +89,19 @@ public static partial class AccessTokenUtility
     private static async ValueTask<(string CodeVerfier, string? Code)> FirstAuthAsync(CancellationToken token)
     {
         var (driver, verifier) = SetUpChromeDriverAndNavigateToLoginPage();
-        var wait = TimeSpan.FromSeconds(1);
-        do
+        try
         {
-            await Task.Delay(wait, token).ConfigureAwait(false);
-        } while (!driver.Url.StartsWith("https://accounts.pixiv.net/post-redirect"));
-        return (verifier, ProcessLog(driver));
+            var wait = TimeSpan.FromSeconds(1);
+            do
+            {
+                await Task.Delay(wait, token).ConfigureAwait(false);
+            } while (!driver.Url.StartsWith("https://accounts.pixiv.net/post-redirect"));
+            return (verifier, ProcessLog(driver));
+        }
+        finally
+        {
+            driver.Dispose();
+        }
     }
 
     private static string? GetCode(ReadOnlySpan<char> documentUrl)
