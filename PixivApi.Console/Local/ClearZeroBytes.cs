@@ -9,6 +9,11 @@ public partial class LocalClient
 
     internal static async ValueTask ClearAsync(ILogger logger, ConfigSettings configSettings, int maskPowerOf2, CancellationToken token)
     {
+        if (token.IsCancellationRequested)
+        {
+            return;
+        }
+
         logger.LogInformation("Start clearing.");
         var parallelOptions = new ParallelOptions()
         {

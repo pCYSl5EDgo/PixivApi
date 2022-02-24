@@ -86,6 +86,7 @@ public partial class NetworkClient
             {
                 await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
             }
+
             if (alreadyCount != 0)
             {
                 await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
