@@ -117,6 +117,16 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         return handler.ToStringAndClear();
     }
 
+    public string GetUgoiraThumbnailUrl()
+    {
+        DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/c/360x360_70/img-master/img/";
+        AddDateToUrl(ref handler);
+        handler.AppendFormatted('/');
+        handler.AppendFormatted(Id);
+        handler.AppendLiteral("_ugoira0");
+        return handler.ToStringAndClear();
+    }
+
     public void AddOriginalFileName(ref DefaultInterpolatedStringHandler handler, uint pageIndex)
     {
         handler.AppendFormatted(Id);
@@ -154,6 +164,8 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             handler.AppendLiteral("_square1200.jpg");
         }
     }
+
+    public string GetUgoiraThumbnailFileName() => $"{Id}_square1200.jpg";
 
     public string GetThumbnailFileName(uint pageIndex)
     {

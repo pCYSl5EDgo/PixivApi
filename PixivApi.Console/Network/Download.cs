@@ -34,11 +34,11 @@ public partial class NetworkClient
                     break;
                 }
 
-                machine.Initialize(artwork);
+                machine.Initialize();
                 if (artwork.Type == ArtworkType.Ugoira)
                 {
                     var ugoiraZipFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipFileName());
-                    if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(artwork.GetZipUrl(), ugoiraZipFile).ConfigureAwait(false))
+                    if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(ugoiraZipFile, artwork, artwork.GetZipUrl).ConfigureAwait(false))
                     {
                         goto FAIL;
                     }
@@ -52,7 +52,7 @@ public partial class NetworkClient
                         continue;
                     }
 
-                    if (!await machine.DownloadAsync(artwork.GetOriginalUrl(pageIndex), pageFile).ConfigureAwait(false))
+                    if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetOriginalUrl).ConfigureAwait(false))
                     {
                         goto FAIL;
                     }
@@ -124,11 +124,11 @@ public partial class NetworkClient
                     break;
                 }
 
-                machine.Initialize(artwork);
+                machine.Initialize();
                 if (artwork.Type == ArtworkType.Ugoira)
                 {
                     var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(0));
-                    if (!thumbnailFile.Exists && !await machine.DownloadAsync(artwork.GetThumbnailUrl(0), thumbnailFile).ConfigureAwait(false))
+                    if (!thumbnailFile.Exists && !await machine.DownloadAsync(thumbnailFile, artwork, artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false))
                     {
                         goto FAIL;
                     }
@@ -143,7 +143,7 @@ public partial class NetworkClient
                             continue;
                         }
 
-                        if (!await machine.DownloadAsync(artwork.GetThumbnailUrl(pageIndex), pageFile).ConfigureAwait(false))
+                        if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetThumbnailUrl).ConfigureAwait(false))
                         {
                             goto FAIL;
                         }
@@ -253,154 +253,4 @@ public partial class NetworkClient
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");
-
-    /// <summary>
-    /// Do not use concurrently.
-    /// </summary>
-    private sealed class DownloadAsyncMachine
-    {
-        public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, bool pipe, CancellationToken token)
-        {
-            client = networkClient.client;
-            logger = networkClient.logger;
-            this.networkClient = networkClient;
-            this.database = database;
-            this.pipe = pipe;
-            this.token = token;
-        }
-
-        private readonly HttpClient client;
-        private readonly ILogger logger;
-        private readonly NetworkClient networkClient;
-        private readonly DatabaseFile database;
-        private readonly bool pipe;
-        private readonly CancellationToken token;
-        public int DownloadFileCount = 0;
-        public ulong DownloadByteCount = 0UL;
-        private Artwork? artwork;
-        private bool noDetailDownload = true;
-        public bool IsUpdated { get; private set; }
-
-        public static FileInfo PrepareFileInfo(string folder, ulong id, string fileName)
-        {
-            DefaultInterpolatedStringHandler handler = $"{folder}";
-            if (folder.Length != 0 && folder[^1] != '/' && folder[^1] != '\\')
-            {
-                handler.AppendLiteral("/");
-            }
-
-            IOUtility.AppendHashPath(ref handler, id);
-            handler.AppendFormatted(fileName);
-            var path = handler.ToStringAndClear();
-            return new(path);
-        }
-
-        public async ValueTask<bool> DownloadAsync(string url, FileInfo file)
-        {
-            ulong byteCount = 0;
-        RETRY:
-            try
-            {
-                if (token.IsCancellationRequested)
-                {
-                    return false;
-                }
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, url);
-                var headers = request.Headers;
-                headers.Referrer = referer;
-                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-                if (token.IsCancellationRequested)
-                {
-                    return false;
-                }
-
-                using var stream = new FileStream(file.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
-                await response.Content.CopyToAsync(stream, token).ConfigureAwait(false);
-                byteCount = (ulong)stream.Length;
-            }
-            catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                if (await DownloadFilePrepareDetailAsync().ConfigureAwait(false))
-                {
-                    goto RETRY;
-                }
-                else
-                {
-                    return false;
-                }
-            }
-            catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.BadRequest)
-            {
-                await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
-                goto RETRY;
-            }
-            catch (Exception e)
-            {
-                if (!pipe)
-                {
-                    logger.LogError(e, $"{ConsoleUtility.ErrorColor}Download failed. Url: {url}{ConsoleUtility.NormalizeColor}");
-                }
-
-                return false;
-            }
-
-            DownloadByteCount += byteCount;
-            ++DownloadFileCount;
-            if (!pipe)
-            {
-                logger.LogInformation($"{ConsoleUtility.SuccessColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{ConsoleUtility.NormalizeColor}");
-            }
-
-            return true;
-        }
-
-        private async ValueTask<bool> DownloadFilePrepareDetailAsync()
-        {
-            if (artwork is null)
-            {
-                return false;
-            }
-
-            noDetailDownload = false;
-            bool success;
-        RETRY:
-            try
-            {
-                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, pipe, token).ConfigureAwait(false);
-                var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
-                artwork.Overwrite(converted);
-                success = !converted.IsOfficiallyRemoved;
-            }
-            catch (HttpRequestException e) when (e.StatusCode.HasValue)
-            {
-                if (e.StatusCode.Value == System.Net.HttpStatusCode.NotFound)
-                {
-                    artwork.IsOfficiallyRemoved = true;
-                }
-                else if (e.StatusCode.Value == System.Net.HttpStatusCode.BadRequest)
-                {
-                    await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
-                    goto RETRY;
-                }
-
-                success = false;
-            }
-
-            if (!pipe)
-            {
-                logger.LogInformation($"Detail success: {success} Id: {artwork.Id,20}");
-            }
-
-            return success;
-        }
-
-        public void Initialize(Artwork artwork)
-        {
-            this.artwork = artwork;
-            noDetailDownload = true;
-            IsUpdated = false;
-        }
-    }
 }
