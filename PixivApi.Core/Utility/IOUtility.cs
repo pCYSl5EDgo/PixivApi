@@ -19,6 +19,8 @@ public static class IOUtility
         ByteTexts = ImmutableArray.Create(byteTexts);
     }
 
+    public static string GetConfigFileNameDependsOnEnvironmentVariable() => Environment.GetEnvironmentVariable("PIXIV_API_CONFIG_FILE_NAME") ?? "config.jsonc";
+
     public static readonly ImmutableArray<string> ByteTexts;
 
     public static string GetHashPath(ulong id)

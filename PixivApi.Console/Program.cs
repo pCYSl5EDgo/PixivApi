@@ -45,10 +45,11 @@ public sealed class Program
 
     private static async ValueTask<ConfigSettings> GetConfigSettingAsync(HttpClient httpClient, CancellationToken token)
     {
+        var configFileName = IOUtility.GetConfigFileNameDependsOnEnvironmentVariable();
         ConfigSettings? configSettings = null;
-        if (File.Exists("appsettings.json"))
+        if (File.Exists(configFileName))
         {
-            configSettings = await IOUtility.JsonDeserializeAsync<ConfigSettings>("appsettings.json", token).ConfigureAwait(false);
+            configSettings = await IOUtility.JsonDeserializeAsync<ConfigSettings>(configFileName, token).ConfigureAwait(false);
         }
 
         configSettings ??= new();
@@ -59,7 +60,7 @@ public sealed class Program
             await InitializeDirectoriesAsync(configSettings.ThumbnailFolder, token).ConfigureAwait(false);
             await InitializeDirectoriesAsync(configSettings.UgoiraFolder, token).ConfigureAwait(false);
             configSettings.RefreshToken = await valueTask.ConfigureAwait(false) ?? string.Empty;
-            await IOUtility.JsonSerializeAsync("appsettings.json", configSettings, FileMode.Create).ConfigureAwait(false);
+            await IOUtility.JsonSerializeAsync(configFileName, configSettings, FileMode.Create).ConfigureAwait(false);
         }
 
         return configSettings;
