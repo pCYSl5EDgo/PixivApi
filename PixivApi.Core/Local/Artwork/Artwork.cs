@@ -40,6 +40,11 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     public string? ExtraMemo;
     public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
     public ushort[]? UgoiraFrames;
+
+    /// <summary>
+    /// If this is null, original sizes are unknown.
+    /// If this is empty, original sizes are the same.
+    /// </summary>
     public (uint Width, uint Height)[]? ExtraPageWidthHeightPairArray;
 
     public void Overwrite(Artwork source)
