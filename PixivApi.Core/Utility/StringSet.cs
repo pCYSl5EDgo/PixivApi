@@ -74,6 +74,8 @@ public sealed class StringSet
 
         public static StringSet? DeserializeStatic(ref MessagePackReader reader)
         {
+            var token = reader.CancellationToken;
+            token.ThrowIfCancellationRequested();
             if (reader.TryReadNil())
             {
                 return null;
@@ -83,6 +85,7 @@ public sealed class StringSet
             var answer = new StringSet(length);
             for (var i = 0; i < length; i++)
             {
+                token.ThrowIfCancellationRequested();
                 var number = reader.ReadUInt32();
                 var text = reader.ReadString();
                 if (text is not { Length: > 0 } || number == 0)

@@ -25,14 +25,7 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
-        var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
-        foreach (var item in database.Artworks)
-        {
-            dictionary.TryAdd(item.Id, item);
-        }
-
-        var add = 0UL;
-        var update = 0UL;
+        ulong add = 0UL, update = 0UL;
         try
         {
             await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable($"https://{ApiHost}/v2/illust/follow?restrict=public", RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
@@ -46,7 +39,7 @@ public partial class NetworkClient
                     }
 
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
-                    dictionary.AddOrUpdate(
+                    database.ArtworkDictionary.AddOrUpdate(
                         item.Id,
                         _ =>
                         {
@@ -80,13 +73,12 @@ public partial class NetworkClient
         {
             if (add != 0 || update != 0)
             {
-                database.Artworks = dictionary.Values.ToArray();
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
             }
 
             if (!pipe)
             {
-                logger.LogInformation($"Total: {database.Artworks.Length} Add: {add} Update: {update}");
+                logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {update}");
             }
         }
 

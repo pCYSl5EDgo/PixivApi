@@ -21,12 +21,6 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = (await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false)) ?? new();
-        var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
-        foreach (var item in database.Artworks)
-        {
-            dictionary.TryAdd(item.Id, item);
-        }
-
         var parallelOptions = new ParallelOptions()
         {
             CancellationToken = token,
@@ -48,7 +42,7 @@ public partial class NetworkClient
 
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
                     rankingList.Add(converted.Id);
-                    dictionary.AddOrUpdate(
+                    database.ArtworkDictionary.AddOrUpdate(
                         item.Id,
                         _ =>
                         {
@@ -76,7 +70,6 @@ public partial class NetworkClient
         {
             if (rankingList.Count != 0)
             {
-                database.Artworks = dictionary.Values.ToArray();
                 var rankingArray = rankingList.ToArray();
                 database.RankingSet.AddOrUpdate(new(date ?? DateOnly.FromDateTime(DateTime.Now), ranking), rankingArray, (_, _) => rankingArray);
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
@@ -84,7 +77,7 @@ public partial class NetworkClient
 
             if (!pipe)
             {
-                logger.LogInformation($"Total: {database.Artworks.Length} Add: {add} Update: {(ulong)rankingList.Count - add}");
+                logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {(ulong)rankingList.Count - add}");
             }
         }
 

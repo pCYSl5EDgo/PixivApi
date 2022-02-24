@@ -215,7 +215,7 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(path, token).ConfigureAwait(false);
-        if (database is not { Artworks.Length: > 0 })
+        if (database is not { ArtworkDictionary.IsEmpty: false })
         {
             logger.LogError($"{ConsoleUtility.ErrorColor}database is empty. Path: {path}{ConsoleUtility.NormalizeColor}");
             return default;

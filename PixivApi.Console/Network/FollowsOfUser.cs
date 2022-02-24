@@ -31,17 +31,6 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
-        var dictionary = new ConcurrentDictionary<ulong, Core.Local.Artwork>();
-        foreach (var item in database.Artworks)
-        {
-            if (token.IsCancellationRequested)
-            {
-                return 0;
-            }
-
-            dictionary.TryAdd(item.Id, item);
-        }
-
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
         try
         {
@@ -87,7 +76,7 @@ public partial class NetworkClient
                             }
 
                             var convertedArtwork = Core.Local.Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
-                            dictionary.AddOrUpdate(artwork.Id,
+                            database.ArtworkDictionary.AddOrUpdate(artwork.Id,
                                 _ =>
                                 {
                                     ++addArtwork;
@@ -111,11 +100,6 @@ public partial class NetworkClient
         }
         finally
         {
-            if (addArtwork != 0 || updateArtwork != 0)
-            {
-                database.Artworks = dictionary.Values.ToArray();
-            }
-
             if (add != 0 || update != 0 || addArtwork != 0 || updateArtwork != 0)
             {
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
@@ -123,7 +107,7 @@ public partial class NetworkClient
 
             if (!pipe)
             {
-                logger.LogInformation($"User Total: {database.UserDictionary.Count} Add: {add} Update: {update}    Artwork Total: {database.Artworks.Length} Add: {addArtwork} Update: {updateArtwork}");
+                logger.LogInformation($"User Total: {database.UserDictionary.Count} Add: {add} Update: {update}    Artwork Total: {database.ArtworkDictionary.Count} Add: {addArtwork} Update: {updateArtwork}");
             }
         }
 

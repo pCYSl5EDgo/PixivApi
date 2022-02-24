@@ -21,7 +21,7 @@ public partial class LocalClient
         }
 
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
-        if (database is not { Artworks.Length: > 0 })
+        if (database is not { ArtworkDictionary.IsEmpty: false })
         {
             logger.LogInformation("0");
             return 0;
@@ -29,28 +29,28 @@ public partial class LocalClient
 
         if (artworkItemFilter is null)
         {
-            logger.LogInformation($"{database.Artworks.Length}");
+            logger.LogInformation($"{database.ArtworkDictionary.Count}");
             return 0;
         }
 
         await artworkItemFilter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, token);
         if (pipe)
         {
-            logger.LogInformation($"{await CountPipeAsync(artworkItemFilter, database.Artworks, token).ConfigureAwait(false)}");
+            logger.LogInformation($"{await CountPipeAsync(artworkItemFilter, database.ArtworkDictionary.Values, token).ConfigureAwait(false)}");
         }
         else if (artworkItemFilter.FileExistanceFilter is null)
         {
-            logger.LogInformation($"{await CountWithoutFileFilterAsync(artworkItemFilter, database.Artworks, token).ConfigureAwait(false)}");
+            logger.LogInformation($"{await CountWithoutFileFilterAsync(artworkItemFilter, database.ArtworkDictionary.Values, token).ConfigureAwait(false)}");
         }
         else
         {
-            logger.LogInformation($"{await CountWithFileFilterAsync(maskPowerOf2, artworkItemFilter, database.Artworks, artworkItemFilter.FileExistanceFilter, token).ConfigureAwait(false)}");
+            logger.LogInformation($"{await CountWithFileFilterAsync(maskPowerOf2, artworkItemFilter, database.ArtworkDictionary.Values, artworkItemFilter.FileExistanceFilter, token).ConfigureAwait(false)}");
         }
 
         return 0;
     }
 
-    private static async Task<ulong> CountWithFileFilterAsync(byte maskPowerOf2, ArtworkFilter artworkItemFilter, Artwork[] artworks, FileExistanceFilter fileFilter, CancellationToken token)
+    private static async Task<ulong> CountWithFileFilterAsync(byte maskPowerOf2, ArtworkFilter artworkItemFilter, IEnumerable<Artwork> artworks, FileExistanceFilter fileFilter, CancellationToken token)
     {
         ConcurrentBag<Artwork> bag = new();
         var count = 0UL;
@@ -98,7 +98,7 @@ public partial class LocalClient
         return count;
     }
 
-    private static async Task<ulong> CountWithoutFileFilterAsync(ArtworkFilter artworkItemFilter, Artwork[] artworks, CancellationToken token)
+    private static async Task<ulong> CountWithoutFileFilterAsync(ArtworkFilter artworkItemFilter, IEnumerable<Artwork> artworks, CancellationToken token)
     {
         var count = 0UL;
         await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
@@ -118,7 +118,7 @@ public partial class LocalClient
         return count;
     }
 
-    private static async Task<ulong> CountPipeAsync(ArtworkFilter artworkItemFilter, Artwork[] artworks, CancellationToken token)
+    private static async Task<ulong> CountPipeAsync(ArtworkFilter artworkItemFilter, IEnumerable<Artwork> artworks, CancellationToken token)
     {
         var count = 0UL;
         await Parallel.ForEachAsync(artworks, token, (artwork, token) =>

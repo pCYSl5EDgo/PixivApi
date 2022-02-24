@@ -115,7 +115,7 @@ public partial class NetworkClient
 
             if (!pipe)
             {
-                logger.LogInformation($"Total: {database.Artworks.Length} Update: {update}");
+                logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Update: {update}");
             }
         }
 

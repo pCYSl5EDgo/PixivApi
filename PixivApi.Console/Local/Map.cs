@@ -31,14 +31,19 @@ public partial class LocalClient
 
         var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         var artworks = itemFilter is null
-            ? database.Artworks
+            ? database.ArtworkDictionary.Values
             : await FilterExtensions.CreateEnumerableAsync(configSettings, database, itemFilter, token).ConfigureAwait(false);
 
         if (toString)
         {
-            if (artworks is not Artwork[])
+            switch (artworks)
             {
-                artworks = artworks.ToArray();
+                case Artwork[]:
+                case List<Artwork>:
+                    break;
+                default:
+                    artworks = artworks.ToList();
+                    break;
             }
 
             await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
@@ -54,33 +59,22 @@ public partial class LocalClient
         }
 
         token.ThrowIfCancellationRequested();
-        var enumerator = artworks.GetEnumerator();
-        if (!enumerator.MoveNext())
-        {
-            if (!pipe)
-            {
-                logger.LogInformation("[]");
-            }
-
-            goto END;
-        }
-
-        if (!pipe)
-        {
-            logger.LogInformation("[");
-        }
-
-        logger.LogInformation(IOUtility.JsonStringSerialize(enumerator.Current, !pipe));
-        while (enumerator.MoveNext())
+        var first = true;
+        foreach (var item in artworks)
         {
             token.ThrowIfCancellationRequested();
             if (pipe)
             {
-                logger.LogInformation(IOUtility.JsonStringSerialize(enumerator.Current, !pipe));
+                logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
+            }
+            else if (first)
+            {
+                first = false;
+                logger.LogInformation($"[{IOUtility.JsonStringSerialize(item, true)}");
             }
             else
             {
-                logger.LogInformation($", {IOUtility.JsonStringSerialize(enumerator.Current, !pipe)}");
+                logger.LogInformation($", {IOUtility.JsonStringSerialize(item, true)}");
             }
         }
 

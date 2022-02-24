@@ -27,6 +27,8 @@ public sealed class RankingSet : ConcurrentDictionary<RankingSet.Pair, ulong[]>
 
         public static RankingSet? DeserializeStatic(ref MessagePackReader reader)
         {
+            var token = reader.CancellationToken;
+            token.ThrowIfCancellationRequested();
             if (reader.TryReadNil())
             {
                 return null;
@@ -37,6 +39,7 @@ public sealed class RankingSet : ConcurrentDictionary<RankingSet.Pair, ulong[]>
 
             for (var i = 0; i < header; i++)
             {
+                token.ThrowIfCancellationRequested();
                 var arrayHeader = reader.ReadArrayHeader();
                 DateOnly date = default;
                 RankingKind kind = default;

@@ -53,8 +53,7 @@ public sealed partial class NetworkClient
             }
 
             var id = GetId(zipPath);
-            var artwork = database.Artworks.FirstOrDefault(x => x.Id == id);
-            if (artwork is null)
+            if (!database.ArtworkDictionary.TryGetValue(id, out var artwork))
             {
                 return;
             }

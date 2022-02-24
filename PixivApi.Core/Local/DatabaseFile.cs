@@ -5,7 +5,7 @@ public sealed class DatabaseFile
 {
     [Key(0x00)] public uint MajorVersion;
     [Key(0x01)] public uint MinorVersion;
-    [Key(0x02)] public Artwork[] Artworks;
+    [Key(0x02)] public ConcurrentDictionary<ulong, Artwork> ArtworkDictionary;
     [Key(0x03)] public ConcurrentDictionary<ulong, User> UserDictionary;
     [Key(0x04)] public StringSet TagSet;
     [Key(0x05)] public StringSet ToolSet;
@@ -15,18 +15,18 @@ public sealed class DatabaseFile
     {
         MajorVersion = 0;
         MinorVersion = 0;
-        Artworks = Array.Empty<Artwork>();
+        ArtworkDictionary = new();
         UserDictionary = new();
         TagSet = new(4096);
         ToolSet = new(256);
         RankingSet = new();
     }
 
-    public DatabaseFile(uint majorVersion, uint minorVersion, Artwork[] artworks, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet, RankingSet rankingSet)
+    public DatabaseFile(uint majorVersion, uint minorVersion, ConcurrentDictionary<ulong, Artwork> artworkDictionary, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet, RankingSet rankingSet)
     {
         MajorVersion = majorVersion;
         MinorVersion = minorVersion;
-        Artworks = artworks;
+        ArtworkDictionary = artworkDictionary;
         UserDictionary = userDictionary;
         TagSet = tagSet;
         ToolSet = toolSet;
@@ -37,7 +37,7 @@ public sealed class DatabaseFile
     {
         var lackedTag = TagSet.Optimize();
         var lackedTool = ToolSet.Optimize();
-        await Parallel.ForEachAsync(Artworks, parallelOptions, (artwork, token) =>
+        await Parallel.ForEachAsync(ArtworkDictionary.Values, parallelOptions, (artwork, token) =>
         {
             foreach (var (lacked, value) in lackedTag)
             {
@@ -95,8 +95,8 @@ public sealed class DatabaseFile
             writer.WriteArrayHeader(7);
             writer.Write(value.MajorVersion);
             writer.Write(value.MinorVersion);
-            writer.WriteArrayHeader(value.Artworks.Length);
-            foreach (var item in value.Artworks)
+            writer.WriteArrayHeader(value.ArtworkDictionary.Count);
+            foreach (var item in value.ArtworkDictionary.Values)
             {
                 Artwork.Formatter.SerializeStatic(ref writer, item);
             }
@@ -107,6 +107,7 @@ public sealed class DatabaseFile
             {
                 userFormatter.Serialize(ref writer, item, options);
             }
+
             StringSet.Formatter.SerializeStatic(ref writer, value.TagSet);
             StringSet.Formatter.SerializeStatic(ref writer, value.ToolSet);
             RankingSet.Formatter.SerializeStatic(ref writer, value.RankingSet);
@@ -116,6 +117,8 @@ public sealed class DatabaseFile
 
         public static DatabaseFile? DeserializeStatic(ref MessagePackReader reader, MessagePackSerializerOptions options)
         {
+            var token = reader.CancellationToken;
+            token.ThrowIfCancellationRequested();
             if (reader.TryReadNil())
             {
                 return null;
@@ -123,13 +126,14 @@ public sealed class DatabaseFile
 
             var header = reader.ReadArrayHeader();
             uint major = 0, minor = 0;
-            var artworks = Array.Empty<Artwork>();
+            ConcurrentDictionary<ulong, Artwork>? artworks = null;
             ConcurrentDictionary<ulong, User>? users = null;
             StringSet? tags = null;
             StringSet? tools = null;
             RankingSet? rankings = null;
             for (var memberIndex = 0; memberIndex < header; memberIndex++)
             {
+                token.ThrowIfCancellationRequested();
                 switch (memberIndex)
                 {
                     case 0:
@@ -144,10 +148,12 @@ public sealed class DatabaseFile
                             break;
                         }
 
-                        artworks = new Artwork[artworkHeader];
-                        for (var i = 0; i < artworks.Length; i++)
+                        artworks = new(Environment.ProcessorCount, artworkHeader);
+                        for (var i = 0; i < artworkHeader; i++)
                         {
-                            artworks[i] = Artwork.Formatter.DeserializeStatic(ref reader);
+                            token.ThrowIfCancellationRequested();
+                            var artwork = Artwork.Formatter.DeserializeStatic(ref reader);
+                            artworks.TryAdd(artwork.Id, artwork);
                         }
                         break;
                     case 3:
@@ -160,6 +166,7 @@ public sealed class DatabaseFile
                         users = new(Environment.ProcessorCount, userHeader);
                         for (var i = 0; i < userHeader; i++)
                         {
+                            token.ThrowIfCancellationRequested();
                             var user = userFormatter.Deserialize(ref reader, options);
                             users.TryAdd(user.Id, user);
                         }
@@ -179,7 +186,7 @@ public sealed class DatabaseFile
                 }
             }
 
-            return new(major, minor, artworks, users ?? new(), tags ?? new(0), tools ?? new(0), rankings ?? new());
+            return new(major, minor, artworks ?? new(), users ?? new(), tags ?? new(0), tools ?? new(0), rankings ?? new());
         }
     }
 }

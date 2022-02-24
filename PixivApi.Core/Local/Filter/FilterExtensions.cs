@@ -57,14 +57,14 @@ public static class FilterExtensions
 
     private static async ValueTask<IEnumerable<Artwork>> PrivateSelectAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
-        if (filter.Count == 0 || filter.Offset >= database.Artworks.Length)
+        if (filter.Count == 0 || filter.Offset >= database.ArtworkDictionary.Count)
         {
             return Array.Empty<Artwork>();
         }
 
         await filter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
         ConcurrentBag<Artwork> bag = new();
-        await Parallel.ForEachAsync(database.Artworks, cancellationToken, (artwork, token) =>
+        await Parallel.ForEachAsync(database.ArtworkDictionary.Values, cancellationToken, (artwork, token) =>
         {
             if (cancellationToken.IsCancellationRequested)
             {
