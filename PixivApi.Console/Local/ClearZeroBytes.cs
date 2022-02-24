@@ -31,6 +31,7 @@ public partial class LocalClient
                 files.Add(file);
                 if (((ulong)files.Count & mask) == 0)
                 {
+                    token.ThrowIfCancellationRequested();
                     System.Console.Write($"{ConsoleUtility.DeleteLine1}{files.Count} files collected");
                 }
             }
