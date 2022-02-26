@@ -36,7 +36,6 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var alreadyCount = 0;
-        var updateFlag = false;
         var machine = new DownloadAsyncMachine(this, database, pipe, token);
         try
         {
@@ -58,7 +57,7 @@ public partial class NetworkClient
                             goto FAIL;
                         }
                     }
-                    
+
                     if (shouldDownloadThumbnail)
                     {
                         var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(0));
@@ -84,7 +83,7 @@ public partial class NetworkClient
                             goto FAIL;
                         }
                     }
-                    
+
                     if (shouldDownloadThumbnail)
                     {
                         var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(pageIndex));
@@ -100,20 +99,10 @@ public partial class NetworkClient
                     }
                 }
 
-                if (machine.IsUpdated)
-                {
-                    updateFlag = true;
-                }
-
                 ++downloadItemCount;
                 continue;
 
             FAIL:
-                if (machine.IsUpdated)
-                {
-                    updateFlag = true;
-                }
-
                 ++alreadyCount;
             }
         }
@@ -124,11 +113,7 @@ public partial class NetworkClient
                 logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(machine.DownloadByteCount)}");
             }
 
-            if (updateFlag)
-            {
-                await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
-            }
-
+            await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
             if (alreadyCount != 0)
             {
                 await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
@@ -156,7 +141,6 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var alreadyCount = 0;
-        var updateFlag = false;
         var machine = new DownloadAsyncMachine(this, database, pipe, token);
         try
         {
@@ -191,20 +175,10 @@ public partial class NetworkClient
                     }
                 }
 
-                if (machine.IsUpdated)
-                {
-                    updateFlag = true;
-                }
-
                 ++downloadItemCount;
                 continue;
 
             FAIL:
-                if (machine.IsUpdated)
-                {
-                    updateFlag = true;
-                }
-
                 ++alreadyCount;
             }
         }
@@ -215,11 +189,7 @@ public partial class NetworkClient
                 logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(machine.DownloadByteCount)}");
             }
 
-            if (updateFlag)
-            {
-                await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
-            }
-
+            await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
             if (alreadyCount != 0)
             {
                 await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
@@ -247,7 +217,6 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var alreadyCount = 0;
-        var updateFlag = false;
         var machine = new DownloadAsyncMachine(this, database, pipe, token);
         try
         {
@@ -284,20 +253,10 @@ public partial class NetworkClient
                     }
                 }
 
-                if (machine.IsUpdated)
-                {
-                    updateFlag = true;
-                }
-
                 ++downloadItemCount;
                 continue;
 
             FAIL:
-                if (machine.IsUpdated)
-                {
-                    updateFlag = true;
-                }
-
                 ++alreadyCount;
             }
         }
@@ -308,11 +267,7 @@ public partial class NetworkClient
                 logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(machine.DownloadByteCount)}");
             }
 
-            if (updateFlag)
-            {
-                await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
-            }
-
+            await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
             if (alreadyCount != 0)
             {
                 await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);

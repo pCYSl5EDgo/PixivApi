@@ -29,7 +29,6 @@ public partial class NetworkClient
         public int DownloadFileCount = 0;
         public ulong DownloadByteCount = 0UL;
         private bool noDetailDownload = true;
-        public bool IsUpdated { get; private set; }
 
         public static FileInfo PrepareFileInfo(string folder, ulong id, string fileName)
         {
@@ -207,6 +206,10 @@ public partial class NetworkClient
                     await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
                     goto RETRY;
                 }
+                else if (!pipe)
+                {
+                    logger.LogInformation(e, $"Other failure. {artwork.Id}");
+                }
 
                 success = false;
             }
@@ -222,7 +225,6 @@ public partial class NetworkClient
         public void Initialize()
         {
             noDetailDownload = true;
-            IsUpdated = false;
         }
     }
 }
