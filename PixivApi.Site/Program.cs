@@ -21,8 +21,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseKestrel();
 
 var app = builder.Build();
+var isDevelopment = builder.Environment.IsDevelopment();
+
+if (!isDevelopment)
+{
+    app.UseHsts();
+}
 
 app.UseHttpsRedirection();
+
 var originalSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
 {
     FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.OriginalFolder)),
@@ -39,11 +46,12 @@ var ugoiraSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.S
     RequestPath = "/Ugoira",
 };
 
+app.UseFileServer();
 app.UseStaticFiles(new StaticFileOptions(originalSharedProvider));
 app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider));
 app.UseStaticFiles(new StaticFileOptions(ugoiraSharedProvider));
 
-if (builder.Environment.IsDevelopment())
+if (isDevelopment)
 {
     app.UseDirectoryBrowser(new DirectoryBrowserOptions(originalSharedProvider));
     app.UseDirectoryBrowser(new DirectoryBrowserOptions(thumbnailSharedProvider));
