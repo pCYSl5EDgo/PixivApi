@@ -20,7 +20,6 @@
 		<PackageReference Include="NativeMemoryArray" Version="1.2.0" />
 		<PackageReference Include="Selenium.WebDriver" Version="4.1.0" />
 		<PackageReference Include="ValueTaskSupplement" Version="1.1.0" />
-		<PackageReference Include="WebDriverManager" Version="2.12.3" />
 		<PackageReference Include="ZString" Version="2.4.4" />
 		<PackageReference Include="RuntimeT4Generator" Version="0.3.20">
 			<PrivateAssets>all</PrivateAssets>
@@ -30,6 +29,10 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\PixivApi.ChromeDriverManager\PixivApi.ChromeDriverManager.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

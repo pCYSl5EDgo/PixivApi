@@ -1,8 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using OpenQA.Selenium.Chrome;
-using WebDriverManager;
-using WebDriverManager.DriverConfigs.Impl;
 
 namespace PixivApi.Core.Network;
 
@@ -10,12 +8,13 @@ public static partial class AccessTokenUtility
 {
     public static async ValueTask<string?> AuthAsync(HttpClient client, ConfigSettings config, CancellationToken token)
     {
-        var (verifier, code) = await FirstAuthAsync(token).ConfigureAwait(false);
+        var (verifier, code) = await FirstAuthAsync(client, token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(code))
         {
             return null;
         }
 
+        token.ThrowIfCancellationRequested();
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://oauth.secure.pixiv.net/auth/token");
         request.Headers.TryAddWithoutValidation("user-agent", config.UserAgent);
         request.Headers.TryAddWithoutValidation("app-os-version", config.AppOSVersion);
@@ -26,12 +25,14 @@ public static partial class AccessTokenUtility
         request.Content = new ReadOnlyMemoryContent(buffer.AsMemory());
         request.Content.Headers.ContentType = new("application/x-www-form-urlencoded");
 
+        token.ThrowIfCancellationRequested();
         using var responseMessage = await client.SendAsync(request, token).ConfigureAwait(false);
         if (!responseMessage.IsSuccessStatusCode)
         {
             return null;
         }
 
+        token.ThrowIfCancellationRequested();
         var json = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
         if (json is null)
         {
@@ -72,28 +73,33 @@ public static partial class AccessTokenUtility
         return code;
     }
 
-    private static (ChromeDriver Driver, string Verifier) SetUpChromeDriverAndNavigateToLoginPage()
+    private static async ValueTask<(ChromeDriver Driver, string Verifier)> SetUpChromeDriverAndNavigateToLoginPage(HttpClient client, CancellationToken token)
     {
-        new DriverManager().SetUpDriver(new ChromeConfig());
+        token.ThrowIfCancellationRequested();
+        Directory.CreateDirectory("ChromeDriver");
+        await ChromeDriverManager.Installer.InstallLatestAsync(client, "ChromeDriver", true, token).ConfigureAwait(false);
         var chromeOptions = new ChromeOptions();
         chromeOptions.SetLoggingPreference("performance", OpenQA.Selenium.LogLevel.All);
 
+        token.ThrowIfCancellationRequested();
         var driver = new ChromeDriver(chromeOptions);
         var (verifier, challenge) = GeneratePkce();
 
+        token.ThrowIfCancellationRequested();
         var url = $"https://app-api.pixiv.net/web/v1/login?code_challenge={challenge}&code_challenge_method=S256&client=pixiv-android";
         driver.Navigate().GoToUrl(url);
         return (driver, verifier);
     }
 
-    private static async ValueTask<(string CodeVerfier, string? Code)> FirstAuthAsync(CancellationToken token)
+    private static async ValueTask<(string CodeVerfier, string? Code)> FirstAuthAsync(HttpClient client, CancellationToken token)
     {
-        var (driver, verifier) = SetUpChromeDriverAndNavigateToLoginPage();
+        var (driver, verifier) = await SetUpChromeDriverAndNavigateToLoginPage(client, token).ConfigureAwait(false);
         try
         {
             var wait = TimeSpan.FromSeconds(1);
             do
             {
+                token.ThrowIfCancellationRequested();
                 await Task.Delay(wait, token).ConfigureAwait(false);
             } while (!driver.Url.StartsWith("https://accounts.pixiv.net/post-redirect"));
             return (verifier, ProcessLog(driver));
