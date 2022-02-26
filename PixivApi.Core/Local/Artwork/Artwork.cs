@@ -123,7 +123,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         AddDateToUrl(ref handler);
         handler.AppendFormatted('/');
         handler.AppendFormatted(Id);
-        handler.AppendLiteral("_ugoira0");
+        handler.AppendLiteral("_ugoira0.jpg");
         return handler.ToStringAndClear();
     }
 
