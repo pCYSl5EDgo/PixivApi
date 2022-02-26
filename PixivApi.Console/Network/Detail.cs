@@ -50,13 +50,7 @@ public partial class NetworkClient
                     ++update;
                     if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                     {
-                        var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={item.Id}";
-                        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, pipe, token).ConfigureAwait(false)).AsSpan());
-                        item.UgoiraFrames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
-                        for (var frameIndex = 0; frameIndex < item.UgoiraFrames.Length; frameIndex++)
-                        {
-                            item.UgoiraFrames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
-                        }
+                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(artwork.Id, pipe, token).ConfigureAwait(false);
                     }
 
                     item.Overwrite(converted);
@@ -128,5 +122,18 @@ public partial class NetworkClient
         var content = await RetryGetAsync(url, pipe, token).ConfigureAwait(false);
         var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
         return response.Illust;
+    }
+
+    private async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(ulong id, bool pipe, CancellationToken token)
+    {
+        var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
+        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, pipe, token).ConfigureAwait(false)).AsSpan());
+        var frames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
+        for (var frameIndex = 0; frameIndex < frames.Length; frameIndex++)
+        {
+            frames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
+        }
+
+        return frames;
     }
 }

@@ -189,6 +189,11 @@ public partial class NetworkClient
                 var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, pipe, token).ConfigureAwait(false);
                 var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                 artwork.Overwrite(converted);
+                if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
+                {
+                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, pipe, token).ConfigureAwait(false);
+                }
+
                 success = !converted.IsOfficiallyRemoved;
             }
             catch (HttpRequestException e) when (e.StatusCode.HasValue)
