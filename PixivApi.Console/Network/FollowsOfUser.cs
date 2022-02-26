@@ -31,6 +31,20 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
+        if (overwrite == OverwriteKind.search)
+        {
+            await Parallel.ForEachAsync(database.UserDictionary.Values, token, (user, token) =>
+            {
+                if (token.IsCancellationRequested)
+                {
+                    return ValueTask.FromCanceled(token);
+                }
+
+                user.IsFollowed = false;
+                return ValueTask.CompletedTask;
+            }).ConfigureAwait(false);
+        }
+
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
         try
         {
