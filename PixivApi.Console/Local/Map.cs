@@ -60,6 +60,11 @@ public partial class LocalClient
 
         token.ThrowIfCancellationRequested();
         var first = true;
+        if (!pipe)
+        {
+            logger.LogInformation("[");
+        }
+
         foreach (var item in artworks)
         {
             token.ThrowIfCancellationRequested();
@@ -70,7 +75,84 @@ public partial class LocalClient
             else if (first)
             {
                 first = false;
-                logger.LogInformation($"[{IOUtility.JsonStringSerialize(item, true)}");
+                logger.LogInformation($"{IOUtility.JsonStringSerialize(item, true)}");
+            }
+            else
+            {
+                logger.LogInformation($", {IOUtility.JsonStringSerialize(item, true)}");
+            }
+        }
+
+        if (!pipe)
+        {
+            logger.LogInformation("]");
+        }
+
+    END:
+        return 0;
+    }
+
+    [Command("map-user")]
+    public async ValueTask<int> MapUserAsync(
+        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
+        [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
+        uint count = uint.MaxValue,
+        uint offset = 0,
+        bool pipe = false
+    )
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            goto END;
+        }
+
+        var token = Context.CancellationToken;
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
+        if (database is null)
+        {
+            if (!pipe)
+            {
+                logger.LogInformation("null");
+            }
+            goto END;
+        }
+
+        IEnumerable<User> users = database.UserDictionary.Values;
+        var userFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<UserFilter>(filter, token).ConfigureAwait(false);
+        if (userFilter is not null)
+        {
+            userFilter.Initialize(database.UserDictionary);
+            users = users.Where(userFilter.Filter);
+        }
+
+        if (offset > 0)
+        {
+            users = users.Skip((int)offset);
+        }
+
+        if (count < int.MaxValue)
+        {
+            users = users.Take((int)count);
+        }
+
+        token.ThrowIfCancellationRequested();
+        var first = true;
+        if (!pipe)
+        {
+            logger.LogInformation("[");
+        }
+
+        foreach (var item in users)
+        {
+            token.ThrowIfCancellationRequested();
+            if (pipe)
+            {
+                logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
+            }
+            else if (first)
+            {
+                first = false;
+                logger.LogInformation($"{IOUtility.JsonStringSerialize(item, true)}");
             }
             else
             {
