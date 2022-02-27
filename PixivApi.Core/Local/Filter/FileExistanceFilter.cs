@@ -4,7 +4,7 @@ public sealed class FileExistanceFilter
 {
     [JsonPropertyName("original")] public FileExistanceType Original = FileExistanceType.None;
     [JsonPropertyName("thumbnail")] public FileExistanceType Thumbnail = FileExistanceType.None;
-    [JsonPropertyName("ugoira")] public FileExistanceType Ugoira = FileExistanceType.None;
+    [JsonPropertyName("ugoira")] public UgoiraFileExistanceFilter? Ugoira = null;
 
     private string originalFolder = "Original";
 
@@ -41,7 +41,7 @@ public sealed class FileExistanceFilter
             return false;
         }
 
-        if (artwork.Type == ArtworkType.Ugoira && Ugoira != FileExistanceType.None && !UgoiraFilter(artwork, Ugoira))
+        if (artwork.Type == ArtworkType.Ugoira && Ugoira is not null && !Ugoira.Filter(artwork, ugoiraFolder))
         {
             return false;
         }
@@ -49,33 +49,22 @@ public sealed class FileExistanceFilter
         return true;
     }
 
-    private bool UgoiraFilter(Artwork artwork, FileExistanceType existanceType)
-    {
-        var zip = $"{ugoiraFolder}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetZipFileName()}";
-        var webm = $"{ugoiraFolder}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetZipFileNameWithoutExtension()}.webm";
-        switch (existanceType)
-        {
-            case FileExistanceType.ExistAll:
-                return File.Exists(zip) && File.Exists(webm);
-            case FileExistanceType.ExistAny:
-                return File.Exists(zip) || File.Exists(webm);
-            case FileExistanceType.NotExistAll:
-                return !File.Exists(zip) || !File.Exists(webm);
-            case FileExistanceType.NotExistAny:
-                return !File.Exists(zip) && !File.Exists(webm);
-            default:
-                throw new ArgumentOutOfRangeException(nameof(existanceType));
-        }
-    }
+    private static bool ShouldDismiss(Artwork artwork, uint i) => (artwork.ExtraHideLast && i == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(i, out var reason) && reason != HideReason.NotHidden);
 
     private bool ThumbnailFilter(Artwork artwork, FileExistanceType existanceType)
     {
         var folder = $"{thumbnailFolder}{IOUtility.GetHashPath(artwork.Id)}";
+
         switch (existanceType)
         {
             case FileExistanceType.ExistAll:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddThumbnailFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
@@ -88,6 +77,11 @@ public sealed class FileExistanceFilter
             case FileExistanceType.ExistAny:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddThumbnailFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
@@ -100,6 +94,11 @@ public sealed class FileExistanceFilter
             case FileExistanceType.NotExistAll:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddThumbnailFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
@@ -112,6 +111,11 @@ public sealed class FileExistanceFilter
             case FileExistanceType.NotExistAny:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddThumbnailFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
@@ -135,6 +139,11 @@ public sealed class FileExistanceFilter
             case FileExistanceType.ExistAll:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddOriginalFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
@@ -147,6 +156,11 @@ public sealed class FileExistanceFilter
             case FileExistanceType.ExistAny:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddOriginalFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
@@ -159,6 +173,11 @@ public sealed class FileExistanceFilter
             case FileExistanceType.NotExistAll:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddOriginalFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
@@ -171,6 +190,11 @@ public sealed class FileExistanceFilter
             case FileExistanceType.NotExistAny:
                 for (uint i = 0; i < artwork.PageCount; i++)
                 {
+                    if (ShouldDismiss(artwork, i))
+                    {
+                        continue;
+                    }
+
                     DefaultInterpolatedStringHandler handler = $"{folder}";
                     artwork.AddOriginalFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
@@ -229,4 +253,37 @@ public sealed partial class FileExistanceTypeFormatter : JsonConverter<FileExist
     }
 
     public override void Write(Utf8JsonWriter writer, FileExistanceType value, JsonSerializerOptions options) => throw new NotSupportedException();
+}
+
+public sealed class UgoiraFileExistanceFilter
+{
+    [JsonPropertyName("zip")] public bool? ExistZip;
+    [JsonPropertyName("codecs")] public Dictionary<string, bool>? CodecExistDictionary;
+
+    public bool Filter(Artwork artwork, string folder)
+    {
+        if (ExistZip.HasValue && ExistZip.Value != File.Exists(Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetZipFileName()}")))
+        {
+            return false;
+        }
+
+        if (CodecExistDictionary is { Count: > 0 })
+        {
+            var withoutExtension = Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetZipFileNameWithoutExtension()}");
+            foreach (var (key, exist) in CodecExistDictionary)
+            {
+                if (!UgoiraCodecExtensions.TryParse(key, out var codec))
+                {
+                    continue;
+                }
+
+                if (File.Exists(withoutExtension + codec.GetExtension()) != exist)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
 }
