@@ -17,4 +17,20 @@ public static class UgoiraCodecExtensions
         UgoiraCodec.av1 => "libaom-av1",
         UgoiraCodec.h264 => "libx264",
     };
+
+    public static bool TryParse(string value, out UgoiraCodec codec)
+    {
+        switch (value)
+        {
+            case "av1":
+                codec = UgoiraCodec.av1;
+                return true;
+            case "h264":
+                codec = UgoiraCodec.h264;
+                return true;
+            default:
+                Unsafe.SkipInit(out codec);
+                return false;
+        }
+    }
 }
