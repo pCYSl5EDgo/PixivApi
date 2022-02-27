@@ -38,12 +38,12 @@ foreach (var artwork in Artworks)
 <#
     if (artwork.Type == ArtworkType.Ugoira)
     {
-        var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetThumbnailFileName(0)}";
+        var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetUgoiraThumbnailFileName()}";
         var folder = $"{RelativePathToUgoira}{IOUtility.GetHashPath(artwork.Id)}";
 #>
                 <video width="<#= artwork.Width #>" height="<#= artwork.Height #>" muted autoplay controls loop poster="<#= thumbnail #>">
-                    <source src="<#= folder #><#= artwork.GetZipFileNameWithoutExtension() #>.webm" type="video/webm" />
-                    <source src="<#= folder #><#= artwork.GetZipFileNameWithoutExtension() #>.mp4" type="video/mp4" />
+                    <source src="<#= folder #><#= artwork.GetUgoiraZipFileNameWithoutExtension() #>.webm" type="video/webm" />
+                    <source src="<#= folder #><#= artwork.GetUgoiraZipFileNameWithoutExtension() #>.mp4" type="video/mp4" />
                     <p>no video.</p>
                 </video>
                 <p>Frame Count: <#= artwork.UgoiraFrames?.Length ?? 0 #></p>
@@ -52,9 +52,9 @@ foreach (var artwork in Artworks)
     else
     {
         var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}";
-        var firstOriginal = $"{folder}{artwork.GetOriginalFileName(0)}";
+        var firstOriginal = $"{folder}{artwork.GetNotUgoiraOriginalFileName(0)}";
 #>
-                <img width="<#= artwork.Width #>" height="<#= artwork.Height #>" src="<#= firstOriginal #>" alt="<#= artwork.Id #> - 0" decoding="async" loading="lazy" onerror="this.onerror = null; this.width = 360; this.height = 360; this.src = '<#= folder #><#= artwork.GetThumbnailFileName(0) #>';" />
+                <img width="<#= artwork.Width #>" height="<#= artwork.Height #>" src="<#= firstOriginal #>" alt="<#= artwork.Id #> - 0" decoding="async" loading="lazy" onerror="this.onerror = null; this.width = 360; this.height = 360; this.src = '<#= folder #><#= artwork.GetNotUgoiraThumbnailFileName(0) #>';" />
 <#
         for (uint i = 1; i < artwork.PageCount; ++i)
         {
@@ -63,7 +63,7 @@ foreach (var artwork in Artworks)
                 break;
             }
 #>
-                <img width="auto" height="auto" src="<#= folder #><#= artwork.GetOriginalFileName(i) #>" alt="<#= artwork.Id #> - <#= i #>" decoding="async" loading="lazy" onerror="this.onerror = null; this.width = 360; this.height = 360; this.src = '<#= folder #><#= artwork.GetThumbnailFileName(i) #>';" />
+                <img width="auto" height="auto" src="<#= folder #><#= artwork.GetNotUgoiraOriginalFileName(i) #>" alt="<#= artwork.Id #> - <#= i #>" decoding="async" loading="lazy" onerror="this.onerror = null; this.width = 360; this.height = 360; this.src = '<#= folder #><#= artwork.GetNotUgoiraThumbnailFileName(i) #>';" />
 <#
         }
     }

@@ -15,33 +15,56 @@ foreach (var artwork in Artworks)
 
 <#
     var folder = $"{RelativePathToOriginal}{IOUtility.GetHashPath(artwork.Id)}";
-    var firstOriginal = $"{folder}{artwork.GetOriginalFileName(0)}";
-    var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetThumbnailFileName(0)}";
-    if (File.Exists(firstOriginal))
+    if (artwork.Type == ArtworkType.Ugoira)
     {
-#>
-
-![<#= artwork.Title #> - 0](<#= firstOriginal #> "<#= artwork.Id #>")
-<#
-        for (uint i = 1; i < artwork.PageCount; ++i)
+        var original = $"{folder}{artwork.GetUgoiraOriginalFileName()}";
+        if (File.Exists(original))
         {
-            if (i + 1U == artwork.PageCount && artwork.ExtraHideLast)
-            {
-                break;
-            }
 #>
 
-![<#= artwork.Title #> - <#= i #>](<#= folder #><#= artwork.GetOriginalFileName(i) #> "<#= artwork.Id #>")
+![<#= artwork.Title #> - ugoira](<#= original #> "<#= artwork.Id #>")
+<#
+        }
+        else
+        {
+            var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetUgoiraThumbnailFileName()}";
+#>
+
+⚠ <#= artwork.UgoiraFrames?.Length ?? 0 #>
+![<#= artwork.Title #>](<#= thumbnail #> "<#= artwork.Id #>")        
 <#
         }
     }
     else
     {
+        var firstOriginal = $"{folder}{artwork.GetNotUgoiraOriginalFileName(0)}";
+        if (File.Exists(firstOriginal))
+        {
+#>
+
+![<#= artwork.Title #> - 0](<#= firstOriginal #> "<#= artwork.Id #>")
+<#
+            for (uint i = 1; i < artwork.PageCount; ++i)
+            {
+                if (i + 1U == artwork.PageCount && artwork.ExtraHideLast)
+                {
+                    break;
+                }
+#>
+
+![<#= artwork.Title #> - <#= i #>](<#= folder #><#= artwork.GetNotUgoiraOriginalFileName(i) #> "<#= artwork.Id #>")
+<#
+            }
+        }
+        else
+        {
+            var thumbnail = $"{RelativePathToThumbnail}{IOUtility.GetHashPath(artwork.Id)}{artwork.GetNotUgoiraThumbnailFileName(0)}";
 #>
 
 ⚠ <#= artwork.PageCount #>
 ![<#= artwork.Title #>](<#= thumbnail #> "<#= artwork.Id #>")        
 <#
+        }
     }
     if (!string.IsNullOrWhiteSpace(artwork.Caption)) {
 #>
