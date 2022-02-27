@@ -8,5 +8,11 @@ public partial struct UgoiraFfmpegTemplate
     /// </summary>
     public string Directory { get; set; }
 
-    public ushort[] Frames { get; set; } = Array.Empty<ushort>();
+    public ushort[] Frames { get; set; }
+
+    public UgoiraFfmpegTemplate()
+    {
+        Frames = Array.Empty<ushort>();
+        Directory = string.Empty;
+    }
 }
