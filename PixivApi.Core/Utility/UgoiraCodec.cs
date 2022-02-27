@@ -16,6 +16,7 @@ public static class UgoiraCodecExtensions
     {
         UgoiraCodec.av1 => "libaom-av1",
         UgoiraCodec.h264 => "libx264",
+        _ => throw new InvalidDataException(),
     };
 
     public static bool TryParse(string value, out UgoiraCodec codec)
