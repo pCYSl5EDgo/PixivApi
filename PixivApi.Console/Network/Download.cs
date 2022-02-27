@@ -23,7 +23,8 @@ public partial class NetworkClient
 
         var shouldDownloadOriginal = fileFilter.Original != FileExistanceType.None;
         var shouldDownloadThumbnail = fileFilter.Thumbnail != FileExistanceType.None;
-        if (!shouldDownloadOriginal && !shouldDownloadThumbnail)
+        var shouldDownloadUgoira = fileFilter.Ugoira is not null;
+        if (!shouldDownloadOriginal && !shouldDownloadThumbnail && !shouldDownloadUgoira)
         {
             return -1;
         }
@@ -47,217 +48,17 @@ public partial class NetworkClient
                 }
 
                 machine.Initialize();
-                if (artwork.Type == ArtworkType.Ugoira)
+                var success = artwork.Type == ArtworkType.Ugoira ?
+                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira).ConfigureAwait(false) :
+                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail).ConfigureAwait(false);
+                if (success)
                 {
-                    if (shouldDownloadOriginal)
-                    {
-                        var ugoiraZipFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipFileName());
-                        if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(ugoiraZipFile, artwork, artwork.GetZipUrl).ConfigureAwait(false))
-                        {
-                            goto FAIL;
-                        }
-                    }
-
-                    if (shouldDownloadThumbnail)
-                    {
-                        var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(0));
-                        if (!thumbnailFile.Exists && !await machine.DownloadAsync(thumbnailFile, artwork, artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false))
-                        {
-                            goto FAIL;
-                        }
-                    }
-                }
-
-                for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
-                {
-                    if (shouldDownloadOriginal)
-                    {
-                        var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalFileName(pageIndex));
-                        if (pageFile.Exists)
-                        {
-                            continue;
-                        }
-
-                        if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetOriginalUrl).ConfigureAwait(false))
-                        {
-                            goto FAIL;
-                        }
-                    }
-
-                    if (shouldDownloadThumbnail)
-                    {
-                        var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(pageIndex));
-                        if (pageFile.Exists)
-                        {
-                            continue;
-                        }
-
-                        if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetThumbnailUrl).ConfigureAwait(false))
-                        {
-                            goto FAIL;
-                        }
-                    }
-                }
-
-                ++downloadItemCount;
-                continue;
-
-            FAIL:
-                ++alreadyCount;
-            }
-        }
-        finally
-        {
-            if (!pipe)
-            {
-                logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(machine.DownloadByteCount)}");
-            }
-
-            await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
-            if (alreadyCount != 0)
-            {
-                await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        return 0;
-    }
-
-    [Command("download-original")]
-    public async ValueTask<int> DownloadOriginalFileFromDatabaseAsync(
-        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
-        [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
-        [Option("g")] ulong gigaByteCount = 2UL,
-        [Option("mask")] int maskPowerOf2 = 10,
-        bool pipe = false
-    )
-    {
-        var token = Context.CancellationToken;
-        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
-        if (artworks is null)
-        {
-            return -1;
-        }
-
-        var downloadItemCount = 0;
-        var alreadyCount = 0;
-        var machine = new DownloadAsyncMachine(this, database, pipe, token);
-        try
-        {
-            await foreach (var artwork in artworks)
-            {
-                if (token.IsCancellationRequested || (machine.DownloadByteCount >> 30) >= gigaByteCount)
-                {
-                    break;
-                }
-
-                machine.Initialize();
-                if (artwork.Type == ArtworkType.Ugoira)
-                {
-                    var ugoiraZipFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetZipFileName());
-                    if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(ugoiraZipFile, artwork, artwork.GetZipUrl).ConfigureAwait(false))
-                    {
-                        goto FAIL;
-                    }
-                }
-
-                for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
-                {
-                    var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetOriginalFileName(pageIndex));
-                    if (pageFile.Exists)
-                    {
-                        continue;
-                    }
-
-                    if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetOriginalUrl).ConfigureAwait(false))
-                    {
-                        goto FAIL;
-                    }
-                }
-
-                ++downloadItemCount;
-                continue;
-
-            FAIL:
-                ++alreadyCount;
-            }
-        }
-        finally
-        {
-            if (!pipe)
-            {
-                logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(machine.DownloadByteCount)}");
-            }
-
-            await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
-            if (alreadyCount != 0)
-            {
-                await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
-            }
-        }
-
-        return 0;
-    }
-
-    [Command("download-thumbnail")]
-    public async ValueTask<int> DownloadThumbnailFileFromDatabaseAsync(
-        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
-        [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
-        [Option("g")] ulong gigaByteCount = 2UL,
-        [Option("mask")] int maskPowerOf2 = 10,
-        bool pipe = false
-    )
-    {
-        var token = Context.CancellationToken;
-        var (database, artworks) = await PrepareDownloadFileAsync(path, await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false), configSettings.ThumbnailFolder, gigaByteCount).ConfigureAwait(false);
-        if (artworks is null)
-        {
-            return -1;
-        }
-
-        var downloadItemCount = 0;
-        var alreadyCount = 0;
-        var machine = new DownloadAsyncMachine(this, database, pipe, token);
-        try
-        {
-            await foreach (var artwork in artworks)
-            {
-                if (token.IsCancellationRequested || (machine.DownloadByteCount >> 30) >= gigaByteCount)
-                {
-                    break;
-                }
-
-                machine.Initialize();
-                if (artwork.Type == ArtworkType.Ugoira)
-                {
-                    var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(0));
-                    if (!thumbnailFile.Exists && !await machine.DownloadAsync(thumbnailFile, artwork, artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false))
-                    {
-                        goto FAIL;
-                    }
+                    ++downloadItemCount;
                 }
                 else
                 {
-                    for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
-                    {
-                        var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetThumbnailFileName(pageIndex));
-                        if (pageFile.Exists)
-                        {
-                            continue;
-                        }
-
-                        if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetThumbnailUrl).ConfigureAwait(false))
-                        {
-                            goto FAIL;
-                        }
-                    }
+                    ++alreadyCount;
                 }
-
-                ++downloadItemCount;
-                continue;
-
-            FAIL:
-                ++alreadyCount;
             }
         }
         finally
@@ -275,6 +76,74 @@ public partial class NetworkClient
         }
 
         return 0;
+    }
+
+    private async ValueTask<bool> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail)
+    {
+        for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
+        {
+            if (shouldDownloadOriginal)
+            {
+                var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetNotUgoiraOriginalFileName(pageIndex));
+                if (pageFile.Exists)
+                {
+                    continue;
+                }
+
+                if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetNotUgoiraOriginalUrl).ConfigureAwait(false))
+                {
+                    return false;
+                }
+            }
+
+            if (shouldDownloadThumbnail)
+            {
+                var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetNotUgoiraThumbnailFileName(pageIndex));
+                if (pageFile.Exists)
+                {
+                    continue;
+                }
+
+                if (!await machine.DownloadAsync(pageFile, artwork, pageIndex, artwork.GetNotUgoiraThumbnailUrl).ConfigureAwait(false))
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    private async ValueTask<bool> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira)
+    {
+        if (shouldDownloadUgoira)
+        {
+            var ugoiraZipFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetUgoiraZipFileName());
+            if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(ugoiraZipFile, artwork, artwork.GetUgoiraZipUrl).ConfigureAwait(false))
+            {
+                return false;
+            }
+        }
+
+        if (shouldDownloadOriginal)
+        {
+            var originalFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetUgoiraOriginalFileName());
+            if (!originalFile.Exists && !await machine.DownloadAsync(originalFile, artwork, artwork.GetUgoiraOriginalUrl).ConfigureAwait(false))
+            {
+                return false;
+            }
+        }
+
+        if (shouldDownloadThumbnail)
+        {
+            var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetUgoiraThumbnailFileName());
+            if (!thumbnailFile.Exists && !await machine.DownloadAsync(thumbnailFile, artwork, artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private async ValueTask<(DatabaseFile, IAsyncEnumerable<Artwork>?)> PrepareDownloadFileAsync(

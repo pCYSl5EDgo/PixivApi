@@ -41,7 +41,7 @@ public partial class LocalClient
 
             template.Frames = artwork.UgoiraFrames;
             var hashPath = Path.Combine(configSettings.UgoiraFolder, IOUtility.GetHashPath(artwork.Id));
-            var partialPath = Path.Combine(hashPath, artwork.GetZipFileNameWithoutExtension());
+            var partialPath = Path.Combine(hashPath, artwork.GetUgoiraZipFileNameWithoutExtension());
             var destPath = partialPath + extension;
             var zipPath = partialPath + ".zip";
             if (File.Exists(destPath) || !File.Exists(zipPath))

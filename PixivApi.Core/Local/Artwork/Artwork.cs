@@ -99,21 +99,30 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         handler.AppendFormatted(FileDate.Second, format: "D2");
     }
 
-    public string GetOriginalUrl(uint pageIndex)
+    public string GetNotUgoiraOriginalUrl(uint pageIndex)
     {
         DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/img-original/img/";
         AddDateToUrl(ref handler);
         handler.AppendFormatted('/');
-        AddOriginalFileName(ref handler, pageIndex);
+        AddNotUgoiraOriginalFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
-    public string GetThumbnailUrl(uint pageIndex)
+    public string GetUgoiraOriginalUrl()
+    {
+        DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/img-original/img/";
+        AddDateToUrl(ref handler);
+        handler.AppendFormatted('/');
+        AddUgoiraOriginalFileName(ref handler);
+        return handler.ToStringAndClear();
+    }
+
+    public string GetNotUgoiraThumbnailUrl(uint pageIndex)
     {
         DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/c/360x360_70/img-master/img/";
         AddDateToUrl(ref handler);
         handler.AppendFormatted('/');
-        AddThumbnailFileName(ref handler, pageIndex);
+        AddNotUgoiraThumbnailFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
@@ -127,54 +136,53 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         return handler.ToStringAndClear();
     }
 
-    public void AddOriginalFileName(ref DefaultInterpolatedStringHandler handler, uint pageIndex)
+    public void AddNotUgoiraOriginalFileName(ref DefaultInterpolatedStringHandler handler, uint pageIndex)
     {
         handler.AppendFormatted(Id);
-        if (Type == ArtworkType.Ugoira)
-        {
-            handler.AppendLiteral("_ugoira0");
-        }
-        else
-        {
-            handler.AppendLiteral("_p");
-            handler.AppendFormatted(pageIndex);
-        }
-
+        handler.AppendLiteral("_p");
+        handler.AppendFormatted(pageIndex);
         handler.AppendLiteral(GetExtensionText());
     }
 
-    public string GetOriginalFileName(uint pageIndex)
+    public string GetNotUgoiraOriginalFileName(uint pageIndex)
     {
         DefaultInterpolatedStringHandler handler = new();
-        AddOriginalFileName(ref handler, pageIndex);
+        AddNotUgoiraOriginalFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
-    public void AddThumbnailFileName(ref DefaultInterpolatedStringHandler handler, uint pageIndex)
+    public void AddUgoiraOriginalFileName(ref DefaultInterpolatedStringHandler handler)
     {
         handler.AppendFormatted(Id);
-        if (Type == ArtworkType.Ugoira)
-        {
-            handler.AppendLiteral("_square1200.jpg");
-        }
-        else
-        {
-            handler.AppendLiteral("_p");
-            handler.AppendFormatted(pageIndex);
-            handler.AppendLiteral("_square1200.jpg");
-        }
+        handler.AppendLiteral("_ugoira0");
+        handler.AppendLiteral(GetExtensionText());
+    }
+
+    public string GetUgoiraOriginalFileName()
+    {
+        DefaultInterpolatedStringHandler handler = new();
+        AddUgoiraOriginalFileName(ref handler);
+        return handler.ToStringAndClear();
+    }
+
+    public void AddNotUgoiraThumbnailFileName(ref DefaultInterpolatedStringHandler handler, uint pageIndex)
+    {
+        handler.AppendFormatted(Id);
+        handler.AppendLiteral("_p");
+        handler.AppendFormatted(pageIndex);
+        handler.AppendLiteral("_square1200.jpg");
     }
 
     public string GetUgoiraThumbnailFileName() => $"{Id}_square1200.jpg";
 
-    public string GetThumbnailFileName(uint pageIndex)
+    public string GetNotUgoiraThumbnailFileName(uint pageIndex)
     {
         DefaultInterpolatedStringHandler handler = new();
-        AddThumbnailFileName(ref handler, pageIndex);
+        AddNotUgoiraThumbnailFileName(ref handler, pageIndex);
         return handler.ToStringAndClear();
     }
 
-    public string GetZipUrl()
+    public string GetUgoiraZipUrl()
     {
         DefaultInterpolatedStringHandler handler = $"https://i.pximg.net/img-zip-ugoira/img/";
         AddDateToUrl(ref handler);
@@ -184,8 +192,8 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         return handler.ToStringAndClear();
     }
 
-    public string GetZipFileNameWithoutExtension() => $"{Id}_ugoira600x600";
-    public string GetZipFileName() => $"{Id}_ugoira600x600.zip";
+    public string GetUgoiraZipFileNameWithoutExtension() => $"{Id}_ugoira600x600";
+    public string GetUgoiraZipFileName() => $"{Id}_ugoira600x600.zip";
 
     public string GetExtensionText() => Extension switch
     {

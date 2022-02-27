@@ -66,7 +66,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddThumbnailFileName(ref handler, i);
+                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
                     {
                         return false;
@@ -83,7 +83,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddThumbnailFileName(ref handler, i);
+                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
                     {
                         return true;
@@ -100,7 +100,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddThumbnailFileName(ref handler, i);
+                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
                     {
                         return true;
@@ -117,7 +117,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddThumbnailFileName(ref handler, i);
+                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
                     {
                         return false;
@@ -145,7 +145,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddOriginalFileName(ref handler, i);
+                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
                     {
                         return false;
@@ -162,7 +162,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddOriginalFileName(ref handler, i);
+                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
                     {
                         return true;
@@ -179,7 +179,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddOriginalFileName(ref handler, i);
+                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
                     if (!File.Exists(handler.ToStringAndClear()))
                     {
                         return true;
@@ -196,7 +196,7 @@ public sealed class FileExistanceFilter
                     }
 
                     DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddOriginalFileName(ref handler, i);
+                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
                     if (File.Exists(handler.ToStringAndClear()))
                     {
                         return false;
@@ -262,14 +262,14 @@ public sealed class UgoiraFileExistanceFilter
 
     public bool Filter(Artwork artwork, string folder)
     {
-        if (ExistZip.HasValue && ExistZip.Value != File.Exists(Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetZipFileName()}")))
+        if (ExistZip.HasValue && ExistZip.Value != File.Exists(Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetUgoiraZipFileName()}")))
         {
             return false;
         }
 
         if (CodecExistDictionary is { Count: > 0 })
         {
-            var withoutExtension = Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetZipFileNameWithoutExtension()}");
+            var withoutExtension = Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetUgoiraZipFileNameWithoutExtension()}");
             foreach (var (key, exist) in CodecExistDictionary)
             {
                 if (!UgoiraCodecExtensions.TryParse(key, out var codec))
