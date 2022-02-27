@@ -23,6 +23,11 @@ public static class IOUtility
 
     public static readonly ImmutableArray<string> ByteTexts;
 
+    /// <summary>
+    /// Get hash path with trailing directory separator char.
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
     public static string GetHashPath(ulong id)
     {
         DefaultInterpolatedStringHandler handler = new();
@@ -30,6 +35,9 @@ public static class IOUtility
         return handler.ToStringAndClear();
     }
 
+    /// <summary>
+    /// Adds hash path with trailing directory separator char.
+    /// </summary>
     public static void AppendHashPath(ref DefaultInterpolatedStringHandler handler, ulong id)
     {
         handler.AppendLiteral(ByteTexts[(int)(id & 255UL)]);
@@ -70,11 +78,10 @@ public static class IOUtility
         }
     }
 
-    public static async ValueTask WriteToFileAsync(string path, ReadOnlyMemory<byte> memory, CancellationToken token)
+    public static void WriteToFile(string path, ReadOnlySpan<byte> span)
     {
-        token.ThrowIfCancellationRequested();
-        using var handle = File.OpenHandle(path, FileMode.Create, FileAccess.Write, FileShare.Read, FileOptions.Asynchronous);
-        await RandomAccess.WriteAsync(handle, memory, 0, token).ConfigureAwait(false);
+        using var handle = File.OpenHandle(path, FileMode.Create, FileAccess.Write, FileShare.Read);
+        RandomAccess.Write(handle, span, 0);
     }
 
     private static readonly JavaScriptEncoder javaScriptEncoder = JavaScriptEncoder.Create(UnicodeRanges.All);
