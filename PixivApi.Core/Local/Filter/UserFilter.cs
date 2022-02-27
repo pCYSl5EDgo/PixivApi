@@ -10,6 +10,9 @@ public sealed class UserFilter
 
     [JsonIgnore] public ConcurrentDictionary<ulong, User>? Dictionary;
 
+    [MemberNotNull(nameof(Dictionary))]
+    public void Initialize(ConcurrentDictionary<ulong, User> dictionary) => Dictionary = dictionary;
+
     public bool Filter(ulong userId)
     {
         if (Dictionary is null)
