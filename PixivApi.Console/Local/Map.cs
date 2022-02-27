@@ -121,7 +121,7 @@ public partial class LocalClient
         var userFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<UserFilter>(filter, token).ConfigureAwait(false);
         if (userFilter is not null)
         {
-            userFilter.Initialize(database.UserDictionary);
+            await userFilter.InitializeAsync(database.UserDictionary, database.TagSet, token).ConfigureAwait(false);
             users = users.Where(userFilter.Filter);
         }
 

@@ -145,7 +145,11 @@ public sealed class ArtworkFilter
     public async ValueTask InitializeAsync(ConfigSettings configSettings, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken cancellationToken)
     {
         FileExistanceFilter?.Initialize(configSettings.OriginalFolder, configSettings.ThumbnailFolder, configSettings.UgoiraFolder);
-        UserFilter?.Initialize(userDictionary);
+        if (UserFilter is not null)
+        {
+            await UserFilter.InitializeAsync(userDictionary, tagSet, cancellationToken).ConfigureAwait(false);
+        }
+
         if (TagFilter is not null)
         {
             await TagFilter.InitializeAsync(tagSet, cancellationToken).ConfigureAwait(false);

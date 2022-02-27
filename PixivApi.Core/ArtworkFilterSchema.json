@@ -251,6 +251,9 @@
         },
         "show-hidden": {
           "type": "boolean"
+        },
+        "tag-filter": {
+          "$ref": "#/properties/tag-filter"
         }
       },
       "title": "UserFilter",

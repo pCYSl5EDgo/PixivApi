@@ -7,11 +7,19 @@ public sealed class UserFilter
     [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;
     [JsonPropertyName("name-filter")] public TextFilter? NameFilter = null;
     [JsonPropertyName("show-hidden")] public bool ShowHiddenUsers = false;
+    [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
 
     [JsonIgnore] public ConcurrentDictionary<ulong, User>? Dictionary;
 
     [MemberNotNull(nameof(Dictionary))]
-    public void Initialize(ConcurrentDictionary<ulong, User> dictionary) => Dictionary = dictionary;
+    public async ValueTask InitializeAsync(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken token)
+    {
+        Dictionary = userDictionary;
+        if (TagFilter is not null)
+        {
+            await TagFilter.InitializeAsync(tagSet, token).ConfigureAwait(false);
+        }
+    }
 
     public bool Filter(ulong userId)
     {
@@ -46,6 +54,11 @@ public sealed class UserFilter
         }
 
         if (NameFilter is not null && !NameFilter.Filter(MemoryMarshal.CreateReadOnlySpan(ref user.Name, 1)))
+        {
+            return false;
+        }
+
+        if (TagFilter is not null && !TagFilter.Filter(Array.Empty<uint>(), user.ExtraTags, null))
         {
             return false;
         }
