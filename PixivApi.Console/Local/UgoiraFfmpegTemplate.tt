@@ -2,7 +2,7 @@ ffconcat version 1.0
 <#
 for (int i = 0; i < Frames.Length; ++i) {
 #>
-file '<# foreach (var c in Directory) { builder.Append(c == '\\' ? '/' : c); } #>/<#= i.ToString("D6") #>.jpg'
+file '<# foreach (var c in Directory) { if (c == '\\') { builder.Append("\\\\"); } else { builder.Append(c); } } #><# if (System.IO.Path.DirectorySeparatorChar == '\\') { builder.Append("\\\\"); } else { builder.Append("/"); } #><#= i.ToString("D6") #>.jpg'
 duration <#= Frames[i] #>ms
 
 <#
