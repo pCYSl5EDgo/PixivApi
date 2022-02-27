@@ -1,0 +1,10 @@
+ffconcat version 1.0
+<#
+for (int i = 0; i < Frames.Length; ++i) {
+#>
+file '<# for (var c in Directory) { if (c == '\\') { builder.Append('/') } else { builder.Append(c); } #>/<#= i.ToString("D6") #>.jpg'
+duration <#= Frames[i] #>ms
+
+<#
+}
+#>
