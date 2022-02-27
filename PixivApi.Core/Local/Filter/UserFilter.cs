@@ -30,17 +30,9 @@ public sealed class UserFilter
 
     public bool Filter(User user)
     {
-        if (Dictionary is not null && IsFollowed.HasValue)
+        if (IsFollowed.HasValue && user.IsFollowed != IsFollowed.Value)
         {
-            if (!Dictionary.TryGetValue(user.Id, out var value))
-            {
-                return !IsFollowed.Value;
-            }
-
-            if (value.IsFollowed != IsFollowed.Value)
-            {
-                return false;
-            }
+            return false;
         }
 
         if (!ShowHiddenUsers && user.ExtraHideReason != HideReason.NotHidden)
