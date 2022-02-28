@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<ItemGroup>
+		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
+		<PackageReference Include="ProcessX" Version="1.5.4" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="PixivApi.Core" />
+		<Using Include="PixivApi.Core.Local" />
+		<Using Include="Cysharp.Diagnostics" />
+		<Using Include="Microsoft.Extensions.Logging" />
+	</ItemGroup>
+</Project>
