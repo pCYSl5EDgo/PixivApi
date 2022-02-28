@@ -258,30 +258,12 @@ public sealed partial class FileExistanceTypeFormatter : JsonConverter<FileExist
 public sealed class UgoiraFileExistanceFilter
 {
     [JsonPropertyName("zip")] public bool? ExistZip;
-    [JsonPropertyName("codecs")] public Dictionary<string, bool>? CodecExistDictionary;
 
     public bool Filter(Artwork artwork, string folder)
     {
         if (ExistZip.HasValue && ExistZip.Value != File.Exists(Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetUgoiraZipFileName()}")))
         {
             return false;
-        }
-
-        if (CodecExistDictionary is { Count: > 0 })
-        {
-            var withoutExtension = Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetUgoiraZipFileNameWithoutExtension()}");
-            foreach (var (key, exist) in CodecExistDictionary)
-            {
-                if (!UgoiraCodecExtensions.TryParse(key, out var codec))
-                {
-                    continue;
-                }
-
-                if (File.Exists(withoutExtension + codec.GetExtension()) != exist)
-                {
-                    return false;
-                }
-            }
         }
 
         return true;
