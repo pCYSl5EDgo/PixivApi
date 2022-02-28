@@ -173,6 +173,11 @@ public static class IOUtility
 
     public static async ValueTask<T?> MessagePackDeserializeAsync<T>(string path, CancellationToken token) where T : notnull
     {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return default;
+        }
+
         try
         {
             using var segment = await ReadFromFileAsync(path, token).ConfigureAwait(false);
