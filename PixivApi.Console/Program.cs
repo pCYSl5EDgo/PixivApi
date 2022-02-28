@@ -29,6 +29,7 @@ public sealed class Program
         var configSettings = await GetConfigSettingAsync(httpClient, cts.Token).ConfigureAwait(false);
 
         var finderFacade = await FinderFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
+        var converterFacade = await ConverterFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
 
         var builder = ConsoleApp
             .CreateBuilder(args, ConfigureOptions)
@@ -39,6 +40,7 @@ public sealed class Program
                 services.AddSingleton(configSettings);
                 services.AddSingleton(httpClient);
                 services.AddSingleton(finderFacade);
+                services.AddSingleton(converterFacade);
             });
 
         var app = builder.Build();

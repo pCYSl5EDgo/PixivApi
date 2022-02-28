@@ -13,13 +13,15 @@ public sealed partial class NetworkClient : ConsoleAppBase
     private readonly ILogger<NetworkClient> logger;
     private readonly HttpClient client;
     private readonly FinderFacade finder;
+    private readonly ConverterFacade converter;
 
-    public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, FinderFacade finderFacade)
+    public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, FinderFacade finderFacade, ConverterFacade converterFacade)
     {
         configSettings = config;
         this.logger = logger;
         this.client = client;
         finder = finderFacade;
+        converter = converterFacade;
     }
 
     private void AddToHeader(HttpRequestMessage request)
