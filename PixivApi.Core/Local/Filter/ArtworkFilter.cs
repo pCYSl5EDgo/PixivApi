@@ -142,9 +142,13 @@ public sealed class ArtworkFilter
         _ => artwork.Id,
     };
 
-    public async ValueTask InitializeAsync(FinderFacade finderFacade, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken cancellationToken)
+    public async ValueTask InitializeAsync(FinderFacade? finderFacade, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken cancellationToken)
     {
-        FileExistanceFilter?.Initialize(finderFacade);
+        if (finderFacade is not null)
+        {
+            FileExistanceFilter?.Initialize(finderFacade);
+        }
+
         if (UserFilter is not null)
         {
             await UserFilter.InitializeAsync(userDictionary, tagSet, cancellationToken).ConfigureAwait(false);
