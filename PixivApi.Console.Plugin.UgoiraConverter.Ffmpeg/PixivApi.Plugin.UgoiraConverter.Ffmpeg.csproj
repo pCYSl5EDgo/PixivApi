@@ -1,6 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
-		<OutputType>Exe</OutputType>
 		<AssemblyName>PixivApi.Plugin.UgoiraConverter.Ffmpeg</AssemblyName>
 		<RootNamespace>PixivApi.Plugin.UgoiraConverter.Ffmpeg</RootNamespace>
 		<WarningLevel>5</WarningLevel>
