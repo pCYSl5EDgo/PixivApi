@@ -7,7 +7,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
-		<PackageReference Include="ProcessX" Version="1.5.4" />
 		<PackageReference Include="RuntimeT4Generator" Version="0.3.20">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

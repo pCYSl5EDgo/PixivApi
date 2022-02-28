@@ -80,35 +80,7 @@ public sealed record class Implementation(string ExePath, ConfigSettings ConfigS
         return true;
     }
 
-    private Task ExecuteAsync(ILogger? logger, string textName, ushort[] frames, string outputName)
-    {
-        var (_, output, error) = ProcessX.GetDualAsyncEnumerable(ExePath, arguments: $"-f concat -safe 0 -i {textName} -c:v libaom-av1 -r {(TryCalculateFps(frames, out var fps) ? fps : 60)} {outputName}");
-        var twoTasks = new Task[2];
-        if (logger is null)
-        {
-            twoTasks[0] = output.WaitAsync(default);
-            twoTasks[1] = error.WaitAsync(default);
-        }
-        else
-        {
-            twoTasks[0] = Task.Run(async () =>
-            {
-                await foreach (var item in output)
-                {
-                    logger.LogInformation(item);
-                }
-            });
-            twoTasks[1] = Task.Run(async () =>
-            {
-                await foreach (var item in error)
-                {
-                    logger.LogWarning(item);
-                }
-            });
-        }
-
-        return Task.WhenAll(twoTasks);
-    }
+    private Task ExecuteAsync(ILogger? logger, string textName, ushort[] frames, string outputName) => PluginUtility.ExecuteAsync(logger, ExePath, $"-f concat -safe 0 -i {textName} -c:v libaom-av1 -r {(TryCalculateFps(frames, out var fps) ? fps : 60)} {outputName}");
 
     private static bool TryCalculateFps(ushort[] frames, out uint framePerSecond)
     {
