@@ -1,11 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
-		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
 		<OutputType>Exe</OutputType>
-		<LangVersion>10</LangVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -30,5 +26,4 @@
 		<Using Include="System.Threading.Tasks" />
 		<Using Include="PixivApi.Core.Local" />
 	</ItemGroup>
-
 </Project>

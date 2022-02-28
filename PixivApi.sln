@@ -16,7 +16,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core.Test", "Pixiv
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Site", "PixivApi.Site\PixivApi.Site.csproj", "{5C035BB6-CAAD-40E5-846B-1A62883E6F35}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.ChromeDriverManager", "PixivApi.ChromeDriverManager\PixivApi.ChromeDriverManager.csproj", "{500D2178-ACC6-4048-A769-07997C750817}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.ChromeDriverManager", "PixivApi.ChromeDriverManager\PixivApi.ChromeDriverManager.csproj", "{500D2178-ACC6-4048-A769-07997C750817}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

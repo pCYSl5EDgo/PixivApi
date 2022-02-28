@@ -2,9 +2,6 @@
 
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
-		<Nullable>enable</Nullable>
-		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<LangVersion>10</LangVersion>
 		<OutputType>Library</OutputType>
 	</PropertyGroup>
 
