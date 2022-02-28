@@ -24,12 +24,8 @@ public sealed class ConfigSettings
     public string? MangaOriginalFinderPlugin { get; set; }
 
     public string? UgoiraZipConverterPlugin { get; set; }
-    public string? UgoiraThumbnailConverterPlugin { get; set; }
-    public string? UgoiraOriginalConverterPlugin { get; set; }
-    public string? IllustThumbnailConverterPlugin { get; set; }
-    public string? IllustOriginalConverterPlugin { get; set; }
-    public string? MangaThumbnailConverterPlugin { get; set; }
-    public string? MangaOriginalConverterPlugin { get; set; }
+    public string? ThumbnailConverterPlugin { get; set; }
+    public string? OriginalConverterPlugin { get; set; }
 
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
 }
