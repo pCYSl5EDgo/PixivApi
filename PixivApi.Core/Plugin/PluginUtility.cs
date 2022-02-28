@@ -1,4 +1,7 @@
-﻿using System.Reflection;
+﻿using Cysharp.Diagnostics;
+using Microsoft.Extensions.Logging;
+using System.Diagnostics;
+using System.Reflection;
 
 namespace PixivApi.Core;
 
@@ -85,7 +88,7 @@ public static class PluginUtility
                 {
                     continue;
                 }
-                
+
                 if (type is not null)
                 {
                     goto NULL;
@@ -124,7 +127,6 @@ public static class PluginUtility
         return Task.FromCanceled<IPlugin?>(token);
     }
 
-
     private static string ToStringFromSpan(ReadOnlySpan<char> span)
     {
         if (span.IsEmpty)
@@ -133,5 +135,36 @@ public static class PluginUtility
         }
 
         return new(span);
+    }
+
+    [SuppressMessage("Usage", "CA2254")]
+    public static Task ExecuteAsync(ILogger? logger, string exe, string arguments, string? workingDirectory = null)
+    {
+        var (_, output, error) = ProcessX.GetDualAsyncEnumerable(exe, arguments: arguments, workingDirectory: workingDirectory);
+        var twoTasks = new Task[2];
+        if (logger is null)
+        {
+            twoTasks[0] = output.WaitAsync(default);
+            twoTasks[1] = error.WaitAsync(default);
+        }
+        else
+        {
+            twoTasks[0] = Task.Run(async () =>
+            {
+                await foreach (var item in output)
+                {
+                    logger.LogInformation(item);
+                }
+            });
+            twoTasks[1] = Task.Run(async () =>
+            {
+                await foreach (var item in error)
+                {
+                    logger.LogWarning(item);
+                }
+            });
+        }
+
+        return Task.WhenAll(twoTasks);
     }
 }
