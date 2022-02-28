@@ -12,17 +12,15 @@ namespace PixivApi.Plugin.UgoiraConverter.Ffmpeg;
 
 public sealed record class Implementation(string ExePath, ConfigSettings ConfigSettings) : IFinder, IConverter
 {
-    public static bool SupportsMultithread() => false;
-
-    public static ValueTask<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
+    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
         {
-            return ValueTask.FromCanceled<IPlugin?>(cancellationToken);
+            return Task.FromCanceled<IPlugin?>(cancellationToken);
         }
 
-        var exePath = PluginFindExecutableUtility.Find(dllPath, "ffmpeg");
-        return ValueTask.FromResult<IPlugin?>(exePath is null ? null : new Implementation(exePath, configSettings));
+        var exePath = PluginUtility.Find(dllPath, "ffmpeg");
+        return Task.FromResult<IPlugin?>(exePath is null ? null : new Implementation(exePath, configSettings));
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
