@@ -15,19 +15,21 @@ public sealed class ConfigSettings
     public string UgoiraFolder { get; set; } = "Ugoira";
     public ulong UserId { get; set; }
 
-    public string? UgoiraZipPlugin { get; set; }
-    public string? UgoiraThumbnailPlugin { get; set; }
-    public string? UgoiraOriginalPlugin { get; set; }
+    public string? UgoiraZipFinderPlugin { get; set; }
+    public string? UgoiraThumbnailFinderPlugin { get; set; }
+    public string? UgoiraOriginalFinderPlugin { get; set; }
+    public string? IllustThumbnailFinderPlugin { get; set; }
+    public string? IllustOriginalFinderPlugin { get; set; }
+    public string? MangaThumbnailFinderPlugin { get; set; }
+    public string? MangaOriginalFinderPlugin { get; set; }
 
-    public string? IllustZipPlugin { get; set; }
-    public string? IllustThumbnailPlugin { get; set; }
-    public string? IllustOriginalPlugin { get; set; }
-
-    public string? MangaZipPlugin { get; set; }
-    public string? MangaThumbnailPlugin { get; set; }
-    public string? MangaOriginalPlugin { get; set; }
+    public string? UgoiraZipConverterPlugin { get; set; }
+    public string? UgoiraThumbnailConverterPlugin { get; set; }
+    public string? UgoiraOriginalConverterPlugin { get; set; }
+    public string? IllustThumbnailConverterPlugin { get; set; }
+    public string? IllustOriginalConverterPlugin { get; set; }
+    public string? MangaThumbnailConverterPlugin { get; set; }
+    public string? MangaOriginalConverterPlugin { get; set; }
 
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
-
-    public ConfigSettings() { }
 }

@@ -13,13 +13,13 @@ public sealed class Program
     {
         System.Console.CancelKeyPress += CancelKeyPress;
 
-        var handler = new SocketsHttpHandler()
+        using var handler = new SocketsHttpHandler()
         {
             AutomaticDecompression = System.Net.DecompressionMethods.All,
             MaxConnectionsPerServer = 2,
         };
 
-        var httpClient = new HttpClient(handler, true)
+        using var httpClient = new HttpClient(handler, true)
         {
             Timeout = TimeSpan.FromHours(4),
             DefaultRequestVersion = new(2, 0),
@@ -28,14 +28,18 @@ public sealed class Program
 
         var configSettings = await GetConfigSettingAsync(httpClient, cts.Token).ConfigureAwait(false);
 
+        var finderFacade = await FinderFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
+
         var builder = ConsoleApp
             .CreateBuilder(args, ConfigureOptions)
             .ConfigureHostOptions(ConfigureHostOptions)
             .ConfigureLogging(ConfigureLogger)
-            .ConfigureServices(services => services.AddSingleton(configSettings))
-            .ConfigureServices(services => services.AddSingleton(httpClient))
-            .ConfigureServices(services => services.AddSingleton(cts))
-            ;
+            .ConfigureServices(services =>
+            {
+                services.AddSingleton(configSettings);
+                services.AddSingleton(httpClient);
+                services.AddSingleton(finderFacade);
+            });
 
         var app = builder.Build();
         app.AddSubCommands<NetworkClient>();

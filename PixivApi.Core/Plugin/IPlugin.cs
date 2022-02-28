@@ -2,7 +2,5 @@
 
 public interface IPlugin : IAsyncDisposable
 {
-    static abstract ValueTask<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken);
-
-    static abstract bool SupportsMultithread();
+    static abstract Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken);
 }

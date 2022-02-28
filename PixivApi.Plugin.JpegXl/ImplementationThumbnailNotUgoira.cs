@@ -2,18 +2,16 @@
 
 public sealed record class ImplementationThumbnailNotUgoira(string ExePath, ConfigSettings ConfigSettings) : IFinderWithIndex, IConverter
 {
-    public static ValueTask<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
+    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
         {
-            return ValueTask.FromCanceled<IPlugin?>(cancellationToken);
+            return Task.FromCanceled<IPlugin?>(cancellationToken);
         }
 
-        var exePath = PluginFindExecutableUtility.Find(dllPath, "cjxl");
-        return ValueTask.FromResult<IPlugin?>(exePath is null ? null : new ImplementationThumbnailNotUgoira(exePath, configSettings));
+        var exePath = PluginUtility.Find(dllPath, "cjxl");
+        return Task.FromResult<IPlugin?>(exePath is null ? null : new ImplementationThumbnailNotUgoira(exePath, configSettings));
     }
-
-    public static bool SupportsMultithread() => false;
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
