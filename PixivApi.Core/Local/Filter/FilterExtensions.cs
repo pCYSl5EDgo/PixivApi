@@ -4,7 +4,7 @@ public static class FilterExtensions
 {
     public static async ValueTask<IEnumerable<Artwork>> CreateEnumerableAsync(FinderFacade finderFacade, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
-        var answer = await PrivateSelectAsync(finderFacade, database, filter, cancellationToken).ConfigureAwait(false);
+        var answer = await InitializeAndFilterWithoutFileExistanceFilterAsync(finderFacade, database, filter, cancellationToken).ConfigureAwait(false);
         if (answer.TryGetNonEnumeratedCount(out var count) && count == 0)
         {
             return Array.Empty<Artwork>();
@@ -28,9 +28,30 @@ public static class FilterExtensions
         return answer;
     }
 
+    public static async ValueTask<IEnumerable<Artwork>> CreateEnumerableWithoutFileExistanceFilterAsync(DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
+    {
+        var answer = await InitializeAndFilterWithoutFileExistanceFilterAsync(null, database, filter, cancellationToken).ConfigureAwait(false);
+        if (answer.TryGetNonEnumeratedCount(out var count) && count == 0)
+        {
+            return Array.Empty<Artwork>();
+        }
+
+        if (filter.Offset > 0)
+        {
+            answer = answer.Skip(filter.Offset);
+        }
+
+        if (filter.Count.HasValue)
+        {
+            answer = answer.Take(filter.Count.Value);
+        }
+
+        return answer;
+    }
+
     public static async IAsyncEnumerable<Artwork> CreateAsyncEnumerable(FinderFacade finderFacade, DatabaseFile database, ArtworkFilter filter, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var artworks = await PrivateSelectAsync(finderFacade, database, filter, cancellationToken).ConfigureAwait(false);
+        var artworks = await InitializeAndFilterWithoutFileExistanceFilterAsync(finderFacade, database, filter, cancellationToken).ConfigureAwait(false);
         if (artworks.TryGetNonEnumeratedCount(out var count) && count == 0)
         {
             yield break;
@@ -55,7 +76,7 @@ public static class FilterExtensions
         }
     }
 
-    private static async ValueTask<IEnumerable<Artwork>> PrivateSelectAsync(FinderFacade finderFacade, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
+    private static async ValueTask<IEnumerable<Artwork>> InitializeAndFilterWithoutFileExistanceFilterAsync(FinderFacade? finderFacade, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
         if (filter.Count == 0 || filter.Offset >= database.ArtworkDictionary.Count)
         {
