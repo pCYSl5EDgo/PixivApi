@@ -44,11 +44,6 @@ public partial class NetworkClient
             return -1;
         }
 
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
         var add = 0UL;
         var update = 0UL;
         try

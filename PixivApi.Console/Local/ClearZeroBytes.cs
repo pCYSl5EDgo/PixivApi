@@ -17,12 +17,6 @@ public partial class LocalClient
         }
 
         logger.LogInformation("Start clearing.");
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
-
         var mask = (1UL << maskPowerOf2) - 1UL;
         async ValueTask<(ulong, ulong)> DeleteAsync(string root)
         {
@@ -40,7 +34,7 @@ public partial class LocalClient
 
             System.Console.Write($"{ConsoleUtility.DeleteLine1}Remove: {0,6} {0,3}%({0,8} items of total {files.Count,8}) processed");
             ulong count = 0UL, removed = 0UL;
-            await Parallel.ForEachAsync(files, parallelOptions, (file, token) =>
+            await Parallel.ForEachAsync(files, token, (file, token) =>
             {
                 if (token.IsCancellationRequested)
                 {

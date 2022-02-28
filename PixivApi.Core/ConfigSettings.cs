@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core;
 
-public partial class ConfigSettings : IEquatable<ConfigSettings>
+public sealed class ConfigSettings
 {
     public string RefreshToken { get; set; } = "";
     public string AppOS { get; set; } = "ios";
@@ -13,30 +13,10 @@ public partial class ConfigSettings : IEquatable<ConfigSettings>
     public string OriginalFolder { get; set; } = "Original";
     public string ThumbnailFolder { get; set; } = "Thumbnail";
     public string UgoiraFolder { get; set; } = "Ugoira";
+    public string PluginFolder { get; set; } = "Plugins";
     public ulong UserId { get; set; }
-
-    private int? maxParallel = null;
-    public int MaxParallel
-    {
-        get => maxParallel ?? Environment.ProcessorCount;
-        set => maxParallel = value <= 0 ? null : value;
-    }
 
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
 
     public ConfigSettings() { }
-
-    public bool Equals(ConfigSettings? other) => other is not null
-        && other.RefreshToken == RefreshToken
-        && other.AppOS == AppOS
-        && other.AppOSVersion == AppOSVersion
-        && other.UserAgent == UserAgent
-        && other.ClientId == ClientId
-        && other.ClientSecret == ClientSecret
-        && other.HashSecret == HashSecret
-        && other.UserId == UserId;
-
-    public override bool Equals(object? obj) => Equals(obj as ConfigSettings);
-
-    public override int GetHashCode() => HashCode.Combine(RefreshToken, AppOS, AppOSVersion, UserAgent, ClientId, ClientSecret, HashSecret, UserId);
 }

@@ -21,12 +21,6 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = (await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false)) ?? new();
-        var parallelOptions = new ParallelOptions()
-        {
-            CancellationToken = token,
-            MaxDegreeOfParallelism = configSettings.MaxParallel,
-        };
-
         var add = 0UL;
         var rankingList = new List<ulong>();
         try
