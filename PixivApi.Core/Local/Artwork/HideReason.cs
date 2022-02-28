@@ -9,4 +9,5 @@ public enum HideReason : byte
     ExternalLink,
     Dislike,
     Unfollow,
+    Crop,
 }
