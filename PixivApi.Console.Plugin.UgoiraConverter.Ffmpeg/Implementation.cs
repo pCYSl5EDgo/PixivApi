@@ -5,13 +5,12 @@ using PixivApi.Core;
 using PixivApi.Core.Local;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2254")]
 
 namespace PixivApi.Plugin.UgoiraConverter.Ffmpeg;
 
-public sealed class Implementation : IFinder, IConverter
+public sealed record class Implementation(string ExePath, ConfigSettings ConfigSettings) : IFinder, IConverter
 {
     public static bool SupportsMultithread() => false;
 
@@ -22,46 +21,15 @@ public sealed class Implementation : IFinder, IConverter
             return ValueTask.FromCanceled<IPlugin?>(cancellationToken);
         }
 
-        var dllDirectory = Path.GetDirectoryName(dllPath);
-        var exeName = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "ffmpeg.exe" : "ffmpeg";
-        var exePath = string.IsNullOrWhiteSpace(dllDirectory) ? exeName : Path.Combine(dllDirectory, exeName);
-        if (File.Exists(exePath))
-        {
-            goto SUCCESS;
-        }
-
-        exePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), exeName);
-        if (File.Exists(exePath))
-        {
-            goto SUCCESS;
-        }
-
-        exePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), exeName);
-        if (File.Exists(exePath))
-        {
-            goto SUCCESS;
-        }
-
-        return ValueTask.FromResult<IPlugin?>(null);
-
-    SUCCESS:
-        return ValueTask.FromResult<IPlugin?>(new Implementation(exePath, configSettings));
-    }
-
-    private readonly string exePath;
-    private readonly ConfigSettings configSettings;
-
-    public Implementation(string exePath, ConfigSettings configSettings)
-    {
-        this.exePath = exePath;
-        this.configSettings = configSettings;
+        var exePath = PluginFindExecutableUtility.Find(dllPath, "ffmpeg");
+        return ValueTask.FromResult<IPlugin?>(exePath is null ? null : new Implementation(exePath, configSettings));
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    private string GetMp4Path(Artwork artwork) => Path.Combine(configSettings.UgoiraFolder, IOUtility.GetHashPath(artwork.Id), $"{artwork.Id}.mp4");
+    private string GetMp4Path(Artwork artwork) => Path.Combine(ConfigSettings.UgoiraFolder, IOUtility.GetHashPath(artwork.Id), $"{artwork.Id}.mp4");
 
-    private string GetZipPath(Artwork artwork) => Path.Combine(configSettings.UgoiraFolder, IOUtility.GetHashPath(artwork.Id), artwork.GetUgoiraZipFileName());
+    private string GetZipPath(Artwork artwork) => Path.Combine(ConfigSettings.UgoiraFolder, IOUtility.GetHashPath(artwork.Id), artwork.GetUgoiraZipFileName());
 
     public bool Find(Artwork artwork) => File.Exists(GetZipPath(artwork)) || File.Exists(GetMp4Path(artwork));
 
@@ -116,7 +84,7 @@ public sealed class Implementation : IFinder, IConverter
 
     private Task ExecuteAsync(ILogger? logger, string textName, ushort[] frames, string outputName)
     {
-        var (_, output, error) = ProcessX.GetDualAsyncEnumerable(exePath, arguments: $"-f concat -safe 0 -i {textName} -c:v libaom-av1 -r {(TryCalculateFps(frames, out var fps) ? fps : 60)} {outputName}");
+        var (_, output, error) = ProcessX.GetDualAsyncEnumerable(ExePath, arguments: $"-f concat -safe 0 -i {textName} -c:v libaom-av1 -r {(TryCalculateFps(frames, out var fps) ? fps : 60)} {outputName}");
         var twoTasks = new Task[2];
         if (logger is null)
         {
