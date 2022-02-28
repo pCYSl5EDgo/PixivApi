@@ -1,5 +1,4 @@
-﻿
-namespace PixivApi.Plugin.JpegXl;
+﻿namespace PixivApi.Plugin.JpegXl;
 
 public sealed record class OriginalConverter(string ExePath, ConfigSettings ConfigSettings) : IConverter
 {
@@ -27,39 +26,39 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
 
         if (artwork.Type == ArtworkType.Ugoira)
         {
-            var file = Path.Combine(folder, artwork.GetUgoiraOriginalFileName());
-            if (!File.Exists(file))
+            var fileName = artwork.GetUgoiraOriginalFileName();
+            if (!File.Exists(Path.Combine(folder, fileName)))
             {
                 return false;
             }
 
-            var jxlFile = Path.Combine(folder, GetJxlName(artwork));
-            if (File.Exists(jxlFile))
+            var jxlName = GetJxlName(artwork);
+            if (File.Exists(Path.Combine(folder, jxlName)))
             {
                 return false;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            await Utility.ExecuteAsync(logger, ExePath, file, jxlFile).ConfigureAwait(false);
+            await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
         }
         else
         {
             for (uint i = 0; i < artwork.PageCount; i++)
             {
-                var file = Path.Combine(folder, artwork.GetNotUgoiraOriginalFileName(i));
-                if (!File.Exists(file))
+                var fileName = artwork.GetNotUgoiraOriginalFileName(i);
+                if (!File.Exists(Path.Combine(folder, fileName)))
                 {
                     continue;
                 }
 
-                var jxlFile = Path.Combine(folder, GetJxlName(artwork, i));
-                if (File.Exists(jxlFile))
+                var jxlName = GetJxlName(artwork, i);
+                if (File.Exists(Path.Combine(folder, jxlName)))
                 {
                     continue;
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                await Utility.ExecuteAsync(logger, ExePath, file, jxlFile).ConfigureAwait(false);
+                await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
             }
         }
 

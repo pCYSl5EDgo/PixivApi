@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<ItemGroup>
 		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
-		<PackageReference Include="ProcessX" Version="1.5.4" />
 	</ItemGroup>
 
 	<ItemGroup>

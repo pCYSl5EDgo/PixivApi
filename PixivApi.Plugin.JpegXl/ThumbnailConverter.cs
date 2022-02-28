@@ -27,39 +27,39 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
 
         if (artwork.Type == ArtworkType.Ugoira)
         {
-            var file = Path.Combine(folder, artwork.GetUgoiraThumbnailFileName());
-            if (!File.Exists(file))
+            var fileName = artwork.GetUgoiraThumbnailFileName();
+            if (!File.Exists(Path.Combine(folder, fileName)))
             {
                 return false;
             }
 
-            var jxlFile = Path.Combine(folder, GetJxlName(artwork));
-            if (File.Exists(jxlFile))
+            var jxlName = GetJxlName(artwork);
+            if (File.Exists(Path.Combine(folder, jxlName)))
             {
                 return false;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            await Utility.ExecuteAsync(logger, ExePath, file, jxlFile).ConfigureAwait(false);
+            await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
         }
         else
         {
             for (uint i = 0; i < artwork.PageCount; i++)
             {
-                var file = Path.Combine(folder, artwork.GetNotUgoiraThumbnailFileName(i));
-                if (!File.Exists(file))
+                var fileName = artwork.GetNotUgoiraThumbnailFileName(i);
+                if (!File.Exists(Path.Combine(folder, fileName)))
                 {
                     continue;
                 }
 
-                var jxlFile = Path.Combine(folder, GetJxlName(artwork, i));
-                if (File.Exists(jxlFile))
+                var jxlName = GetJxlName(artwork, i);
+                if (File.Exists(Path.Combine(folder, jxlName)))
                 {
                     continue;
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                await Utility.ExecuteAsync(logger, ExePath, file, jxlFile).ConfigureAwait(false);
+                await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
             }
         }
 
