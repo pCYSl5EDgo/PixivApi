@@ -18,7 +18,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Site", "PixivApi.S
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.ChromeDriverManager", "PixivApi.ChromeDriverManager\PixivApi.ChromeDriverManager.csproj", "{500D2178-ACC6-4048-A769-07997C750817}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.UgoiraConverter.Ffmpeg", "PixivApi.Console.Plugin.UgoiraConverter.Ffmpeg\PixivApi.Plugin.UgoiraConverter.Ffmpeg.csproj", "{04812EFA-FA42-4CB9-89C2-427D2757ED0F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.UgoiraConverter.Ffmpeg", "PixivApi.Plugin.UgoiraConverter.Ffmpeg\PixivApi.Plugin.UgoiraConverter.Ffmpeg.csproj", "{04812EFA-FA42-4CB9-89C2-427D2757ED0F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.Plugin.JpegXl", "PixivApi.Plugin.JpegXl\PixivApi.Plugin.JpegXl.csproj", "{2FE42246-504C-49D6-AB3C-A55734651AB5}"
 EndProject
