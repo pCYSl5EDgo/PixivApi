@@ -33,7 +33,7 @@ public partial class LocalClient
             return 0;
         }
 
-        await artworkItemFilter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, token);
+        await artworkItemFilter.InitializeAsync(finder, database.UserDictionary, database.TagSet, token);
         if (pipe)
         {
             logger.LogInformation($"{await CountPipeAsync(artworkItemFilter, database.ArtworkDictionary.Values, token).ConfigureAwait(false)}");

@@ -4,30 +4,11 @@ public sealed class FileExistanceFilter
 {
     [JsonPropertyName("original")] public FileExistanceType Original = FileExistanceType.None;
     [JsonPropertyName("thumbnail")] public FileExistanceType Thumbnail = FileExistanceType.None;
-    [JsonPropertyName("ugoira")] public UgoiraFileExistanceFilter? Ugoira = null;
+    [JsonPropertyName("ugoira")] public bool? Ugoira = null;
 
-    private string originalFolder = "Original";
+    private FinderFacade finder = null!;
 
-    private string thumbnailFolder = "Thumbnail";
-
-    private string ugoiraFolder = "Ugoira";
-
-    public void Initialize(string originalFolder, string thumbnailFolder, string ugoiraFolder)
-    {
-        static string WithSeparator(string path)
-        {
-            if (path.Length > 0 && path[^1] != Path.DirectorySeparatorChar && path[^1] != Path.AltDirectorySeparatorChar)
-            {
-                return path + '/';
-            }
-
-            return path;
-        }
-
-        this.originalFolder = WithSeparator(originalFolder);
-        this.thumbnailFolder = WithSeparator(thumbnailFolder);
-        this.ugoiraFolder = WithSeparator(ugoiraFolder);
-    }
+    public void Initialize(FinderFacade finder) => this.finder = finder;
 
     public bool Filter(Artwork artwork)
     {
@@ -41,7 +22,7 @@ public sealed class FileExistanceFilter
             return false;
         }
 
-        if (artwork.Type == ArtworkType.Ugoira && Ugoira is not null && !Ugoira.Filter(artwork, ugoiraFolder))
+        if (artwork.Type == ArtworkType.Ugoira && Ugoira.HasValue && finder.UgoiraZipFinder.Find(artwork) != Ugoira.Value)
         {
             return false;
         }
@@ -53,8 +34,7 @@ public sealed class FileExistanceFilter
 
     private bool ThumbnailFilter(Artwork artwork, FileExistanceType existanceType)
     {
-        var folder = $"{thumbnailFolder}{IOUtility.GetHashPath(artwork.Id)}";
-
+        var finder = artwork.Type == ArtworkType.Illust ? this.finder.IllustThumbnailFinder : this.finder.MangaThumbnailFinder;
         switch (existanceType)
         {
             case FileExistanceType.ExistAll:
@@ -65,9 +45,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
-                    if (!File.Exists(handler.ToStringAndClear()))
+                    if (!finder.Find(artwork, i))
                     {
                         return false;
                     }
@@ -82,9 +60,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
-                    if (File.Exists(handler.ToStringAndClear()))
+                    if (finder.Find(artwork, i))
                     {
                         return true;
                     }
@@ -99,9 +75,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
-                    if (!File.Exists(handler.ToStringAndClear()))
+                    if (!finder.Find(artwork, i))
                     {
                         return true;
                     }
@@ -116,9 +90,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraThumbnailFileName(ref handler, i);
-                    if (File.Exists(handler.ToStringAndClear()))
+                    if (finder.Find(artwork, i))
                     {
                         return false;
                     }
@@ -133,7 +105,7 @@ public sealed class FileExistanceFilter
 
     public bool OriginalFilter(Artwork artwork, FileExistanceType existanceType)
     {
-        var folder = $"{originalFolder}{IOUtility.GetHashPath(artwork.Id)}";
+        var finder = artwork.Type == ArtworkType.Illust ? this.finder.IllustOriginalFinder : this.finder.MangaOriginalFinder;
         switch (existanceType)
         {
             case FileExistanceType.ExistAll:
@@ -144,9 +116,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
-                    if (!File.Exists(handler.ToStringAndClear()))
+                    if (!finder.Find(artwork, i))
                     {
                         return false;
                     }
@@ -161,9 +131,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
-                    if (File.Exists(handler.ToStringAndClear()))
+                    if (finder.Find(artwork, i))
                     {
                         return true;
                     }
@@ -178,9 +146,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
-                    if (!File.Exists(handler.ToStringAndClear()))
+                    if (!finder.Find(artwork, i))
                     {
                         return true;
                     }
@@ -195,9 +161,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    DefaultInterpolatedStringHandler handler = $"{folder}";
-                    artwork.AddNotUgoiraOriginalFileName(ref handler, i);
-                    if (File.Exists(handler.ToStringAndClear()))
+                    if (finder.Find(artwork, i))
                     {
                         return false;
                     }
@@ -253,19 +217,4 @@ public sealed partial class FileExistanceTypeFormatter : JsonConverter<FileExist
     }
 
     public override void Write(Utf8JsonWriter writer, FileExistanceType value, JsonSerializerOptions options) => throw new NotSupportedException();
-}
-
-public sealed class UgoiraFileExistanceFilter
-{
-    [JsonPropertyName("zip")] public bool? ExistZip;
-
-    public bool Filter(Artwork artwork, string folder)
-    {
-        if (ExistZip.HasValue && ExistZip.Value != File.Exists(Path.Combine(folder, $"{IOUtility.GetHashPath(artwork.Id)}{artwork.GetUgoiraZipFileName()}")))
-        {
-            return false;
-        }
-
-        return true;
-    }
 }

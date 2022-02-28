@@ -186,7 +186,7 @@ public partial class NetworkClient
         filter.PageCount ??= new();
         filter.PageCount.Min ??= 1;
 
-        var artworkCollection = FilterExtensions.CreateAsyncEnumerable(configSettings, database, filter, token);
+        var artworkCollection = FilterExtensions.CreateAsyncEnumerable(finder, database, filter, token);
         return (database, artworkCollection);
     }
 

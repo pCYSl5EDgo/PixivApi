@@ -43,25 +43,7 @@
           "$ref": "#/properties/file-filter/properties/original"
         },
         "ugoira": {
-          "additionalProperties": false,
-          "properties": {
-            "zip": {
-              "type": "boolean"
-            },
-            "codecs": {
-              "additionalProperties": false,
-              "properties": {
-                "av1": {
-                  "type": "boolean"
-                },
-                "h264": {
-                  "type": "boolean"
-                }
-              },
-              "type": "object"
-            }
-          },
-          "type": "object"
+          "type": "boolean"
         }
       },
       "type": "object"

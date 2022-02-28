@@ -32,7 +32,7 @@ public partial class LocalClient
         var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         var artworks = itemFilter is null
             ? database.ArtworkDictionary.Values
-            : await FilterExtensions.CreateEnumerableAsync(configSettings, database, itemFilter, token).ConfigureAwait(false);
+            : await FilterExtensions.CreateEnumerableAsync(finder, database, itemFilter, token).ConfigureAwait(false);
 
         if (toString)
         {

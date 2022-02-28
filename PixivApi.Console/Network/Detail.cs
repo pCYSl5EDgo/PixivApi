@@ -35,7 +35,7 @@ public partial class NetworkClient
         ulong update = 0;
         try
         {
-            await foreach (var item in FilterExtensions.CreateAsyncEnumerable(configSettings, database, artworkFilter, token))
+            await foreach (var item in FilterExtensions.CreateAsyncEnumerable(finder, database, artworkFilter, token))
             {
             RETRY:
                 try

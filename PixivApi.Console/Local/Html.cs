@@ -42,7 +42,7 @@ public sealed partial class LocalClient
         }
 
         var template = new HtmlTemplate(
-            await FilterExtensions.CreateEnumerableAsync(configSettings, database, artworkItemFilter, token).ConfigureAwait(false),
+            await FilterExtensions.CreateEnumerableAsync(finder, database, artworkItemFilter, token).ConfigureAwait(false),
             configSettings.OriginalFolder, configSettings.ThumbnailFolder, configSettings.UgoiraFolder, output,
             database.TagSet, database.UserDictionary
         );

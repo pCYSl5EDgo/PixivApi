@@ -42,7 +42,7 @@ public partial class LocalClient : ConsoleAppBase
         }
 
         var template = new BookmarkMarkdownTemplate(
-            await FilterExtensions.CreateEnumerableAsync(configSettings, database, artworkItemFilter, token).ConfigureAwait(false),
+            await FilterExtensions.CreateEnumerableAsync(finder, database, artworkItemFilter, token).ConfigureAwait(false),
             configSettings.OriginalFolder, configSettings.ThumbnailFolder, output,
             database.TagSet, database.UserDictionary
         );

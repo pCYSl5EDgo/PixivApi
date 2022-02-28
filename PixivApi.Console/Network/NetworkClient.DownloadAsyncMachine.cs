@@ -222,9 +222,6 @@ public partial class NetworkClient
             return success;
         }
 
-        public void Initialize()
-        {
-            noDetailDownload = true;
-        }
+        public void Initialize() => noDetailDownload = true;
     }
 }

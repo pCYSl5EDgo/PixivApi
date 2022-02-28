@@ -2,24 +2,24 @@
 
 public sealed class FinderFacade
 {
-    private FinderFacade(IFinder ugoiraZipFinderPlugin, IFinder ugoiraThumbnailFinderPlugin, IFinder ugoiraOriginalFinderPlugin, IFinderWithIndex illustThumbnailFinderPlugin, IFinderWithIndex illustOriginalFinderPlugin, IFinderWithIndex mangaThumbnailFinderPlugin, IFinderWithIndex mangaOriginalFinderPlugin)
+    private FinderFacade(IFinder ugoiraZipFinder, IFinder ugoiraThumbnailFinder, IFinder ugoiraOriginalFinder, IFinderWithIndex illustThumbnailFinder, IFinderWithIndex illustOriginalFinder, IFinderWithIndex mangaThumbnailFinder, IFinderWithIndex mangaOriginalFinder)
     {
-        UgoiraZipFinderPlugin = ugoiraZipFinderPlugin;
-        UgoiraThumbnailFinderPlugin = ugoiraThumbnailFinderPlugin;
-        UgoiraOriginalFinderPlugin = ugoiraOriginalFinderPlugin;
-        IllustThumbnailFinderPlugin = illustThumbnailFinderPlugin;
-        IllustOriginalFinderPlugin = illustOriginalFinderPlugin;
-        MangaThumbnailFinderPlugin = mangaThumbnailFinderPlugin;
-        MangaOriginalFinderPlugin = mangaOriginalFinderPlugin;
+        UgoiraZipFinder = ugoiraZipFinder;
+        UgoiraThumbnailFinder = ugoiraThumbnailFinder;
+        UgoiraOriginalFinder = ugoiraOriginalFinder;
+        IllustThumbnailFinder = illustThumbnailFinder;
+        IllustOriginalFinder = illustOriginalFinder;
+        MangaThumbnailFinder = mangaThumbnailFinder;
+        MangaOriginalFinder = mangaOriginalFinder;
     }
 
-    public readonly IFinder UgoiraZipFinderPlugin;
-    public readonly IFinder UgoiraThumbnailFinderPlugin;
-    public readonly IFinder UgoiraOriginalFinderPlugin;
-    public readonly IFinderWithIndex IllustThumbnailFinderPlugin;
-    public readonly IFinderWithIndex IllustOriginalFinderPlugin;
-    public readonly IFinderWithIndex MangaThumbnailFinderPlugin;
-    public readonly IFinderWithIndex MangaOriginalFinderPlugin;
+    public readonly IFinder UgoiraZipFinder;
+    public readonly IFinder UgoiraThumbnailFinder;
+    public readonly IFinder UgoiraOriginalFinder;
+    public readonly IFinderWithIndex IllustThumbnailFinder;
+    public readonly IFinderWithIndex IllustOriginalFinder;
+    public readonly IFinderWithIndex MangaThumbnailFinder;
+    public readonly IFinderWithIndex MangaOriginalFinder;
 
     private static async ValueTask<IFinder> GetFinderAsync<TDefaultImpl>(string? plugin, ConfigSettings configSettings, object boxedCancellationToken, CancellationToken cancellationToken)
         where TDefaultImpl : class, IFinder

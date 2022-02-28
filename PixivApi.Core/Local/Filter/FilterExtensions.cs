@@ -2,9 +2,9 @@
 
 public static class FilterExtensions
 {
-    public static async ValueTask<IEnumerable<Artwork>> CreateEnumerableAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
+    public static async ValueTask<IEnumerable<Artwork>> CreateEnumerableAsync(FinderFacade finderFacade, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
-        var answer = await PrivateSelectAsync(configSettings, database, filter, cancellationToken).ConfigureAwait(false);
+        var answer = await PrivateSelectAsync(finderFacade, database, filter, cancellationToken).ConfigureAwait(false);
         if (answer.TryGetNonEnumeratedCount(out var count) && count == 0)
         {
             return Array.Empty<Artwork>();
@@ -28,9 +28,9 @@ public static class FilterExtensions
         return answer;
     }
 
-    public static async IAsyncEnumerable<Artwork> CreateAsyncEnumerable(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, [EnumeratorCancellation] CancellationToken cancellationToken)
+    public static async IAsyncEnumerable<Artwork> CreateAsyncEnumerable(FinderFacade finderFacade, DatabaseFile database, ArtworkFilter filter, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var artworks = await PrivateSelectAsync(configSettings, database, filter, cancellationToken).ConfigureAwait(false);
+        var artworks = await PrivateSelectAsync(finderFacade, database, filter, cancellationToken).ConfigureAwait(false);
         if (artworks.TryGetNonEnumeratedCount(out var count) && count == 0)
         {
             yield break;
@@ -55,14 +55,14 @@ public static class FilterExtensions
         }
     }
 
-    private static async ValueTask<IEnumerable<Artwork>> PrivateSelectAsync(ConfigSettings configSettings, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
+    private static async ValueTask<IEnumerable<Artwork>> PrivateSelectAsync(FinderFacade finderFacade, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
         if (filter.Count == 0 || filter.Offset >= database.ArtworkDictionary.Count)
         {
             return Array.Empty<Artwork>();
         }
 
-        await filter.InitializeAsync(configSettings, database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
+        await filter.InitializeAsync(finderFacade, database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
         ConcurrentBag<Artwork> bag = new();
         await Parallel.ForEachAsync(database.ArtworkDictionary.Values, cancellationToken, (artwork, token) =>
         {
