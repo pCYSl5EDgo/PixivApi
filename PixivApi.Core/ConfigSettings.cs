@@ -13,8 +13,19 @@ public sealed class ConfigSettings
     public string OriginalFolder { get; set; } = "Original";
     public string ThumbnailFolder { get; set; } = "Thumbnail";
     public string UgoiraFolder { get; set; } = "Ugoira";
-    public string PluginFolder { get; set; } = "Plugins";
     public ulong UserId { get; set; }
+
+    public string? UgoiraZipPlugin { get; set; }
+    public string? UgoiraThumbnailPlugin { get; set; }
+    public string? UgoiraOriginalPlugin { get; set; }
+
+    public string? IllustZipPlugin { get; set; }
+    public string? IllustThumbnailPlugin { get; set; }
+    public string? IllustOriginalPlugin { get; set; }
+
+    public string? MangaZipPlugin { get; set; }
+    public string? MangaThumbnailPlugin { get; set; }
+    public string? MangaOriginalPlugin { get; set; }
 
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
 
