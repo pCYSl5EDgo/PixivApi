@@ -10,7 +10,8 @@ internal static class Utility
         AppendChangeToSlash(ref handler, input.AsSpan());
         handler.AppendLiteral("\" \"");
         AppendChangeToSlash(ref handler, output.AsSpan());
-        handler.AppendLiteral("\" --effort=9");
+        handler.AppendLiteral("\" --effort=7 --num_threads=");
+        handler.AppendFormatted(Environment.ProcessorCount);
         return handler.ToStringAndClear();
     }
 
