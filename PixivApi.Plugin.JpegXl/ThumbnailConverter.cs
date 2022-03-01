@@ -24,6 +24,7 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
     {
         cancellationToken.ThrowIfCancellationRequested();
         var folder = Path.Combine(ConfigSettings.ThumbnailFolder, IOUtility.GetHashPath(artwork.Id));
+        var anyProcess = false;
         if (artwork.Type == ArtworkType.Ugoira)
         {
             var fileName = artwork.GetUgoiraThumbnailFileName();
@@ -41,6 +42,7 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
 
             cancellationToken.ThrowIfCancellationRequested();
             await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
+            anyProcess = true;
         }
         else
         {
@@ -61,10 +63,11 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
 
                 cancellationToken.ThrowIfCancellationRequested();
                 await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
+                anyProcess = true;
             }
         }
 
-        return true;
+        return anyProcess;
     }
 
     public void DeleteUnneccessaryOriginal(Artwork artwork, ILogger? logger)

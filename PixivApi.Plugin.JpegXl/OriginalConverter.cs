@@ -23,6 +23,7 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
     {
         cancellationToken.ThrowIfCancellationRequested();
         var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
+        var anyProcess = false;
         if (artwork.Type == ArtworkType.Ugoira)
         {
             var fileName = artwork.GetUgoiraOriginalFileName();
@@ -40,6 +41,7 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
 
             cancellationToken.ThrowIfCancellationRequested();
             await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
+            anyProcess = true;
         }
         else
         {
@@ -60,10 +62,11 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
 
                 cancellationToken.ThrowIfCancellationRequested();
                 await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
+                anyProcess = true;
             }
         }
 
-        return true;
+        return anyProcess;
     }
 
     public void DeleteUnneccessaryOriginal(Artwork artwork, ILogger? logger)
