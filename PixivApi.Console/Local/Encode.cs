@@ -32,6 +32,7 @@ public partial class LocalClient
         {
             foreach (var artwork in database.ArtworkDictionary.Values)
             {
+                VirtualCodes.SetTitle($"{artwork.Id}");
                 if (original && converter.OriginalConverter is { } originalConverter)
                 {
                     _ = await originalConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
@@ -52,6 +53,7 @@ public partial class LocalClient
         {
             foreach (var artwork in await FilterExtensions.CreateEnumerableWithoutFileExistanceFilterAsync(database, artworkFilter, token).ConfigureAwait(false))
             {
+                VirtualCodes.SetTitle($"{artwork.Id}");
                 if (original && converter.OriginalConverter is { } originalConverter)
                 {
                     _ = await originalConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
