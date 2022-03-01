@@ -11,7 +11,8 @@ public partial class LocalClient
         [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
         [Option("o")] bool original = false,
         [Option("t")] bool thumbanil = false,
-        [Option("u")] bool ugoira = false
+        [Option("u")] bool ugoira = false,
+        [Option("d")] bool delete = true
     )
     {
         if (!original && !thumbanil && !ugoira)
@@ -37,17 +38,26 @@ public partial class LocalClient
 
             if (original && converter.OriginalConverter is { } originalConverter)
             {
-                _ = await originalConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
+                if (await originalConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false) && delete)
+                {
+                    originalConverter.DeleteUnneccessaryOriginal(artwork, logger);
+                }
             }
 
             if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
             {
-                _ = await thumbnailConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
+                if (await thumbnailConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false) && delete)
+                {
+                    thumbnailConverter.DeleteUnneccessaryOriginal(artwork, logger);
+                }
             }
 
             if (ugoira && converter.UgoiraZipConverter is { } ugoiraZipConverter)
             {
-                _ = await ugoiraZipConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
+                if (await ugoiraZipConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false) && delete)
+                {
+                    ugoiraZipConverter.DeleteUnneccessaryOriginal(artwork, logger);
+                }
             }
         }
     }
