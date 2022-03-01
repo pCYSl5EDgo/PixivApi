@@ -138,7 +138,7 @@ public static class PluginUtility
     }
 
     [SuppressMessage("Usage", "CA2254")]
-    public static Task ExecuteAsync(ILogger? logger, string exe, string arguments, string? workingDirectory = null)
+    public static async Task ExecuteAsync(ILogger? logger, string exe, string arguments, string? workingDirectory = null, string? logStdoutPrefix = null, string? logStdoutSuffix = null, string? logStderrPrefix = null, string? logStderrSuffix = null)
     {
         var (_, output, error) = ProcessX.GetDualAsyncEnumerable(exe, arguments: arguments, workingDirectory: workingDirectory);
         var twoTasks = new Task[2];
@@ -153,18 +153,60 @@ public static class PluginUtility
             {
                 await foreach (var item in output)
                 {
-                    logger.LogInformation(item);
+                    if (logStdoutPrefix is null)
+                    {
+                        if (logStdoutSuffix is null)
+                        {
+                            logger.LogInformation(item);
+                        }
+                        else
+                        {
+                            logger.LogInformation(item + logStdoutSuffix);
+                        }
+                    }
+                    else
+                    {
+                        if (logStdoutSuffix is null)
+                        {
+                            logger.LogInformation(logStdoutPrefix + item);
+                        }
+                        else
+                        {
+                            logger.LogInformation(logStdoutPrefix + item + logStdoutSuffix);
+                        }
+                    }
                 }
             });
             twoTasks[1] = Task.Run(async () =>
             {
                 await foreach (var item in error)
                 {
-                    logger.LogWarning(item);
+                    if (logStderrPrefix is null)
+                    {
+                        if (logStderrSuffix is null)
+                        {
+                            logger.LogWarning(item);
+                        }
+                        else
+                        {
+                            logger.LogWarning(item + logStderrSuffix);
+                        }
+                    }
+                    else
+                    {
+                        if (logStderrSuffix is null)
+                        {
+                            logger.LogWarning(logStderrPrefix + item);
+                        }
+                        else
+                        {
+                            logger.LogWarning(logStderrPrefix + item + logStderrSuffix);
+                        }
+                    }
                 }
             });
         }
 
-        return Task.WhenAll(twoTasks);
+        await Task.WhenAll(twoTasks).ConfigureAwait(false);
     }
 }

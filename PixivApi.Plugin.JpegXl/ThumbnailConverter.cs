@@ -23,12 +23,13 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
     public async ValueTask<bool> TryConvertAsync(Artwork artwork, ILogger? logger, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
+        var folder = Path.Combine(ConfigSettings.ThumbnailFolder, IOUtility.GetHashPath(artwork.Id));
 
         if (artwork.Type == ArtworkType.Ugoira)
         {
             var fileName = artwork.GetUgoiraThumbnailFileName();
-            if (!File.Exists(Path.Combine(folder, fileName)))
+            var fileInfo = new FileInfo(Path.Combine(folder, fileName));
+            if (!fileInfo.Exists)
             {
                 return false;
             }
@@ -40,14 +41,15 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
+            await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
         }
         else
         {
             for (uint i = 0; i < artwork.PageCount; i++)
             {
                 var fileName = artwork.GetNotUgoiraThumbnailFileName(i);
-                if (!File.Exists(Path.Combine(folder, fileName)))
+                var fileInfo = new FileInfo(Path.Combine(folder, fileName));
+                if (!fileInfo.Exists)
                 {
                     continue;
                 }
@@ -59,7 +61,7 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
+                await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
             }
         }
 

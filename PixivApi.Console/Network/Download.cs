@@ -65,7 +65,7 @@ public partial class NetworkClient
         {
             if (!pipe)
             {
-                logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ToDisplayableByteAmount(machine.DownloadByteCount)}");
+                logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ByteAmountUtility.ToDisplayable(machine.DownloadByteCount)}");
             }
 
             await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
@@ -160,13 +160,13 @@ public partial class NetworkClient
 
         if (string.IsNullOrWhiteSpace(path))
         {
-            logger.LogError($"{ConsoleUtility.ErrorColor}file does not exist. Path: {path}{ConsoleUtility.NormalizeColor}");
+            logger.LogError($"{VirtualCodes.BrightRedColor}file does not exist. Path: {path}{VirtualCodes.NormalizeColor}");
             return default;
         }
 
         if (!Directory.Exists(destinationDirectory))
         {
-            logger.LogError($"{ConsoleUtility.ErrorColor}directory does not exist. Path: {destinationDirectory}{ConsoleUtility.NormalizeColor}");
+            logger.LogError($"{VirtualCodes.BrightRedColor}directory does not exist. Path: {destinationDirectory}{VirtualCodes.NormalizeColor}");
             return default;
         }
 
@@ -174,7 +174,7 @@ public partial class NetworkClient
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(path, token).ConfigureAwait(false);
         if (database is not { ArtworkDictionary.IsEmpty: false })
         {
-            logger.LogError($"{ConsoleUtility.ErrorColor}database is empty. Path: {path}{ConsoleUtility.NormalizeColor}");
+            logger.LogError($"{VirtualCodes.BrightRedColor}database is empty. Path: {path}{VirtualCodes.NormalizeColor}");
             return default;
         }
 
@@ -188,26 +188,6 @@ public partial class NetworkClient
 
         var artworkCollection = FilterExtensions.CreateAsyncEnumerable(finder, database, filter, token);
         return (database, artworkCollection);
-    }
-
-    private static string ToDisplayableByteAmount(ulong byteCount)
-    {
-        if (byteCount < (1 << 10))
-        {
-            return $"{byteCount} B";
-        }
-        else if (byteCount < (1 << 20))
-        {
-            return $"{byteCount >> 10} KB + {byteCount & 1023} B";
-        }
-        else if (byteCount < (1 << 30))
-        {
-            return $"{byteCount >> 20} MB + {(byteCount >> 10) & 1023} KB + {byteCount & 1023} B";
-        }
-        else
-        {
-            return $"{byteCount >> 30} GB + {(byteCount >> 20) & 1023} MB + {(byteCount >> 10) & 1023} KB + {byteCount & 1023} B";
-        }
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");

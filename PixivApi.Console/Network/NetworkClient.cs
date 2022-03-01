@@ -37,7 +37,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, configSettings, Context.CancellationToken).ConfigureAwait(false);
         if (accessToken is null)
         {
-            logger.LogError(ConsoleUtility.ErrorColor + "Failed to get access token." + ConsoleUtility.NormalizeColor);
+            logger.LogError(VirtualCodes.BrightRedColor + "Failed to get access token." + VirtualCodes.NormalizeColor);
             return false;
         }
 
@@ -49,7 +49,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, configSettings, Context.CancellationToken).ConfigureAwait(false);
         if (accessToken is null)
         {
-            logger.LogError(ConsoleUtility.ErrorColor + "Failed to get access token." + ConsoleUtility.NormalizeColor);
+            logger.LogError(VirtualCodes.BrightRedColor + "Failed to get access token." + VirtualCodes.NormalizeColor);
             return false;
         }
 
@@ -62,7 +62,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
     {
         if (!pipe)
         {
-            logger.LogInformation(exception, $"{ConsoleUtility.WarningColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{ConsoleUtility.NormalizeColor}");
+            logger.LogInformation(exception, $"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
@@ -70,14 +70,14 @@ public sealed partial class NetworkClient : ConsoleAppBase
         {
             if (!pipe)
             {
-                logger.LogInformation($"{ConsoleUtility.WarningColor}Reconnect.{ConsoleUtility.NormalizeColor}");
+                logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect.{VirtualCodes.NormalizeColor}");
             }
         }
         else
         {
             if (!pipe)
             {
-                logger.LogError($"{ConsoleUtility.ErrorColor}Reconnection failed.{ConsoleUtility.NormalizeColor}");
+                logger.LogError($"{VirtualCodes.BrightRedColor}Reconnection failed.{VirtualCodes.NormalizeColor}");
             }
 
             ExceptionDispatchInfo.Throw(exception);
@@ -103,13 +103,13 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 token.ThrowIfCancellationRequested();
                 if (!pipe)
                 {
-                    logger.LogWarning($"{ConsoleUtility.WarningColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{ConsoleUtility.NormalizeColor}");
+                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
                 }
 
                 await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
                 if (!pipe)
                 {
-                    logger.LogWarning($"{ConsoleUtility.WarningColor}Restart.{ConsoleUtility.NormalizeColor}");
+                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart.{VirtualCodes.NormalizeColor}");
                 }
 
                 continue;

@@ -20,7 +20,7 @@ public partial class NetworkClient
 
         if (configSettings.UserId == 0UL)
         {
-            logger.LogError($"{ConsoleUtility.ErrorColor}User Id should be written in appsettings.json{ConsoleUtility.NormalizeColor}");
+            logger.LogError($"{VirtualCodes.BrightRedColor}User Id should be written in appsettings.json{VirtualCodes.NormalizeColor}");
             return -1;
         }
 

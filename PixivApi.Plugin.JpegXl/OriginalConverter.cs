@@ -27,7 +27,8 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
         if (artwork.Type == ArtworkType.Ugoira)
         {
             var fileName = artwork.GetUgoiraOriginalFileName();
-            if (!File.Exists(Path.Combine(folder, fileName)))
+            var fileInfo = new FileInfo(Path.Combine(folder, fileName));
+            if (!fileInfo.Exists)
             {
                 return false;
             }
@@ -39,14 +40,15 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
+            await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
         }
         else
         {
             for (uint i = 0; i < artwork.PageCount; i++)
             {
                 var fileName = artwork.GetNotUgoiraOriginalFileName(i);
-                if (!File.Exists(Path.Combine(folder, fileName)))
+                var fileInfo = new FileInfo(Path.Combine(folder, fileName));
+                if (!fileInfo.Exists)
                 {
                     continue;
                 }
@@ -58,7 +60,7 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                await Utility.ExecuteAsync(logger, ExePath, fileName, jxlName, folder).ConfigureAwait(false);
+                await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
             }
         }
 

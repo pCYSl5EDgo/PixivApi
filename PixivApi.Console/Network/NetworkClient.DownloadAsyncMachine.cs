@@ -90,7 +90,7 @@ public partial class NetworkClient
             {
                 if (!pipe)
                 {
-                    logger.LogError(e, $"{ConsoleUtility.ErrorColor}Download failed. Url: {url}{ConsoleUtility.NormalizeColor}");
+                    logger.LogError(e, $"{VirtualCodes.BrightRedColor}Download failed. Url: {url}{VirtualCodes.NormalizeColor}");
                 }
 
                 return false;
@@ -100,7 +100,7 @@ public partial class NetworkClient
             ++DownloadFileCount;
             if (!pipe)
             {
-                logger.LogInformation($"{ConsoleUtility.SuccessColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{ConsoleUtility.NormalizeColor}");
+                logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
             }
 
             return true;
@@ -136,7 +136,7 @@ public partial class NetworkClient
             {
                 if (!pipe)
                 {
-                    logger.LogError($"{ConsoleUtility.ErrorColor}Not Found: {url}{ConsoleUtility.NormalizeColor}");
+                    logger.LogError($"{VirtualCodes.BrightRedColor}Not Found: {url}{VirtualCodes.NormalizeColor}");
                 }
 
                 if (await DownloadFilePrepareDetailAsync(artwork).ConfigureAwait(false))
@@ -157,7 +157,7 @@ public partial class NetworkClient
             {
                 if (!pipe)
                 {
-                    logger.LogError(e, $"{ConsoleUtility.ErrorColor}Download failed. Url: {url}{ConsoleUtility.NormalizeColor}");
+                    logger.LogError(e, $"{VirtualCodes.BrightRedColor}Download failed. Url: {url}{VirtualCodes.NormalizeColor}");
                 }
 
                 return false;
@@ -167,7 +167,7 @@ public partial class NetworkClient
             ++DownloadFileCount;
             if (!pipe)
             {
-                logger.LogInformation($"{ConsoleUtility.SuccessColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{ConsoleUtility.NormalizeColor}");
+                logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
             }
 
             return true;

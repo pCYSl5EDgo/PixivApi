@@ -17,6 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\PixivApi.Console.Utility\PixivApi.Console.Utility.csproj" />
 	  <ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
 	</ItemGroup>
 

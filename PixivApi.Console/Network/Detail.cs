@@ -80,7 +80,7 @@ public partial class NetworkClient
 
                     if (!pipe)
                     {
-                        logger.LogWarning($"{ConsoleUtility.WarningColor}Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{ConsoleUtility.NormalizeColor}");
+                        logger.LogWarning($"{VirtualCodes.BrightYellowColor}Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
                     }
 
                     await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);

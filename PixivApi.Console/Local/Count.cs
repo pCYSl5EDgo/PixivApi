@@ -70,7 +70,7 @@ public partial class LocalClient
             return ValueTask.CompletedTask;
         }).ConfigureAwait(false);
         var maxCount = count;
-        System.Console.Write($"{ConsoleUtility.WarningColor}Current: {count}    0% processed(0 items of total {count} items) {ConsoleUtility.NormalizeColor}");
+        System.Console.Write($"{VirtualCodes.BrightYellowColor}Current: {count}    0% processed(0 items of total {count} items) {VirtualCodes.NormalizeColor}");
         var processed = 0UL;
         var mask = (1UL << maskPowerOf2) - 1UL;
         await Parallel.ForEachAsync(bag, token, (artwork, token) =>
@@ -89,12 +89,12 @@ public partial class LocalClient
             if ((currentProcessed & mask) == 0UL)
             {
                 var percentage = (int)(processed * 100d / maxCount);
-                System.Console.Write($"{ConsoleUtility.DeleteLine1}{ConsoleUtility.WarningColor}Current: {count} {percentage,3}% processed({processed} items of total {maxCount} items){ConsoleUtility.NormalizeColor}");
+                System.Console.Write($"{VirtualCodes.DeleteLine1}{VirtualCodes.BrightYellowColor}Current: {count} {percentage,3}% processed({processed} items of total {maxCount} items){VirtualCodes.NormalizeColor}");
             }
 
             return ValueTask.CompletedTask;
         }).ConfigureAwait(false);
-        System.Console.Write(ConsoleUtility.DeleteLine1);
+        System.Console.Write(VirtualCodes.DeleteLine1);
         return count;
     }
 

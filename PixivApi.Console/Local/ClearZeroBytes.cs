@@ -28,11 +28,11 @@ public partial class LocalClient
                 if (((ulong)files.Count & mask) == 0)
                 {
                     token.ThrowIfCancellationRequested();
-                    System.Console.Write($"{ConsoleUtility.DeleteLine1}{files.Count} files collected");
+                    System.Console.Write($"{VirtualCodes.DeleteLine1}{files.Count} files collected");
                 }
             }
 
-            System.Console.Write($"{ConsoleUtility.DeleteLine1}Remove: {0,6} {0,3}%({0,8} items of total {files.Count,8}) processed");
+            System.Console.Write($"{VirtualCodes.DeleteLine1}Remove: {0,6} {0,3}%({0,8} items of total {files.Count,8}) processed");
             ulong count = 0UL, removed = 0UL;
             await Parallel.ForEachAsync(files, token, (file, token) =>
             {
@@ -52,12 +52,12 @@ public partial class LocalClient
                 if ((myCount & mask) == 0UL)
                 {
                     var percentage = (int)(myCount * 100d / files.Count);
-                    System.Console.Write($"{ConsoleUtility.DeleteLine1}Remove: {removed,6} {percentage,3}%({myCount,8} items of total {files.Count,8}) processed");
+                    System.Console.Write($"{VirtualCodes.DeleteLine1}Remove: {removed,6} {percentage,3}%({myCount,8} items of total {files.Count,8}) processed");
                 }
 
                 return ValueTask.CompletedTask;
             }).ConfigureAwait(false);
-            System.Console.Write(ConsoleUtility.DeleteLine1);
+            System.Console.Write(VirtualCodes.DeleteLine1);
             return (count, removed);
         }
 

@@ -1,4 +1,5 @@
-﻿using PixivApi.Core;
+﻿using Cysharp.Diagnostics;
+using PixivApi.Core;
 using PixivApi.Core.Local;
 
 namespace PixivApi.Console;
