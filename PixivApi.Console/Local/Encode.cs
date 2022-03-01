@@ -97,6 +97,11 @@ public partial class LocalClient
         {
             foreach (var artwork in database.ArtworkDictionary.Values)
             {
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 VirtualCodes.SetTitle($"{artwork.Id}");
                 if (original && converter.OriginalConverter is { } originalConverter)
                 {
