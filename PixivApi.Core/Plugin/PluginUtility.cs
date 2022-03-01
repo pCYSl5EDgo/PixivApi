@@ -1,6 +1,5 @@
 ﻿using Cysharp.Diagnostics;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
 using System.Reflection;
 
 namespace PixivApi.Core;

@@ -23,7 +23,6 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
     {
         cancellationToken.ThrowIfCancellationRequested();
         var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
-
         if (artwork.Type == ArtworkType.Ugoira)
         {
             var fileName = artwork.GetUgoiraOriginalFileName();
@@ -65,5 +64,49 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
         }
 
         return true;
+    }
+
+    public void DeleteUnneccessaryOriginal(Artwork artwork, ILogger? logger)
+    {
+        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
+        if (artwork.Type == ArtworkType.Ugoira)
+        {
+            var fileName = artwork.GetUgoiraOriginalFileName();
+            var fileInfo = new FileInfo(Path.Combine(folder, fileName));
+            if (!fileInfo.Exists)
+            {
+                return;
+            }
+
+            var jxlName = GetJxlName(artwork);
+            if (!File.Exists(Path.Combine(folder, jxlName)))
+            {
+                return;
+            }
+
+            logger?.LogInformation($"Delete: {fileName}");
+            fileInfo.Delete();
+        }
+        else
+        {
+            for (uint i = 0; i < artwork.PageCount; i++)
+            {
+                var fileName = artwork.GetNotUgoiraOriginalFileName(i);
+                var fileInfo = new FileInfo(Path.Combine(folder, fileName));
+                if (!fileInfo.Exists)
+                {
+                    continue;
+                }
+
+                var jxlName = GetJxlName(artwork, i);
+                if (!File.Exists(Path.Combine(folder, jxlName)))
+                {
+                    continue;
+                }
+
+                logger?.LogInformation($"Delete: {fileName}");
+                fileInfo.Delete();
+            }
+        }
     }
 }

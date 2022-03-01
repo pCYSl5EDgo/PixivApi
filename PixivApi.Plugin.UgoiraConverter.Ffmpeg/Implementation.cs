@@ -1,5 +1,4 @@
-﻿using Cysharp.Diagnostics;
-using Cysharp.Text;
+﻿using Cysharp.Text;
 using Microsoft.Extensions.Logging;
 using PixivApi.Core;
 using PixivApi.Core.Local;
@@ -150,5 +149,29 @@ public sealed record class Implementation(string ExePath, ConfigSettings ConfigS
             File.Delete(zipPath);
             ZipFile.CreateFromDirectory(tempDirectory, zipPath, CompressionLevel.SmallestSize, false);
         }
+    }
+
+    public void DeleteUnneccessaryOriginal(Artwork artwork, ILogger? logger)
+    {
+        if (artwork is not { Type: ArtworkType.Ugoira, UgoiraFrames.Length: > 0 })
+        {
+            return;
+        }
+
+        var zipPath = GetZipPath(artwork);
+        if (!File.Exists(zipPath))
+        {
+            return;
+        }
+
+        var outputName = $"{artwork.Id}.mp4";
+        var mp4Path = GetMp4Path(artwork);
+        if (!File.Exists(mp4Path))
+        {
+            return;
+        }
+
+        logger?.LogInformation($"Delete: {outputName}");
+        File.Delete(mp4Path);
     }
 }
