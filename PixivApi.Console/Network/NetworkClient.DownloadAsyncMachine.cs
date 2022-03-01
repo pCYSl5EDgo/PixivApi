@@ -121,15 +121,16 @@ public partial class NetworkClient
                 using var request = new HttpRequestMessage(HttpMethod.Get, url);
                 var headers = request.Headers;
                 headers.Referrer = referer;
-                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
                 if (token.IsCancellationRequested)
                 {
                     return false;
                 }
 
+                using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
                 using var stream = new FileStream(file.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
-                await response.Content.CopyToAsync(stream, token).ConfigureAwait(false);
+                // Write to the file should not be cancelled.
+                await response.Content.CopyToAsync(stream, CancellationToken.None).ConfigureAwait(false);
                 byteCount = (ulong)stream.Length;
             }
             catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == System.Net.HttpStatusCode.NotFound)
