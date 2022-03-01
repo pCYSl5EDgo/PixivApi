@@ -47,6 +47,6 @@ internal static class ConverterUtility
         }
 
         var outputSize = new FileInfo(Path.Combine(workingDirectory, output)).Length;
-        logger?.LogInformation($"{VirtualCodes.BrightGreenColor}Success. Input: {input} Size: {ByteAmountUtility.ToDisplayable((ulong)inputSize)}  -  Output: {output} Size: {ByteAmountUtility.ToDisplayable((ulong)outputSize)} @ {workingDirectory}  Compression Ratio: {100d * outputSize / inputSize}{VirtualCodes.NormalizeColor}");
+        logger?.LogInformation($"{VirtualCodes.BrightGreenColor}Success. Input: {input} Size: {ByteAmountUtility.ToDisplayable((ulong)inputSize)}  -  Output: {output} Size: {ByteAmountUtility.ToDisplayable((ulong)outputSize)} @ {workingDirectory}  Compression Ratio: {(uint)(100d * outputSize / inputSize),3}{VirtualCodes.NormalizeColor}");
     }
 }
