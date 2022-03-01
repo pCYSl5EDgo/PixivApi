@@ -41,8 +41,7 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
-            anyProcess = true;
+            anyProcess = await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
         }
         else
         {
@@ -62,8 +61,7 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
-                anyProcess = true;
+                anyProcess |= await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
             }
         }
 
