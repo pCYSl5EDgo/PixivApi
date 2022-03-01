@@ -164,19 +164,20 @@ public static class PluginUtility
     }
 
     [SuppressMessage("Usage", "CA2254")]
-    public static async Task ExecuteAsync(ILogger logger, string exe, string arguments, string? workingDirectory = null, string? logStdoutPrefix = null, string? logStdoutSuffix = null, string? logStderrPrefix = null, string? logStderrSuffix = null)
+    public static async ValueTask ExecuteAsync(ILogger logger, string exe, string arguments, string? workingDirectory = null, string? logStdoutPrefix = null, string? logStdoutSuffix = null, string? logStderrPrefix = null, string? logStderrSuffix = null)
     {
         var (process, output, error) = ProcessX.GetDualAsyncEnumerable(exe, arguments: arguments, workingDirectory: workingDirectory);
         try
         {
-            _ = Task.Run(async () =>
+            var tasks = new Task[2];
+            tasks[0] = Task.Run(async () =>
             {
                 await foreach (var item in output)
                 {
                     logger.LogInformation(Concat(logStdoutPrefix, item, logStdoutSuffix));
                 }
             });
-            _ = Task.Run(async () =>
+            tasks[1] = Task.Run(async () =>
             {
                 await foreach (var item in error)
                 {
@@ -184,7 +185,7 @@ public static class PluginUtility
                 }
             });
 
-            await process.WaitForExitAsync(default).ConfigureAwait(false);
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         finally
         {
@@ -192,12 +193,12 @@ public static class PluginUtility
         }
     }
 
-    public static async Task ExecuteAsync(string exe, string arguments, string? workingDirectory = null)
+    public static async ValueTask ExecuteAsync(string exe, string arguments, string? workingDirectory = null)
     {
         var (process, _, _) = ProcessX.GetDualAsyncEnumerable(exe, arguments: arguments, workingDirectory: workingDirectory);
         try
         {
-            await process.WaitForExitAsync(default).ConfigureAwait(false);
+            await process.WaitForExitAsync(CancellationToken.None).ConfigureAwait(false);
         }
         finally
         {
@@ -206,6 +207,6 @@ public static class PluginUtility
     }
 
     public static bool Exists(this IFinder finder, Artwork artwork) => finder.Find(artwork) is { Exists: true };
-    
+
     public static bool Exists(this IFinderWithIndex finder, Artwork artwork, uint index) => finder.Find(artwork, index) is { Exists: true };
 }
