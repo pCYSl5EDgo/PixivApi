@@ -16,21 +16,15 @@ public sealed record class UgoiraThumbnailFinder(ConfigSettings ConfigSettings) 
 
     private static string GetJxlName(Artwork artwork) => $"{artwork.Id}.jxl";
 
-    public bool Find(Artwork artwork)
+    public FileInfo Find(Artwork artwork)
     {
         var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
-        var file = Path.Combine(folder, artwork.GetUgoiraThumbnailFileName());
-        if (File.Exists(file))
+        var file = new FileInfo(Path.Combine(folder, artwork.GetUgoiraThumbnailFileName()));
+        if (file.Exists)
         {
-            return true;
+            return file;
         }
 
-        var jxlFile = Path.Combine(folder, GetJxlName(artwork));
-        if (File.Exists(jxlFile))
-        {
-            return true;
-        }
-
-        return false;
+        return new(Path.Combine(folder, GetJxlName(artwork)));
     }
 }

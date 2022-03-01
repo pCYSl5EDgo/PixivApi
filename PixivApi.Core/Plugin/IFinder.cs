@@ -4,10 +4,10 @@ namespace PixivApi.Core;
 
 public interface IFinder : IPlugin
 {
-    bool Find(Artwork artwork);
+    FileInfo Find(Artwork artwork);
 }
 
 public interface IFinderWithIndex : IPlugin
 {
-    bool Find(Artwork artwork, uint index);
+    FileInfo Find(Artwork artwork, uint index);
 }

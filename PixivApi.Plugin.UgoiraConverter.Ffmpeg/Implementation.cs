@@ -28,7 +28,16 @@ public sealed record class Implementation(string ExePath, ConfigSettings ConfigS
 
     private string GetZipPath(Artwork artwork) => Path.Combine(ConfigSettings.UgoiraFolder, IOUtility.GetHashPath(artwork.Id), artwork.GetUgoiraZipFileName());
 
-    public bool Find(Artwork artwork) => File.Exists(GetZipPath(artwork)) || File.Exists(GetMp4Path(artwork));
+    public FileInfo Find(Artwork artwork)
+    {
+        var file = new FileInfo(GetZipPath(artwork));
+        if (file.Exists)
+        {
+            return file;
+        }
+
+        return new(GetMp4Path(artwork));
+    }
 
     public async ValueTask<bool> TryConvertAsync(Artwork artwork, ILogger? logger, CancellationToken cancellationToken)
     {

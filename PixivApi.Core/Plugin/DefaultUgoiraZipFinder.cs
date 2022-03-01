@@ -8,5 +8,5 @@ public sealed record class DefaultUgoiraZipFinder(ConfigSettings ConfigSettings)
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    public bool Find(Artwork artwork) => File.Exists(Path.Combine(ConfigSettings.UgoiraFolder, artwork.GetUgoiraZipFileName()));
+    public FileInfo Find(Artwork artwork) => new(Path.Combine(ConfigSettings.UgoiraFolder, artwork.GetUgoiraZipFileName()));
 }

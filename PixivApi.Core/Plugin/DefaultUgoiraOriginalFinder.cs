@@ -8,5 +8,5 @@ public sealed record class DefaultUgoiraOriginalFinder(ConfigSettings ConfigSett
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    public bool Find(Artwork artwork) => File.Exists(Path.Combine(ConfigSettings.ThumbnailFolder, artwork.GetUgoiraOriginalFileName()));
+    public FileInfo Find(Artwork artwork) => new(Path.Combine(ConfigSettings.ThumbnailFolder, artwork.GetUgoiraOriginalFileName()));
 }

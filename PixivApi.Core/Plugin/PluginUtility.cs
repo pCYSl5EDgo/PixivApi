@@ -1,5 +1,6 @@
 ﻿using Cysharp.Diagnostics;
 using Microsoft.Extensions.Logging;
+using PixivApi.Core.Local;
 using System.Reflection;
 
 namespace PixivApi.Core;
@@ -208,4 +209,8 @@ public static class PluginUtility
 
         await Task.WhenAll(twoTasks).ConfigureAwait(false);
     }
+
+    public static bool Exists(this IFinder finder, Artwork artwork) => finder.Find(artwork) is { Exists: true };
+    
+    public static bool Exists(this IFinderWithIndex finder, Artwork artwork, uint index) => finder.Find(artwork, index) is { Exists: true };
 }

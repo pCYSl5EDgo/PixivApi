@@ -22,7 +22,7 @@ public sealed class FileExistanceFilter
             return false;
         }
 
-        if (artwork.Type == ArtworkType.Ugoira && Ugoira.HasValue && finder.UgoiraZipFinder.Find(artwork) != Ugoira.Value)
+        if (artwork.Type == ArtworkType.Ugoira && Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) != Ugoira.Value)
         {
             return false;
         }
@@ -45,7 +45,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (!finder.Find(artwork, i))
+                    if (!finder.Exists(artwork, i))
                     {
                         return false;
                     }
@@ -60,7 +60,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (finder.Find(artwork, i))
+                    if (finder.Exists(artwork, i))
                     {
                         return true;
                     }
@@ -75,7 +75,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (!finder.Find(artwork, i))
+                    if (!finder.Exists(artwork, i))
                     {
                         return true;
                     }
@@ -90,7 +90,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (finder.Find(artwork, i))
+                    if (finder.Exists(artwork, i))
                     {
                         return false;
                     }
@@ -116,7 +116,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (!finder.Find(artwork, i))
+                    if (!finder.Exists(artwork, i))
                     {
                         return false;
                     }
@@ -131,7 +131,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (finder.Find(artwork, i))
+                    if (finder.Exists(artwork, i))
                     {
                         return true;
                     }
@@ -146,7 +146,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (!finder.Find(artwork, i))
+                    if (!finder.Exists(artwork, i))
                     {
                         return true;
                     }
@@ -161,7 +161,7 @@ public sealed class FileExistanceFilter
                         continue;
                     }
 
-                    if (finder.Find(artwork, i))
+                    if (finder.Exists(artwork, i))
                     {
                         return false;
                     }
