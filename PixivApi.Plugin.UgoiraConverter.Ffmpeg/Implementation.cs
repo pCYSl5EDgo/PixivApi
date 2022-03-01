@@ -88,7 +88,17 @@ public sealed record class Implementation(string ExePath, ConfigSettings ConfigS
         return true;
     }
 
-    private Task ExecuteAsync(ILogger? logger, string textName, ushort[] frames, string outputName) => PluginUtility.ExecuteAsync(logger, ExePath, $"-f concat -safe 0 -i {textName} -c:v libaom-av1 -r {(TryCalculateFps(frames, out var fps) ? fps : 60)} {outputName}");
+    private ValueTask ExecuteAsync(ILogger? logger, string textName, ushort[] frames, string outputName)
+    {
+        if (logger is null)
+        {
+            return PluginUtility.ExecuteAsync(ExePath, $"-f concat -safe 0 -i {textName} -c:v libaom-av1 -r {(TryCalculateFps(frames, out var fps) ? fps : 60)} {outputName}");
+        }
+        else
+        {
+            return PluginUtility.ExecuteAsync(logger, ExePath, $"-f concat -safe 0 -i {textName} -c:v libaom-av1 -r {(TryCalculateFps(frames, out var fps) ? fps : 60)} {outputName}");
+        }
+    }
 
     private static bool TryCalculateFps(ushort[] frames, out uint framePerSecond)
     {
