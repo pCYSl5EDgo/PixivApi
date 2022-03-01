@@ -137,77 +137,72 @@ public static class PluginUtility
         return new(span);
     }
 
-    [SuppressMessage("Usage", "CA2254")]
-    public static async Task ExecuteAsync(ILogger? logger, string exe, string arguments, string? workingDirectory = null, string? logStdoutPrefix = null, string? logStdoutSuffix = null, string? logStderrPrefix = null, string? logStderrSuffix = null)
+    private static string Concat(string? prefix, string content, string? suffix)
     {
-        var (_, output, error) = ProcessX.GetDualAsyncEnumerable(exe, arguments: arguments, workingDirectory: workingDirectory);
-        var twoTasks = new Task[2];
-        if (logger is null)
+        if (prefix is null)
         {
-            twoTasks[0] = output.WaitAsync(default);
-            twoTasks[1] = error.WaitAsync(default);
+            if (suffix is null)
+            {
+                return content;
+            }
+            else
+            {
+                return content + suffix;
+            }
         }
         else
         {
-            twoTasks[0] = Task.Run(async () =>
+            if (suffix is null)
+            {
+                return prefix + content;
+            }
+            else
+            {
+                return prefix + content + suffix;
+            }
+        }
+    }
+
+    [SuppressMessage("Usage", "CA2254")]
+    public static async Task ExecuteAsync(ILogger logger, string exe, string arguments, string? workingDirectory = null, string? logStdoutPrefix = null, string? logStdoutSuffix = null, string? logStderrPrefix = null, string? logStderrSuffix = null)
+    {
+        var (process, output, error) = ProcessX.GetDualAsyncEnumerable(exe, arguments: arguments, workingDirectory: workingDirectory);
+        try
+        {
+            _ = Task.Run(async () =>
             {
                 await foreach (var item in output)
                 {
-                    if (logStdoutPrefix is null)
-                    {
-                        if (logStdoutSuffix is null)
-                        {
-                            logger.LogInformation(item);
-                        }
-                        else
-                        {
-                            logger.LogInformation(item + logStdoutSuffix);
-                        }
-                    }
-                    else
-                    {
-                        if (logStdoutSuffix is null)
-                        {
-                            logger.LogInformation(logStdoutPrefix + item);
-                        }
-                        else
-                        {
-                            logger.LogInformation(logStdoutPrefix + item + logStdoutSuffix);
-                        }
-                    }
+                    logger.LogInformation(Concat(logStdoutPrefix, item, logStdoutSuffix));
                 }
             });
-            twoTasks[1] = Task.Run(async () =>
+            _ = Task.Run(async () =>
             {
                 await foreach (var item in error)
                 {
-                    if (logStderrPrefix is null)
-                    {
-                        if (logStderrSuffix is null)
-                        {
-                            logger.LogWarning(item);
-                        }
-                        else
-                        {
-                            logger.LogWarning(item + logStderrSuffix);
-                        }
-                    }
-                    else
-                    {
-                        if (logStderrSuffix is null)
-                        {
-                            logger.LogWarning(logStderrPrefix + item);
-                        }
-                        else
-                        {
-                            logger.LogWarning(logStderrPrefix + item + logStderrSuffix);
-                        }
-                    }
+                    logger.LogWarning(Concat(logStderrPrefix, item, logStderrSuffix));
                 }
             });
-        }
 
-        await Task.WhenAll(twoTasks).ConfigureAwait(false);
+            await process.WaitForExitAsync(default).ConfigureAwait(false);
+        }
+        finally
+        {
+            process.Dispose();
+        }
+    }
+
+    public static async Task ExecuteAsync(string exe, string arguments, string? workingDirectory = null)
+    {
+        var (process, _, _) = ProcessX.GetDualAsyncEnumerable(exe, arguments: arguments, workingDirectory: workingDirectory);
+        try
+        {
+            await process.WaitForExitAsync(default).ConfigureAwait(false);
+        }
+        finally
+        {
+            process.Dispose();
+        }
     }
 
     public static bool Exists(this IFinder finder, Artwork artwork) => finder.Find(artwork) is { Exists: true };
