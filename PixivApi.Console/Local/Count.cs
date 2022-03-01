@@ -34,17 +34,18 @@ public partial class LocalClient
         }
 
         await artworkItemFilter.InitializeAsync(finder, database.UserDictionary, database.TagSet, token);
+        var artworks = FilterExtensions.FilterBy(database.ArtworkDictionary, artworkItemFilter.IdFilter);
         if (pipe)
         {
-            logger.LogInformation($"{await CountPipeAsync(artworkItemFilter, database.ArtworkDictionary.Values, token).ConfigureAwait(false)}");
+            logger.LogInformation($"{await CountPipeAsync(artworkItemFilter, artworks, token).ConfigureAwait(false)}");
         }
         else if (artworkItemFilter.FileExistanceFilter is null)
         {
-            logger.LogInformation($"{await CountWithoutFileFilterAsync(artworkItemFilter, database.ArtworkDictionary.Values, token).ConfigureAwait(false)}");
+            logger.LogInformation($"{await CountWithoutFileFilterAsync(artworkItemFilter, artworks, token).ConfigureAwait(false)}");
         }
         else
         {
-            logger.LogInformation($"{await CountWithFileFilterAsync(maskPowerOf2, artworkItemFilter, database.ArtworkDictionary.Values, artworkItemFilter.FileExistanceFilter, token).ConfigureAwait(false)}");
+            logger.LogInformation($"{await CountWithFileFilterAsync(maskPowerOf2, artworkItemFilter, artworks, artworkItemFilter.FileExistanceFilter, token).ConfigureAwait(false)}");
         }
 
         return 0;

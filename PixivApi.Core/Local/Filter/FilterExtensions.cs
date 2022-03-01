@@ -76,16 +76,23 @@ public static class FilterExtensions
         }
     }
 
+    public static IEnumerable<Artwork> FilterBy(ConcurrentDictionary<ulong, Artwork> dictionary, IdFilter? filter)
+        => (filter is { Ids: { Length: > 0 } ids } ?
+            ids.Select(id => dictionary.GetValueOrDefault(id)).Where(artwork => artwork is not null) :
+            dictionary.Values)!;
+
     private static async ValueTask<IEnumerable<Artwork>> InitializeAndFilterWithoutFileExistanceFilterAsync(FinderFacade? finderFacade, DatabaseFile database, ArtworkFilter filter, CancellationToken cancellationToken)
     {
-        if (filter.Count == 0 || filter.Offset >= database.ArtworkDictionary.Count)
+        if (filter.Count == 0 || filter.Offset >= database.ArtworkDictionary.Count || filter.IdFilter is { Ids.Length: 0 })
         {
             return Array.Empty<Artwork>();
         }
 
         await filter.InitializeAsync(finderFacade, database.UserDictionary, database.TagSet, cancellationToken).ConfigureAwait(false);
         ConcurrentBag<Artwork> bag = new();
-        await Parallel.ForEachAsync(database.ArtworkDictionary.Values, cancellationToken, (artwork, token) =>
+
+        var artworks = FilterBy(database.ArtworkDictionary, filter.IdFilter);
+        await Parallel.ForEachAsync(artworks, cancellationToken, (artwork, token) =>
         {
             if (cancellationToken.IsCancellationRequested)
             {
