@@ -38,12 +38,28 @@ internal static class ConverterUtility
         logger?.LogInformation($"Start processing. Input: {input} Size: {inputSize}  -  Output: {output}  @  {workingDirectory}");
         try
         {
-            await PluginUtility.ExecuteAsync(logger, exePath, CreateArgument(input, output), workingDirectory, VirtualCodes.BrightBlueColor, VirtualCodes.NormalizeColor, VirtualCodes.BrightYellowColor, VirtualCodes.NormalizeColor).ConfigureAwait(false);
+            if (logger is null)
+            {
+                await PluginUtility.ExecuteAsync(exePath, CreateArgument(input, output), workingDirectory).ConfigureAwait(false);
+            }
+            else
+            {
+                await PluginUtility.ExecuteAsync(logger, exePath, CreateArgument(input, output), workingDirectory, VirtualCodes.BrightBlueColor, VirtualCodes.NormalizeColor, VirtualCodes.BrightYellowColor, VirtualCodes.NormalizeColor).ConfigureAwait(false);
+            }
         }
         catch (ProcessErrorException e)
         {
-            logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
-            throw;
+            if (e.ExitCode == 3)
+            {
+                File.Delete(Path.Combine(workingDirectory, input));
+                logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Delete Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
+                return;
+            }
+            else
+            {
+                logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
+                throw;
+            }
         }
 
         var outputSize = new FileInfo(Path.Combine(workingDirectory, output)).Length;
