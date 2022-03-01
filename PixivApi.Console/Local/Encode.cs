@@ -27,46 +27,27 @@ public partial class LocalClient
         }
 
         var artworkFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
-        if (artworkFilter is null)
+        var artworks = artworkFilter is null ? database.ArtworkDictionary.Values : await FilterExtensions.CreateEnumerableWithoutFileExistanceFilterAsync(database, artworkFilter, token).ConfigureAwait(false);
+        foreach (var artwork in artworks)
         {
-            foreach (var artwork in database.ArtworkDictionary.Values)
+            if (token.IsCancellationRequested)
             {
-                VirtualCodes.SetTitle($"{artwork.Id}");
-                if (original && converter.OriginalConverter is { } originalConverter)
-                {
-                    _ = await originalConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
-                }
-
-                if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
-                {
-                    _ = await thumbnailConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
-                }
-
-                if (ugoira && converter.UgoiraZipConverter is { } ugoiraZipConverter)
-                {
-                    _ = await ugoiraZipConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
-                }
+                return;
             }
-        }
-        else
-        {
-            foreach (var artwork in await FilterExtensions.CreateEnumerableWithoutFileExistanceFilterAsync(database, artworkFilter, token).ConfigureAwait(false))
+
+            if (original && converter.OriginalConverter is { } originalConverter)
             {
-                VirtualCodes.SetTitle($"{artwork.Id}");
-                if (original && converter.OriginalConverter is { } originalConverter)
-                {
-                    _ = await originalConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
-                }
+                _ = await originalConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
+            }
 
-                if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
-                {
-                    _ = await thumbnailConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
-                }
+            if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
+            {
+                _ = await thumbnailConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
+            }
 
-                if (ugoira && converter.UgoiraZipConverter is { } ugoiraZipConverter)
-                {
-                    _ = await ugoiraZipConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
-                }
+            if (ugoira && converter.UgoiraZipConverter is { } ugoiraZipConverter)
+            {
+                _ = await ugoiraZipConverter.TryConvertAsync(artwork, logger, token).ConfigureAwait(false);
             }
         }
     }
@@ -93,52 +74,30 @@ public partial class LocalClient
         }
 
         var artworkFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
-        if (artworkFilter is null)
+        var artworks = artworkFilter is null ? database.ArtworkDictionary.Values : await FilterExtensions.CreateEnumerableWithoutFileExistanceFilterAsync(database, artworkFilter, token).ConfigureAwait(false);
+        await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
         {
-            foreach (var artwork in database.ArtworkDictionary.Values)
+            if (token.IsCancellationRequested)
             {
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                VirtualCodes.SetTitle($"{artwork.Id}");
-                if (original && converter.OriginalConverter is { } originalConverter)
-                {
-                    originalConverter.DeleteUnneccessaryOriginal(artwork, logger);
-                }
-
-                if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
-                {
-                    thumbnailConverter.DeleteUnneccessaryOriginal(artwork, logger);
-                }
-
-                if (ugoira && converter.UgoiraZipConverter is { } ugoiraZipConverter)
-                {
-                    ugoiraZipConverter.DeleteUnneccessaryOriginal(artwork, logger);
-                }
+                return ValueTask.FromCanceled(token);
             }
-        }
-        else
-        {
-            foreach (var artwork in await FilterExtensions.CreateEnumerableWithoutFileExistanceFilterAsync(database, artworkFilter, token).ConfigureAwait(false))
+
+            if (original && converter.OriginalConverter is { } originalConverter)
             {
-                VirtualCodes.SetTitle($"{artwork.Id}");
-                if (original && converter.OriginalConverter is { } originalConverter)
-                {
-                    originalConverter.DeleteUnneccessaryOriginal(artwork, logger);
-                }
-
-                if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
-                {
-                    thumbnailConverter.DeleteUnneccessaryOriginal(artwork, logger);
-                }
-
-                if (ugoira && converter.UgoiraZipConverter is { } ugoiraZipConverter)
-                {
-                    ugoiraZipConverter.DeleteUnneccessaryOriginal(artwork, logger);
-                }
+                originalConverter.DeleteUnneccessaryOriginal(artwork, logger);
             }
-        }
+
+            if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
+            {
+                thumbnailConverter.DeleteUnneccessaryOriginal(artwork, logger);
+            }
+
+            if (ugoira && converter.UgoiraZipConverter is { } ugoiraZipConverter)
+            {
+                ugoiraZipConverter.DeleteUnneccessaryOriginal(artwork, logger);
+            }
+
+            return ValueTask.CompletedTask;
+        }).ConfigureAwait(false);
     }
 }
