@@ -12,7 +12,7 @@ public partial class LocalClient
         [Option("o")] bool original = false,
         [Option("t")] bool thumbanil = false,
         [Option("u")] bool ugoira = false,
-        [Option("d")] bool delete = true
+        [Option("d")] bool delete = false
     )
     {
         if (!original && !thumbanil && !ugoira)
