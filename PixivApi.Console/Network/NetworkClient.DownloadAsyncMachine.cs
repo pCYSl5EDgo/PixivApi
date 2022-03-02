@@ -5,9 +5,6 @@ namespace PixivApi.Console;
 
 public partial class NetworkClient
 {
-    /// <summary>
-    /// Do not use concurrently.
-    /// </summary>
     private sealed class DownloadAsyncMachine
     {
         public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
@@ -30,7 +27,6 @@ public partial class NetworkClient
         private readonly CancellationToken token;
         public int DownloadFileCount = 0;
         public ulong DownloadByteCount = 0UL;
-        private bool noDetailDownload = true;
 
         public static FileInfo PrepareFileInfo(string folder, ulong id, string fileName)
         {
@@ -46,7 +42,7 @@ public partial class NetworkClient
             return new(path);
         }
 
-        public async ValueTask<bool> DownloadAsync(FileInfo file, Artwork artwork, IConverter? converter, Func<uint, string> calcUrl, uint index)
+        public async ValueTask<(bool Success, bool NoDetailDownload)> DownloadAsync(FileInfo file, Artwork artwork, IConverter? converter, bool noDetailDownload, Func<uint, string> calcUrl, uint index)
         {
             string url;
             ulong byteCount;
@@ -55,24 +51,24 @@ public partial class NetworkClient
             {
                 token.ThrowIfCancellationRequested();
                 url = calcUrl(index);
-                (branch, byteCount) = await PrivateRetryDownloadAsync(artwork, file, converter, url).ConfigureAwait(false);
+                (branch, byteCount, noDetailDownload) = await PrivateRetryDownloadAsync(artwork, file, converter, url, noDetailDownload).ConfigureAwait(false);
                 if (branch == false)
                 {
-                    return false;
+                    return (false, noDetailDownload);
                 }
             } while (branch == null);
 
-            DownloadByteCount += byteCount;
-            ++DownloadFileCount;
+            Interlocked.Add(ref DownloadByteCount, byteCount);
+            Interlocked.Increment(ref DownloadFileCount);
             if (!pipe)
             {
                 logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
             }
 
-            return true;
+            return (true, noDetailDownload);
         }
 
-        public async ValueTask<bool> DownloadAsync(FileInfo file, Artwork artwork, IConverter? converter, Func<string> calcUrl)
+        public async ValueTask<(bool Success, bool NoDetailDownload)> DownloadAsync(FileInfo file, Artwork artwork, IConverter? converter, bool noDetailDownload, Func<string> calcUrl)
         {
             string url;
             ulong byteCount;
@@ -81,96 +77,85 @@ public partial class NetworkClient
             {
                 token.ThrowIfCancellationRequested();
                 url = calcUrl();
-                (branch, byteCount) = await PrivateRetryDownloadAsync(artwork, file, converter, url).ConfigureAwait(false);
+                (branch, byteCount, noDetailDownload) = await PrivateRetryDownloadAsync(artwork, file, converter, url, noDetailDownload).ConfigureAwait(false);
                 if (branch == false)
                 {
-                    return false;
+                    return (false, noDetailDownload);
                 }
             } while (branch == null);
 
-            DownloadByteCount += byteCount;
-            ++DownloadFileCount;
+            Interlocked.Add(ref DownloadByteCount, byteCount);
+            Interlocked.Increment(ref DownloadFileCount);
             if (!pipe)
             {
                 logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
             }
 
-            return true;
+            return (true, noDetailDownload);
         }
 
-        private async ValueTask<(bool?, ulong)> PrivateRetryDownloadAsync(Artwork artwork, FileInfo file, IConverter? converter, string url)
+        private async ValueTask<(bool?, ulong, bool)> PrivateRetryDownloadAsync(Artwork artwork, FileInfo file, IConverter? converter, string url, bool noDetailDownload)
         {
+            HttpResponseMessage response;
             ulong byteCount;
+            using (var request = new HttpRequestMessage(HttpMethod.Get, url))
+            {
+                var headers = request.Headers;
+                headers.Referrer = referer;
+                response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            }
+
             try
             {
-                byteCount = await PrivateDownloadAsync(artwork, file, converter, url).ConfigureAwait(false);
-            }
-            catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == HttpStatusCode.NotFound)
-            {
-                if (!pipe)
+                if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    logger.LogError($"{VirtualCodes.BrightRedColor}Not Found: {url}{VirtualCodes.NormalizeColor}");
+                    Interlocked.Exchange(ref authentication, await networkClient.ReconnectAsync(pipe, token).ConfigureAwait(false));
+                    return (default, default, noDetailDownload);
                 }
 
-                if (await DownloadFilePrepareDetailAsync(artwork).ConfigureAwait(false))
+                if (noDetailDownload && response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    return default;
-                }
-                else
-                {
-                    return (false, default);
-                }
-            }
-            catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.BadRequest)
-            {
-                authentication = await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
-                return default;
-            }
-            catch (Exception e) when (e is not TaskCanceledException && e.InnerException is not TaskCanceledException)
-            {
-                if (!pipe)
-                {
-                    logger.LogError(e, $"{VirtualCodes.BrightRedColor}Download failed. Url: {url}{VirtualCodes.NormalizeColor}");
+                    if (!pipe)
+                    {
+                        logger.LogError($"{VirtualCodes.BrightRedColor}Not Found: {url}{VirtualCodes.NormalizeColor}");
+                    }
+
+                    return (await DownloadFilePrepareDetailAsync(artwork).ConfigureAwait(false) ? null : false, default, false);
                 }
 
-                return (false, default);
-            }
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (!pipe)
+                    {
+                        logger.LogError($"{VirtualCodes.BrightRedColor}Download failed. Url: {url}{VirtualCodes.NormalizeColor}");
+                    }
 
-            return (true, byteCount);
-        }
+                    return (false, default, noDetailDownload);
+                }
 
-        private async ValueTask<ulong> PrivateDownloadAsync(Artwork artwork, FileInfo file, IConverter? converter, string url)
-        {
-            using var request = new HttpRequestMessage(HttpMethod.Get, url);
-            var headers = request.Headers;
-            headers.Referrer = referer;
-
-            using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-            response.EnsureSuccessStatusCode();
-            ulong byteCount;
-            using (var stream = new FileStream(file.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true))
-            {
+                using var stream = new FileStream(file.FullName, FileMode.CreateNew, FileAccess.Write, FileShare.Read, 8192, true);
                 // Write to the file should not be cancelled.
                 await response.Content.CopyToAsync(stream, CancellationToken.None).ConfigureAwait(false);
                 byteCount = (ulong)stream.Length;
             }
-
-            if (converter is not null && await converter.TryConvertAsync(artwork, logger, CancellationToken.None).ConfigureAwait(false))
+            finally
             {
-                converter.DeleteUnneccessaryOriginal(artwork, logger);
+                response.Dispose();
             }
 
-            return byteCount;
+            _ = converter?.TryConvertAsync(artwork, logger, CancellationToken.None).AsTask().ContinueWith((Task<bool> task) =>
+            {
+                if (task.Result)
+                {
+                    converter.DeleteUnneccessaryOriginal(artwork, logger);
+                }
+            });
+
+            return (true, byteCount, noDetailDownload);
         }
 
         private async ValueTask<bool> DownloadFilePrepareDetailAsync(Artwork artwork)
         {
-            if (artwork is null)
-            {
-                return false;
-            }
-
-            noDetailDownload = false;
             bool success;
         RETRY:
             try
@@ -211,7 +196,5 @@ public partial class NetworkClient
 
             return success;
         }
-
-        public void Initialize() => noDetailDownload = true;
     }
 }
