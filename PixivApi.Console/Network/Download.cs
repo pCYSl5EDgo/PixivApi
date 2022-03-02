@@ -30,7 +30,7 @@ public partial class NetworkClient
             return;
         }
 
-        var (database, artworks, authentication) = await PrepareDownloadFileAsync(path, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks) = await PrepareDownloadFileAsync(path, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
             return;
@@ -38,7 +38,7 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var alreadyCount = 0;
-        var machine = new DownloadAsyncMachine(this, database, authentication, pipe, token);
+        var machine = new DownloadAsyncMachine(this, database, authenticationHeaderValueHolder, pipe, token);
         try
         {
             await Parallel.ForEachAsync(artworks, token, async (artwork, token) =>
@@ -177,7 +177,7 @@ public partial class NetworkClient
         return true;
     }
 
-    private async ValueTask<(DatabaseFile, IAsyncEnumerable<Artwork>?, AuthenticationHeaderValue)> PrepareDownloadFileAsync(
+    private async ValueTask<(DatabaseFile, IAsyncEnumerable<Artwork>?)> PrepareDownloadFileAsync(
         string path,
         ArtworkFilter? filter,
         string destinationDirectory,
@@ -209,13 +209,13 @@ public partial class NetworkClient
             return default;
         }
 
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
+        _ = await ConnectAsync(token).ConfigureAwait(false);
 
         filter.PageCount ??= new();
         filter.PageCount.Min ??= 1;
 
         var artworkCollection = FilterExtensions.CreateAsyncEnumerable(finder, database, filter, token);
-        return (database, artworkCollection, authentication);
+        return (database, artworkCollection);
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");

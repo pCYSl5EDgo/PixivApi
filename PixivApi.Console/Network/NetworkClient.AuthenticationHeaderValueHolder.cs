@@ -5,7 +5,7 @@ namespace PixivApi.Console;
 
 public sealed partial class NetworkClient
 {
-    private sealed record class AuthenticationHeaderValueHolder(ConfigSettings ConfigSettings, HttpClient HttpClient) : ISingleUpdater<AuthenticationHeaderValue>
+    private sealed record class AuthenticationHeaderValueHolder(ConfigSettings ConfigSettings, HttpClient HttpClient, TimeSpan WaitInterval, TimeSpan LoopInterval) : ISingleUpdater<AuthenticationHeaderValue>
     {
         private Task<AuthenticationHeaderValue>? taskBearerToken;
 

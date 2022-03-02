@@ -5,6 +5,10 @@ public interface ISingleUpdater<T>
     ref Task<T>? GetTask { get; }
 
     Task<T> UpdateAsync(CancellationToken token);
+
+    TimeSpan WaitInterval { get; }
+
+    TimeSpan LoopInterval { get; }
 }
 
 public static class SingleUpdateUtility
@@ -14,13 +18,15 @@ public static class SingleUpdateUtility
         var current = singleUpdater.GetTask;
         if (current is not null && ReferenceEquals(Interlocked.CompareExchange(ref singleUpdater.GetTask, null, current), current))
         {
+            await Task.Delay(singleUpdater.WaitInterval, token).ConfigureAwait(false);
             singleUpdater.GetTask = singleUpdater.UpdateAsync(token);
         }
         else
         {
+            var interval = singleUpdater.LoopInterval;
             while (singleUpdater.GetTask is null)
             {
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                await Task.Delay(interval, token).ConfigureAwait(false);
             }
         }
 

@@ -22,7 +22,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         this.client = client;
         finder = finderFacade;
         converter = converterFacade;
-        authenticationHeaderValueHolder = new(config, client);
+        authenticationHeaderValueHolder = new(config, client, configSettings.ReconnectWaitIntervalTimeSpan, configSettings.ReconnectLoopIntervalTimeSpan);
     }
 
     private void AddToHeader(HttpRequestMessage request, AuthenticationHeaderValue authentication)
@@ -34,10 +34,13 @@ public sealed partial class NetworkClient : ConsoleAppBase
         }
     }
 
+    /// <summary>
+    /// This must be called from single thread.
+    /// </summary>
     private Task<AuthenticationHeaderValue> ConnectAsync(CancellationToken token)
     {
         client.AddToDefaultHeader(configSettings);
-        return SingleUpdateUtility.GetAsync(authenticationHeaderValueHolder, token);
+        return authenticationHeaderValueHolder.GetTask ??= authenticationHeaderValueHolder.UpdateAsync(token);
     }
 
     private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(bool pipe, CancellationToken token)
