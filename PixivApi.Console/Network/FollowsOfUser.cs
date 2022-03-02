@@ -25,7 +25,6 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
         if (overwrite == OverwriteKind.all)
         {
@@ -41,10 +40,11 @@ public partial class NetworkClient
             }).ConfigureAwait(false);
         }
 
+        var authentication = await ConnectAsync(token).ConfigureAwait(false);
+        var url = $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}";
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
         try
         {
-            var url = $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}";
             await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 var oldAdd = add;
