@@ -38,6 +38,11 @@ public sealed class UserFilter
 
     public bool Filter(User user)
     {
+        if (user.ExtraHideReason != HideReason.NotHidden)
+        {
+            return false;
+        }
+
         if (IsFollowed.HasValue && user.IsFollowed != IsFollowed.Value)
         {
             return false;

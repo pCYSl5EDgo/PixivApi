@@ -40,6 +40,11 @@ public sealed class ArtworkFilter
 
     public bool FilterWithoutFileExistance(Artwork artwork)
     {
+        if (artwork.ExtraHideReason != HideReason.NotHidden)
+        {
+            return false;
+        }
+
         if (IsOfficiallyRemoved.HasValue && IsOfficiallyRemoved.Value != artwork.IsOfficiallyRemoved)
         {
             return false;
@@ -149,10 +154,8 @@ public sealed class ArtworkFilter
             FileExistanceFilter?.Initialize(finderFacade);
         }
 
-        if (UserFilter is not null)
-        {
-            await UserFilter.InitializeAsync(userDictionary, tagSet, cancellationToken).ConfigureAwait(false);
-        }
+        UserFilter ??= new();
+        await UserFilter.InitializeAsync(userDictionary, tagSet, cancellationToken).ConfigureAwait(false);
 
         if (TagFilter is not null)
         {
