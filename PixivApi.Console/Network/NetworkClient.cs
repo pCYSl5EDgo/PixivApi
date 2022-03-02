@@ -1,6 +1,5 @@
 ﻿using PixivApi.Core;
 using PixivApi.Core.Network;
-using System.Net;
 using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
@@ -14,6 +13,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
     private readonly HttpClient client;
     private readonly FinderFacade finder;
     private readonly ConverterFacade converter;
+    private readonly AuthenticationHeaderValueHolder authenticationHeaderValueHolder;
 
     public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, FinderFacade finderFacade, ConverterFacade converterFacade)
     {
@@ -22,43 +22,25 @@ public sealed partial class NetworkClient : ConsoleAppBase
         this.client = client;
         finder = finderFacade;
         converter = converterFacade;
+        authenticationHeaderValueHolder = new(config, client);
     }
 
-    private void AddToHeader(HttpRequestMessage request)
+    private void AddToHeader(HttpRequestMessage request, AuthenticationHeaderValue authentication)
     {
+        request.Headers.Authorization = authentication;
         if (!request.TryAddToHeader(configSettings.HashSecret, ApiHost))
         {
             throw new InvalidOperationException();
         }
     }
 
-    private async ValueTask<bool> Connect()
+    private Task<AuthenticationHeaderValue> ConnectAsync(CancellationToken token)
     {
-        var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, configSettings, Context.CancellationToken).ConfigureAwait(false);
-        if (accessToken is null)
-        {
-            logger.LogError(VirtualCodes.BrightRedColor + "Failed to get access token." + VirtualCodes.NormalizeColor);
-            return false;
-        }
-
-        return client.TryAddToDefaultHeader(configSettings, accessToken);
+        client.AddToDefaultHeader(configSettings);
+        return SingleUpdateUtility.GetAsync(authenticationHeaderValueHolder, token);
     }
 
-    private async ValueTask<bool> Reconnect()
-    {
-        var accessToken = await AccessTokenUtility.GetAccessTokenAsync(client, configSettings, Context.CancellationToken).ConfigureAwait(false);
-        if (accessToken is null)
-        {
-            logger.LogError(VirtualCodes.BrightRedColor + "Failed to get access token." + VirtualCodes.NormalizeColor);
-            return false;
-        }
-
-        var headers = client.DefaultRequestHeaders;
-        headers.Authorization = new("Bearer", accessToken);
-        return true;
-    }
-
-    private async ValueTask ReconnectAsync(Exception exception, bool pipe, CancellationToken token)
+    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(Exception exception, bool pipe, CancellationToken token)
     {
         if (!pipe)
         {
@@ -66,14 +48,8 @@ public sealed partial class NetworkClient : ConsoleAppBase
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        if (await Reconnect().ConfigureAwait(false))
-        {
-            if (!pipe)
-            {
-                logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect.{VirtualCodes.NormalizeColor}");
-            }
-        }
-        else
+        var authentication = await SingleUpdateUtility.GetAsync(authenticationHeaderValueHolder, token).ConfigureAwait(false);
+        if (authentication is null)
         {
             if (!pipe)
             {
@@ -82,37 +58,44 @@ public sealed partial class NetworkClient : ConsoleAppBase
 
             ExceptionDispatchInfo.Throw(exception);
         }
+        else
+        {
+            if (!pipe)
+            {
+                logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect.{VirtualCodes.NormalizeColor}");
+            }
+        }
+
+        return authentication;
     }
 
-    private async ValueTask<byte[]> RetryGetAsync(string url, bool pipe, CancellationToken token)
+    private async ValueTask<byte[]> RetryGetAsync(string url, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
     {
         do
         {
             using HttpRequestMessage request = new(HttpMethod.Get, url);
-            AddToHeader(request);
-            string? reasonPhrase = null;
-            try
+            AddToHeader(request, authentication);
+            using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            if (responseMessage.IsSuccessStatusCode)
             {
-                using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-                reasonPhrase = responseMessage.ReasonPhrase;
-                responseMessage.EnsureSuccessStatusCode();
                 return await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
             }
-            catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.Forbidden)
+
+            if (responseMessage.StatusCode != HttpStatusCode.Forbidden)
             {
-                token.ThrowIfCancellationRequested();
-                if (!pipe)
-                {
-                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
-                }
+                responseMessage.EnsureSuccessStatusCode();
+            }
 
-                await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                if (!pipe)
-                {
-                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart.{VirtualCodes.NormalizeColor}");
-                }
+            token.ThrowIfCancellationRequested();
+            if (!pipe)
+            {
+                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
+            }
 
-                continue;
+            await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
+            if (!pipe)
+            {
+                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart.{VirtualCodes.NormalizeColor}");
             }
         } while (true);
     }

@@ -6,12 +6,12 @@ namespace PixivApi.Console;
 public partial class NetworkClient
 {
     [Command("search")]
-    public async ValueTask<int> SearchAsync(
+    public async ValueTask SearchAsync(
         [Option(0, ArgumentDescriptions.DatabaseDescription)] string output,
         [Option(1, "search text")] string text,
         [Option("e", "end_date")] string? end_date = null,
         ushort offset = 0,
-        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.add,
+        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.diff,
         bool pipe = false
     )
     {
@@ -22,7 +22,7 @@ public partial class NetworkClient
                 logger.LogError("empty.");
             }
 
-            return -1;
+            return;
         }
 
         var searchArray = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -33,28 +33,23 @@ public partial class NetworkClient
                 logger.LogError("invalid url.");
             }
 
-            return -1;
+            return;
         }
 
         var token = Context.CancellationToken;
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
-        if (!await Connect().ConfigureAwait(false))
-        {
-            return -1;
-        }
-
-        var add = 0UL;
-        var update = 0UL;
+        var authentication = await ConnectAsync(token).ConfigureAwait(false);
+        ulong add = 0UL, update = 0UL;
         try
         {
-            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
                 {
                     if (token.IsCancellationRequested)
                     {
-                        return 0;
+                        return;
                     }
 
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
@@ -82,7 +77,7 @@ public partial class NetworkClient
                     );
                 }
 
-                if (overwrite == OverwriteKind.add && add == oldAdd)
+                if (overwrite == OverwriteKind.diff && add == oldAdd)
                 {
                     break;
                 }
@@ -100,8 +95,6 @@ public partial class NetworkClient
                 logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {update}");
             }
         }
-
-        return 0;
     }
 
     private static string CalcSearchUrl(string[] array, string? end_date, ushort offset)

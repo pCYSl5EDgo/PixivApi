@@ -6,7 +6,7 @@ namespace PixivApi.Console;
 public partial class NetworkClient
 {
     [Command("download")]
-    public async ValueTask<int> DownloadFileFromDatabaseAsync(
+    public async ValueTask DownloadFileFromDatabaseAsync(
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
@@ -19,7 +19,7 @@ public partial class NetworkClient
         var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         if (artworkFilter is not { FileExistanceFilter: { } fileFilter })
         {
-            return -1;
+            return;
         }
 
         var shouldDownloadOriginal = fileFilter.Original != FileExistanceType.None;
@@ -27,18 +27,18 @@ public partial class NetworkClient
         var shouldDownloadUgoira = fileFilter.Ugoira is not null;
         if (!shouldDownloadOriginal && !shouldDownloadThumbnail && !shouldDownloadUgoira)
         {
-            return -1;
+            return;
         }
 
-        var (database, artworks) = await PrepareDownloadFileAsync(path, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks, authentication) = await PrepareDownloadFileAsync(path, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
-            return -1;
+            return;
         }
 
         var downloadItemCount = 0;
         var alreadyCount = 0;
-        var machine = new DownloadAsyncMachine(this, database, pipe, token);
+        var machine = new DownloadAsyncMachine(this, database, authentication, pipe, token);
         try
         {
             await foreach (var artwork in artworks)
@@ -75,8 +75,6 @@ public partial class NetworkClient
                 await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
             }
         }
-
-        return 0;
     }
 
     private async ValueTask<bool> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, ConverterFacade? converter)
@@ -147,7 +145,7 @@ public partial class NetworkClient
         return true;
     }
 
-    private async ValueTask<(DatabaseFile, IAsyncEnumerable<Artwork>?)> PrepareDownloadFileAsync(
+    private async ValueTask<(DatabaseFile, IAsyncEnumerable<Artwork>?, AuthenticationHeaderValue)> PrepareDownloadFileAsync(
         string path,
         ArtworkFilter? filter,
         string destinationDirectory,
@@ -179,16 +177,13 @@ public partial class NetworkClient
             return default;
         }
 
-        if (!await Connect().ConfigureAwait(false))
-        {
-            return default;
-        }
+        var authentication = await ConnectAsync(token).ConfigureAwait(false);
 
         filter.PageCount ??= new();
         filter.PageCount.Min ??= 1;
 
         var artworkCollection = FilterExtensions.CreateAsyncEnumerable(finder, database, filter, token);
-        return (database, artworkCollection);
+        return (database, artworkCollection, authentication);
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");

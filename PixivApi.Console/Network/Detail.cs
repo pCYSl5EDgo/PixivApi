@@ -1,13 +1,12 @@
 using PixivApi.Core;
 using PixivApi.Core.Local;
-using System.Net;
 
 namespace PixivApi.Console;
 
 public partial class NetworkClient
 {
     [Command("update")]
-    public async ValueTask<int> UpdateAsync
+    public async ValueTask UpdateAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
         [Option(1, $"{ArgumentDescriptions.FilterDescription}")] string filter,
@@ -16,21 +15,18 @@ public partial class NetworkClient
     {
         if (string.IsNullOrWhiteSpace(output) || string.IsNullOrWhiteSpace(filter))
         {
-            return -1;
+            return;
         }
 
         var token = Context.CancellationToken;
         var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         if (artworkFilter is null)
         {
-            return -1;
+            return;
         }
 
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
-        if (!await Connect().ConfigureAwait(false))
-        {
-            return -3;
-        }
+        var authentication = await ConnectAsync(token).ConfigureAwait(false);
 
         ulong update = 0;
         try
@@ -40,7 +36,7 @@ public partial class NetworkClient
             RETRY:
                 try
                 {
-                    var artwork = await GetArtworkDetailAsync(item.Id, pipe, token).ConfigureAwait(false);
+                    var artwork = await GetArtworkDetailAsync(item.Id, authentication, pipe, token).ConfigureAwait(false);
                     if (artwork.User.Id == 0)
                     {
                         goto REMOVED;
@@ -50,7 +46,7 @@ public partial class NetworkClient
                     ++update;
                     if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                     {
-                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(artwork.Id, pipe, token).ConfigureAwait(false);
+                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(artwork.Id, authentication, pipe, token).ConfigureAwait(false);
                     }
 
                     item.Overwrite(converted);
@@ -84,14 +80,11 @@ public partial class NetworkClient
                     }
 
                     await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                    if (!await Reconnect().ConfigureAwait(false))
-                    {
-                        throw;
-                    }
+                    authentication = await ReconnectAsync(e, pipe, token).ConfigureAwait(false);
 
                     goto RETRY;
                 }
-            
+
             REMOVED:
                 item.IsOfficiallyRemoved = true;
                 if (!pipe)
@@ -112,22 +105,20 @@ public partial class NetworkClient
                 logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Update: {update}");
             }
         }
-
-        return 0;
     }
 
-    private async ValueTask<Core.Network.Artwork> GetArtworkDetailAsync(ulong id, bool pipe, CancellationToken token)
+    private async ValueTask<Core.Network.Artwork> GetArtworkDetailAsync(ulong id, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
     {
         var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
-        var content = await RetryGetAsync(url, pipe, token).ConfigureAwait(false);
+        var content = await RetryGetAsync(url, authentication, pipe, token).ConfigureAwait(false);
         var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
         return response.Illust;
     }
 
-    private async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(ulong id, bool pipe, CancellationToken token)
+    private async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(ulong id, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
     {
         var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
-        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, pipe, token).ConfigureAwait(false)).AsSpan());
+        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, authentication, pipe, token).ConfigureAwait(false)).AsSpan());
         var frames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
         for (var frameIndex = 0; frameIndex < frames.Length; frameIndex++)
         {

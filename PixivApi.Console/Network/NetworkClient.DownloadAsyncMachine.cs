@@ -10,12 +10,13 @@ public partial class NetworkClient
     /// </summary>
     private sealed class DownloadAsyncMachine
     {
-        public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, bool pipe, CancellationToken token)
+        public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
         {
             client = networkClient.client;
             logger = networkClient.logger;
             this.networkClient = networkClient;
             this.database = database;
+            this.authentication = authentication;
             this.pipe = pipe;
             this.token = token;
         }
@@ -24,6 +25,7 @@ public partial class NetworkClient
         private readonly ILogger logger;
         private readonly NetworkClient networkClient;
         private readonly DatabaseFile database;
+        private AuthenticationHeaderValue authentication;
         private readonly bool pipe;
         private readonly CancellationToken token;
         public int DownloadFileCount = 0;
@@ -103,7 +105,7 @@ public partial class NetworkClient
             {
                 byteCount = await PrivateDownloadAsync(artwork, file, converter, url).ConfigureAwait(false);
             }
-            catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == System.Net.HttpStatusCode.NotFound)
+            catch (HttpRequestException e) when (noDetailDownload && e.StatusCode == HttpStatusCode.NotFound)
             {
                 if (!pipe)
                 {
@@ -119,9 +121,9 @@ public partial class NetworkClient
                     return (false, default);
                 }
             }
-            catch (HttpRequestException e) when (e.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.BadRequest)
             {
-                await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
+                authentication = await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
                 return default;
             }
             catch (Exception e) when (e is not TaskCanceledException && e.InnerException is not TaskCanceledException)
@@ -173,23 +175,23 @@ public partial class NetworkClient
         RETRY:
             try
             {
-                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, pipe, token).ConfigureAwait(false);
+                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, authentication, pipe, token).ConfigureAwait(false);
                 var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                 artwork.Overwrite(converted);
                 if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
                 {
-                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, pipe, token).ConfigureAwait(false);
+                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, authentication, pipe, token).ConfigureAwait(false);
                 }
 
                 success = !converted.IsOfficiallyRemoved;
             }
             catch (HttpRequestException e) when (e.StatusCode.HasValue)
             {
-                if (e.StatusCode.Value == System.Net.HttpStatusCode.NotFound)
+                if (e.StatusCode.Value == HttpStatusCode.NotFound)
                 {
                     artwork.IsOfficiallyRemoved = true;
                 }
-                else if (e.StatusCode.Value == System.Net.HttpStatusCode.BadRequest)
+                else if (e.StatusCode.Value == HttpStatusCode.BadRequest)
                 {
                     await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
                     goto RETRY;

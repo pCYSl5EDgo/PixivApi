@@ -6,7 +6,7 @@ namespace PixivApi.Console;
 public partial class NetworkClient
 {
     [Command("ranking")]
-    public async ValueTask<int> DownloadRankingAsync
+    public async ValueTask DownloadRankingAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
         [Option(1, ArgumentDescriptions.RankingDescription)] Core.Local.RankingKind ranking = Core.Local.RankingKind.day,
@@ -14,24 +14,21 @@ public partial class NetworkClient
         bool pipe = false
     )
     {
-        if (!await Connect().ConfigureAwait(false))
-        {
-            return -3;
-        }
-
         var token = Context.CancellationToken;
+        var authentication = await ConnectAsync(token).ConfigureAwait(false);
         var database = (await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false)) ?? new();
         var add = 0UL;
         var rankingList = new List<ulong>();
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(GetRankingUrl(date, ranking), RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            var url = GetRankingUrl(date, ranking);
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {
                     if (token.IsCancellationRequested)
                     {
-                        return 0;
+                        return;
                     }
 
                     var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
@@ -74,8 +71,6 @@ public partial class NetworkClient
                 logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {(ulong)rankingList.Count - add}");
             }
         }
-
-        return 0;
     }
 
     private static string GetRankingUrl(DateOnly? date, Core.Local.RankingKind ranking)
