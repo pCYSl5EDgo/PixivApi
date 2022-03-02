@@ -41,26 +41,26 @@ public partial class NetworkClient
         var machine = new DownloadAsyncMachine(this, database, authentication, pipe, token);
         try
         {
-            await foreach (var artwork in artworks)
+            await Parallel.ForEachAsync(artworks, token, async (artwork, token) =>
             {
-                if (token.IsCancellationRequested || (machine.DownloadByteCount >> 30) >= gigaByteCount)
+                token.ThrowIfCancellationRequested();
+                if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
                 {
-                    break;
+                    return;
                 }
 
-                machine.Initialize();
                 var success = artwork.Type == ArtworkType.Ugoira ?
                     await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, encode ? converter : null).ConfigureAwait(false) :
                     await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, encode ? converter : null).ConfigureAwait(false);
                 if (success)
                 {
-                    ++downloadItemCount;
+                    Interlocked.Increment(ref downloadItemCount);
                 }
                 else
                 {
-                    ++alreadyCount;
+                    Interlocked.Increment(ref alreadyCount);
                 }
-            }
+            }).ConfigureAwait(false);
         }
         finally
         {
@@ -79,8 +79,15 @@ public partial class NetworkClient
 
     private async ValueTask<bool> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, ConverterFacade? converter)
     {
+        var downloadAny = false;
+        var noDetailDownload = true;
         for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
         {
+            if ((artwork.ExtraHideLast && pageIndex == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary && dictionary.TryGetValue(pageIndex, out var reason) && reason != HideReason.NotHidden))
+            {
+                continue;
+            }
+
             if (shouldDownloadOriginal)
             {
                 var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetNotUgoiraOriginalFileName(pageIndex));
@@ -89,10 +96,14 @@ public partial class NetworkClient
                     continue;
                 }
 
-                if (!await machine.DownloadAsync(pageFile, artwork, converter?.OriginalConverter, artwork.GetNotUgoiraOriginalUrl, pageIndex).ConfigureAwait(false))
+                var (Success, NoDetailDownload) = await machine.DownloadAsync(pageFile, artwork, converter?.OriginalConverter, noDetailDownload, artwork.GetNotUgoiraOriginalUrl, pageIndex).ConfigureAwait(false);
+                if (!Success)
                 {
                     return false;
                 }
+
+                noDetailDownload = NoDetailDownload;
+                downloadAny = true;
             }
 
             if (shouldDownloadThumbnail)
@@ -103,42 +114,63 @@ public partial class NetworkClient
                     continue;
                 }
 
-                if (!await machine.DownloadAsync(pageFile, artwork, converter?.ThumbnailConverter, artwork.GetNotUgoiraThumbnailUrl, pageIndex).ConfigureAwait(false))
+                var (Success, NoDetailDownload) = await machine.DownloadAsync(pageFile, artwork, converter?.ThumbnailConverter, noDetailDownload, artwork.GetNotUgoiraThumbnailUrl, pageIndex).ConfigureAwait(false);
+                if (!Success)
                 {
                     return false;
                 }
+
+                noDetailDownload = NoDetailDownload;
+                downloadAny = true;
             }
         }
 
-        return true;
+        return downloadAny;
     }
 
     private async ValueTask<bool> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira, ConverterFacade? converter)
     {
+        var noDetailDownload = true;
         if (shouldDownloadUgoira)
         {
             var ugoiraZipFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetUgoiraZipFileName());
-            if (!ugoiraZipFile.Exists && !await machine.DownloadAsync(ugoiraZipFile, artwork, converter?.UgoiraZipConverter, artwork.GetUgoiraZipUrl).ConfigureAwait(false))
+            if (!ugoiraZipFile.Exists)
             {
-                return false;
+                var (Success, NoDetailDownload) = await machine.DownloadAsync(ugoiraZipFile, artwork, converter?.UgoiraZipConverter, noDetailDownload, calcUrl: artwork.GetUgoiraZipUrl).ConfigureAwait(false);
+                if (!Success)
+                {
+                    return false;
+                }
+
+                noDetailDownload = NoDetailDownload;
             }
         }
 
         if (shouldDownloadOriginal)
         {
             var originalFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetUgoiraOriginalFileName());
-            if (!originalFile.Exists && !await machine.DownloadAsync(originalFile, artwork, converter?.OriginalConverter, artwork.GetUgoiraOriginalUrl).ConfigureAwait(false))
+            if (!originalFile.Exists)
             {
-                return false;
+                var (Success, NoDetailDownload) = await machine.DownloadAsync(originalFile, artwork, converter?.OriginalConverter, noDetailDownload, calcUrl: artwork.GetUgoiraOriginalUrl).ConfigureAwait(false);
+                if (!Success)
+                {
+                    return false;
+                }
+
+                noDetailDownload = NoDetailDownload;
             }
         }
 
         if (shouldDownloadThumbnail)
         {
             var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetUgoiraThumbnailFileName());
-            if (!thumbnailFile.Exists && !await machine.DownloadAsync(thumbnailFile, artwork, converter?.ThumbnailConverter, artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false))
+            if (!thumbnailFile.Exists)
             {
-                return false;
+                var (Success, NoDetailDownload) = await machine.DownloadAsync(thumbnailFile, artwork, converter?.ThumbnailConverter, noDetailDownload, calcUrl: artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false);
+                if (!Success)
+                {
+                    return false;
+                }
             }
         }
 

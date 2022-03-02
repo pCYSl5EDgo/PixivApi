@@ -40,11 +40,11 @@ public sealed partial class NetworkClient : ConsoleAppBase
         return SingleUpdateUtility.GetAsync(authenticationHeaderValueHolder, token);
     }
 
-    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(Exception exception, bool pipe, CancellationToken token)
+    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(bool pipe, CancellationToken token)
     {
         if (!pipe)
         {
-            logger.LogInformation(exception, $"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
+            logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
@@ -56,13 +56,42 @@ public sealed partial class NetworkClient : ConsoleAppBase
                 logger.LogError($"{VirtualCodes.BrightRedColor}Reconnection failed.{VirtualCodes.NormalizeColor}");
             }
 
-            ExceptionDispatchInfo.Throw(exception);
+            throw new IOException();
         }
         else
         {
             if (!pipe)
             {
                 logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect.{VirtualCodes.NormalizeColor}");
+            }
+        }
+
+        return authentication;
+    }
+
+    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(Exception exception, bool pipe, CancellationToken token)
+    {
+        if (!pipe)
+        {
+            logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
+        }
+
+        await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
+        var authentication = await SingleUpdateUtility.GetAsync(authenticationHeaderValueHolder, token).ConfigureAwait(false);
+        if (authentication is null)
+        {
+            if (!pipe)
+            {
+                logger.LogError($"{VirtualCodes.BrightRedColor}Reconnection failed. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
+            }
+
+            ExceptionDispatchInfo.Throw(exception);
+        }
+        else
+        {
+            if (!pipe)
+            {
+                logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
             }
         }
 
@@ -89,13 +118,13 @@ public sealed partial class NetworkClient : ConsoleAppBase
             token.ThrowIfCancellationRequested();
             if (!pipe)
             {
-                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
+                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
             }
 
             await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
             if (!pipe)
             {
-                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart.{VirtualCodes.NormalizeColor}");
+                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
             }
         } while (true);
     }
