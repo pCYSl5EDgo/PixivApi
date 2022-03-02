@@ -41,10 +41,9 @@ public partial class NetworkClient
         var machine = new DownloadAsyncMachine(this, database, authenticationHeaderValueHolder, pipe, token);
         try
         {
-            await Parallel.ForEachAsync(artworks, token, async (artwork, token) =>
+            await foreach (var artwork in artworks)
             {
-                token.ThrowIfCancellationRequested();
-                if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
+                if (token.IsCancellationRequested || (machine.DownloadByteCount >> 30) >= gigaByteCount)
                 {
                     return;
                 }
@@ -60,7 +59,7 @@ public partial class NetworkClient
                 {
                     Interlocked.Increment(ref alreadyCount);
                 }
-            }).ConfigureAwait(false);
+            }
         }
         finally
         {
