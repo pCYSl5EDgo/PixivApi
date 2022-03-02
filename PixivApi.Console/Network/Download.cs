@@ -38,7 +38,7 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var alreadyCount = 0;
-        var machine = new DownloadAsyncMachine(this, database, authenticationHeaderValueHolder, pipe, token);
+        var machine = new DownloadAsyncMachine(this, database, holder, pipe, token);
         try
         {
             await foreach (var artwork in artworks)

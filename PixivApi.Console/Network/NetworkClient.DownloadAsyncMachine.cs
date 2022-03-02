@@ -160,17 +160,12 @@ public partial class NetworkClient
         RETRY:
             try
             {
-                if (holder.GetTask is null)
-                {
-                    throw new InvalidProgramException();
-                }
-
-                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, await holder.GetTask.ConfigureAwait(false), pipe, token).ConfigureAwait(false);
+                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), pipe, token).ConfigureAwait(false);
                 var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                 artwork.Overwrite(converted);
                 if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
                 {
-                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, await holder.GetTask.ConfigureAwait(false), pipe, token).ConfigureAwait(false);
+                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), pipe, token).ConfigureAwait(false);
                 }
 
                 success = !converted.IsOfficiallyRemoved;

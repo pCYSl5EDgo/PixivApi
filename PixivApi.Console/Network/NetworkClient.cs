@@ -5,7 +5,7 @@ using System.Runtime.ExceptionServices;
 namespace PixivApi.Console;
 
 [Command("net")]
-public sealed partial class NetworkClient : ConsoleAppBase
+public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 {
     private const string ApiHost = "app-api.pixiv.net";
     private readonly ConfigSettings configSettings;
@@ -13,7 +13,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
     private readonly HttpClient client;
     private readonly FinderFacade finder;
     private readonly ConverterFacade converter;
-    private readonly AuthenticationHeaderValueHolder authenticationHeaderValueHolder;
+    private readonly AuthenticationHeaderValueHolder holder;
 
     public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, FinderFacade finderFacade, ConverterFacade converterFacade)
     {
@@ -22,8 +22,10 @@ public sealed partial class NetworkClient : ConsoleAppBase
         this.client = client;
         finder = finderFacade;
         converter = converterFacade;
-        authenticationHeaderValueHolder = new(config, client, configSettings.ReconnectWaitIntervalTimeSpan, configSettings.ReconnectLoopIntervalTimeSpan);
+        holder = new(config, client, configSettings.ReconnectLoopIntervalTimeSpan);
     }
+
+    public void Dispose() => holder.Dispose();
 
     private void AddToHeader(HttpRequestMessage request, AuthenticationHeaderValue authentication)
     {
@@ -37,10 +39,10 @@ public sealed partial class NetworkClient : ConsoleAppBase
     /// <summary>
     /// This must be called from single thread.
     /// </summary>
-    private Task<AuthenticationHeaderValue> ConnectAsync(CancellationToken token)
+    private ValueTask<AuthenticationHeaderValue> ConnectAsync(CancellationToken token)
     {
         client.AddToDefaultHeader(configSettings);
-        return authenticationHeaderValueHolder.GetTask ??= authenticationHeaderValueHolder.UpdateAsync(token);
+        return holder.ConnectAsync(token);
     }
 
     private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(bool pipe, CancellationToken token)
@@ -51,7 +53,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        var authentication = await SingleUpdateUtility.GetAsync(authenticationHeaderValueHolder, token).ConfigureAwait(false);
+        var authentication = await holder.GetAsync(token).ConfigureAwait(false);
         if (authentication is null)
         {
             if (!pipe)
@@ -80,7 +82,7 @@ public sealed partial class NetworkClient : ConsoleAppBase
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        var authentication = await SingleUpdateUtility.GetAsync(authenticationHeaderValueHolder, token).ConfigureAwait(false);
+        var authentication = await holder.GetAsync(token).ConfigureAwait(false);
         if (authentication is null)
         {
             if (!pipe)

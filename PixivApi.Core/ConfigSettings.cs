@@ -29,5 +29,5 @@ public sealed class ConfigSettings
     public string? OriginalConverterPlugin { get; set; }
 
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
-    [JsonIgnore] public TimeSpan ReconnectLoopIntervalTimeSpan => TimeSpan.FromSeconds(ReconnectLoopIntervalMinutes);
+    [JsonIgnore] public TimeSpan ReconnectLoopIntervalTimeSpan => TimeSpan.FromMinutes(ReconnectLoopIntervalMinutes);
 }
