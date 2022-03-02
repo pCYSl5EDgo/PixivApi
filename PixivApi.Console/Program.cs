@@ -15,7 +15,7 @@ public sealed class Program
 
         using var handler = new SocketsHttpHandler()
         {
-            AutomaticDecompression = System.Net.DecompressionMethods.All,
+            AutomaticDecompression = DecompressionMethods.All,
             MaxConnectionsPerServer = 2,
         };
 
