@@ -53,7 +53,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        var authentication = await holder.GetAsync(token).ConfigureAwait(false);
+        var authentication = await holder.RegetAsync(token).ConfigureAwait(false);
         if (authentication is null)
         {
             if (!pipe)
@@ -82,7 +82,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        var authentication = await holder.GetAsync(token).ConfigureAwait(false);
+        var authentication = await holder.RegetAsync(token).ConfigureAwait(false);
         if (authentication is null)
         {
             if (!pipe)
