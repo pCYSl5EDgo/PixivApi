@@ -4,32 +4,12 @@ namespace PixivApi.Core.Network;
 
 public static class HttpRequestMessageUtility
 {
-    public static bool TryAddToDefaultHeader(this HttpClient client, ConfigSettings config, [NotNullWhen(true)] string? accessToken)
+    public static void AddToDefaultHeader(this HttpClient client, ConfigSettings config)
     {
-        if (string.IsNullOrEmpty(accessToken))
-        {
-            return false;
-        }
-
         var headers = client.DefaultRequestHeaders;
-        headers.Authorization = new("Bearer", accessToken);
-
-        if (!headers.TryAddWithoutValidation("app-os", config.AppOS))
-        {
-            return false;
-        }
-
-        if (!headers.TryAddWithoutValidation("app-os-version", config.AppOSVersion))
-        {
-            return false;
-        }
-
-        if (!headers.TryAddWithoutValidation("user-agent", config.UserAgent))
-        {
-            return false;
-        }
-
-        return true;
+        headers.Add("app-os", config.AppOS);
+        headers.Add("app-os-version", config.AppOSVersion);
+        headers.Add("user-agent", config.UserAgent);
     }
 
     public static bool TryAddToHeader(this HttpRequestMessage message, string hashSecret, string host)
