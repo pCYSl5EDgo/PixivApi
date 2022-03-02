@@ -10,8 +10,7 @@ public sealed class ConfigSettings
     public string ClientSecret { get; set; } = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
     public string HashSecret { get; set; } = "";
     public double RetrySeconds { get; set; } = 300d;
-    public double ReconnectWaitIntervalSeconds { get; set; } = 10d;
-    public double ReconnectLoopIntervalMilliseconds { get; set; } = 10d;
+    public double ReconnectLoopIntervalMinutes { get; set; } = 50d;
     public string OriginalFolder { get; set; } = "Original";
     public string ThumbnailFolder { get; set; } = "Thumbnail";
     public string UgoiraFolder { get; set; } = "Ugoira";
@@ -30,6 +29,5 @@ public sealed class ConfigSettings
     public string? OriginalConverterPlugin { get; set; }
 
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
-    [JsonIgnore] public TimeSpan ReconnectWaitIntervalTimeSpan => TimeSpan.FromSeconds(ReconnectWaitIntervalSeconds);
-    [JsonIgnore] public TimeSpan ReconnectLoopIntervalTimeSpan => TimeSpan.FromSeconds(ReconnectLoopIntervalMilliseconds);
+    [JsonIgnore] public TimeSpan ReconnectLoopIntervalTimeSpan => TimeSpan.FromSeconds(ReconnectLoopIntervalMinutes);
 }
