@@ -2,6 +2,6 @@
 
 public enum OverwriteKind
 {
-    add,
-    search,
+    diff,
+    all,
 }
