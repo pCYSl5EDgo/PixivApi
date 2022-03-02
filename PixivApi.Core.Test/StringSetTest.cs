@@ -2,7 +2,7 @@ using Xunit;
 
 namespace PixivApi.Core.Test;
 
-public class UnitTest
+public class StringSetTest
 {
     [Fact]
     public void NoLackTest()
