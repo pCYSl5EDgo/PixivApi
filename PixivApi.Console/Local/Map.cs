@@ -6,7 +6,7 @@ namespace PixivApi.Console;
 public partial class LocalClient
 {
     [Command("map")]
-    public async ValueTask<int> MapAsync(
+    public async ValueTask MapAsync(
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         bool toString = false,
@@ -15,7 +15,7 @@ public partial class LocalClient
     {
         if (string.IsNullOrWhiteSpace(input))
         {
-            goto END;
+            return;
         }
 
         var token = Context.CancellationToken;
@@ -26,7 +26,8 @@ public partial class LocalClient
             {
                 logger.LogInformation("null");
             }
-            goto END;
+
+            return;
         }
 
         var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
@@ -87,13 +88,10 @@ public partial class LocalClient
         {
             logger.LogInformation("]");
         }
-
-    END:
-        return 0;
     }
 
     [Command("map-user")]
-    public async ValueTask<int> MapUserAsync(
+    public async ValueTask MapUserAsync(
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
         uint count = uint.MaxValue,
@@ -103,7 +101,7 @@ public partial class LocalClient
     {
         if (string.IsNullOrWhiteSpace(input))
         {
-            goto END;
+            return;
         }
 
         var token = Context.CancellationToken;
@@ -114,7 +112,8 @@ public partial class LocalClient
             {
                 logger.LogInformation("null");
             }
-            goto END;
+
+            return;
         }
 
         IEnumerable<User> users = database.UserDictionary.Values;
@@ -164,8 +163,5 @@ public partial class LocalClient
         {
             logger.LogInformation("]");
         }
-
-    END:
-        return 0;
     }
 }

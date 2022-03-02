@@ -6,7 +6,7 @@ namespace PixivApi.Console;
 public partial class LocalClient
 {
     [Command("count", "")]
-    public async ValueTask<int> CountAsync(
+    public async ValueTask CountAsync(
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
         bool pipe = false,
@@ -17,20 +17,20 @@ public partial class LocalClient
         var artworkItemFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(input))
         {
-            return -1;
+            return;
         }
 
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
         if (database is not { ArtworkDictionary.IsEmpty: false })
         {
             logger.LogInformation("0");
-            return 0;
+            return;
         }
 
         if (artworkItemFilter is null)
         {
             logger.LogInformation($"{database.ArtworkDictionary.Count}");
-            return 0;
+            return;
         }
 
         await artworkItemFilter.InitializeAsync(finder, database.UserDictionary, database.TagSet, token);
@@ -47,8 +47,6 @@ public partial class LocalClient
         {
             logger.LogInformation($"{await CountWithFileFilterAsync(maskPowerOf2, artworkItemFilter, artworks, artworkItemFilter.FileExistanceFilter, token).ConfigureAwait(false)}");
         }
-
-        return 0;
     }
 
     private static async Task<ulong> CountWithFileFilterAsync(byte maskPowerOf2, ArtworkFilter artworkItemFilter, IEnumerable<Artwork> artworks, FileExistanceFilter fileFilter, CancellationToken token)
