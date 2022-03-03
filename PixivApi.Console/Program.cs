@@ -27,8 +27,8 @@ public sealed class Program
 
         var configSettings = await GetConfigSettingAsync(httpClient, cts.Token).ConfigureAwait(false);
 
-        var finderFacade = await FinderFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
-        var converterFacade = await ConverterFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
+        await using var finderFacade = await FinderFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
+        await using var converterFacade = await ConverterFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
 
         var builder = ConsoleApp
             .CreateBuilder(args, ConfigureOptions)
@@ -45,6 +45,7 @@ public sealed class Program
         var app = builder.Build();
         app.AddSubCommands<NetworkClient>();
         app.AddSubCommands<LocalClient>();
+        app.AddSubCommands<PluginClient>();
         await app.RunAsync(cts.Token).ConfigureAwait(false);
     }
 

@@ -1,5 +1,14 @@
-﻿namespace PixivApi.Core.Plugin;
+﻿using Microsoft.Extensions.Logging;
 
-public interface ICommand
+namespace PixivApi.Core.Plugin;
+
+public interface ICommand : IPlugin
+{
+    string GetHelp();
+
+    ValueTask ExecuteAsync(IEnumerable<string> commandLineArguments, CommandArgument argument, CancellationToken token);
+}
+
+public record struct CommandArgument(HttpClient Client, ILogger Logger, FinderFacade Finder)
 {
 }
