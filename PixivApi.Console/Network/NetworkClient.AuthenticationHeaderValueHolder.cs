@@ -17,7 +17,7 @@ public sealed partial class NetworkClient
                 throw new InvalidOperationException("ConnectAsync must be called only once.");
             }
 
-            var accessToken = await AccessTokenUtility.AuthAsync(HttpClient, ConfigSettings, token).ConfigureAwait(false);
+            var accessToken = await AccessTokenUtility.GetAccessTokenAsync(HttpClient, ConfigSettings, token).ConfigureAwait(false);
             Interlocked.Exchange(ref value, new("Bearer", accessToken));
             expires = DateTime.UtcNow + LoopInterval;
             return value;
@@ -31,7 +31,7 @@ public sealed partial class NetworkClient
                 using var @lock = await asyncLock.LockAsync(token).ConfigureAwait(false);
                 if (value is null || DateTime.UtcNow.CompareTo(expires) > 0)
                 {
-                    var accessToken = await AccessTokenUtility.AuthAsync(HttpClient, ConfigSettings, token).ConfigureAwait(false);
+                    var accessToken = await AccessTokenUtility.GetAccessTokenAsync(HttpClient, ConfigSettings, token).ConfigureAwait(false);
                     Interlocked.Exchange(ref value, new("Bearer", accessToken));
                     expires = DateTime.UtcNow + LoopInterval;
                 }
@@ -46,7 +46,7 @@ public sealed partial class NetworkClient
             using var @lock = await asyncLock.LockAsync(token).ConfigureAwait(false);
             if (value is null || DateTime.UtcNow.CompareTo(expires) > 0)
             {
-                var accessToken = await AccessTokenUtility.AuthAsync(HttpClient, ConfigSettings, token).ConfigureAwait(false);
+                var accessToken = await AccessTokenUtility.GetAccessTokenAsync(HttpClient, ConfigSettings, token).ConfigureAwait(false);
                 Interlocked.Exchange(ref value, new("Bearer", accessToken));
                 expires = DateTime.UtcNow + LoopInterval;
             }
