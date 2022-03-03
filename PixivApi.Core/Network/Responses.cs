@@ -170,7 +170,7 @@ public struct UserDetailWorkspace
     [JsonPropertyName("workspace_image_url")] public string? WorkspaceImageUrl;
 }
 
-public struct IllustsResponseData : INext, IArrayContainer<Artwork>
+public struct IllustsResponseData
 {
     [JsonPropertyName("illusts")] public Artwork[] Illusts;
     [JsonPropertyName("next_url")] public string? NextUrl { get; set; }
@@ -178,7 +178,7 @@ public struct IllustsResponseData : INext, IArrayContainer<Artwork>
     public Artwork[] GetContainer() => Illusts;
 }
 
-public struct UserPreviewsResponseData : INext, IArrayContainer<UserPreview>
+public struct UserPreviewsResponseData
 {
     [JsonPropertyName("user_previews")] public UserPreview[] UserPreviews;
     [JsonPropertyName("next_url")] public string? NextUrl { get; set; }

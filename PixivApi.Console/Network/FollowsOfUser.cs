@@ -8,7 +8,7 @@ public partial class NetworkClient
     public async ValueTask DownloadFollowsOfUserAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.diff,
+        [Option("o", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {
@@ -25,7 +25,7 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
-        if (overwrite == OverwriteKind.all)
+        if (addBehaviour)
         {
             await Parallel.ForEachAsync(database.UserDictionary.Values, token, (user, token) =>
             {
@@ -102,7 +102,7 @@ public partial class NetworkClient
                     }
                 }
 
-                if (overwrite == OverwriteKind.diff && add == oldAdd)
+                if (!addBehaviour && add == oldAdd)
                 {
                     break;
                 }

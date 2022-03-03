@@ -10,7 +10,7 @@ public partial class NetworkClient
         [Option(1, "search text")] string text,
         [Option("e", "end_date")] string? end_date = null,
         ushort offset = 0,
-        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.diff,
+        [Option("o", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {
@@ -76,7 +76,7 @@ public partial class NetworkClient
                     );
                 }
 
-                if (overwrite == OverwriteKind.diff && add == oldAdd)
+                if (!addBehaviour && add == oldAdd)
                 {
                     break;
                 }

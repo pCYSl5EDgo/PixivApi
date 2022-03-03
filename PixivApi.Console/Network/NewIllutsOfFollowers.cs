@@ -8,7 +8,7 @@ public partial class NetworkClient
     public async ValueTask DownloadNewIllustsOfFollowersAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option("o", ArgumentDescriptions.OverwriteKindDescription)] OverwriteKind overwrite = OverwriteKind.diff,
+        [Option("o", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {
@@ -59,7 +59,7 @@ public partial class NetworkClient
                     );
                 }
 
-                if (overwrite == OverwriteKind.diff && add == oldAdd)
+                if (!addBehaviour && add == oldAdd)
                 {
                     break;
                 }
