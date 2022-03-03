@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Plugin;
 
-public sealed class FinderFacade
+public sealed class FinderFacade : IAsyncDisposable
 {
     private FinderFacade(IFinder ugoiraZipFinder, IFinder ugoiraThumbnailFinder, IFinder ugoiraOriginalFinder, IFinderWithIndex illustThumbnailFinder, IFinderWithIndex illustOriginalFinder, IFinderWithIndex mangaThumbnailFinder, IFinderWithIndex mangaOriginalFinder)
     {
@@ -56,5 +56,16 @@ public sealed class FinderFacade
         var mangaThumbnailFinderPlugin = await GetFinderWithIndexAsync<DefaultNotUgoiraThumbnailFinder>(configSettings.MangaThumbnailFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
         var mangaOriginalFinderPlugin = await GetFinderWithIndexAsync<DefaultNotUgoiraOriginalFinder>(configSettings.MangaOriginalFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
         return new(ugoiraZipFinderPlugin, ugoiraThumbnailFinderPlugin, ugoiraOriginalFinderPlugin, illustThumbnailFinderPlugin, illustOriginalFinderPlugin, mangaThumbnailFinderPlugin, mangaOriginalFinderPlugin);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await UgoiraZipFinder.DisposeAsync().ConfigureAwait(false);
+        await UgoiraThumbnailFinder.DisposeAsync().ConfigureAwait(false);
+        await UgoiraOriginalFinder.DisposeAsync().ConfigureAwait(false);
+        await IllustThumbnailFinder.DisposeAsync().ConfigureAwait(false);
+        await IllustOriginalFinder.DisposeAsync().ConfigureAwait(false);
+        await MangaThumbnailFinder.DisposeAsync().ConfigureAwait(false);
+        await MangaOriginalFinder.DisposeAsync().ConfigureAwait(false);
     }
 }
