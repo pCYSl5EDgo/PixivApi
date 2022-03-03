@@ -19,7 +19,7 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
-        var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
         ulong add = 0UL, update = 0UL;
         try
         {
@@ -34,26 +34,25 @@ public partial class NetworkClient
                         return;
                     }
 
-                    var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
-                    database.ArtworkDictionary.AddOrUpdate(
+                    _ = database.ArtworkDictionary.AddOrUpdate(
                         item.Id,
                         _ =>
                         {
                             ++add;
                             if (pipe)
                             {
-                                logger.LogInformation($"{converted.Id}");
+                                logger.LogInformation($"{item.Id}");
                             }
                             else
                             {
-                                logger.LogInformation($"{add,4}: {converted.Id,20}");
+                                logger.LogInformation($"{add,4}: {item.Id,20}");
                             }
-                            return converted;
+                            return LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary);
                         },
                         (_, v) =>
                         {
                             ++update;
-                            v.Overwrite(converted);
+                            LocalNetworkConverter.Overwrite(v, item, database.TagSet, database.ToolSet, database.UserDictionary);
                             return v;
                         }
                     );

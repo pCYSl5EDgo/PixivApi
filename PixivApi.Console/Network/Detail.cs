@@ -39,14 +39,13 @@ public partial class NetworkClient
                         goto REMOVED;
                     }
 
-                    var converted = Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
                     ++update;
                     if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                     {
                         item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(artwork.Id, authentication, pipe, token).ConfigureAwait(false);
                     }
 
-                    item.Overwrite(converted);
+                    LocalNetworkConverter.Overwrite(item, artwork, database.TagSet, database.ToolSet, database.UserDictionary);
                     if (pipe)
                     {
                         logger.LogInformation($"{item.Id}");

@@ -55,8 +55,8 @@ public partial class NetworkClient
                 }
             } while (branch == null);
 
-            Interlocked.Add(ref DownloadByteCount, byteCount);
-            Interlocked.Increment(ref DownloadFileCount);
+            _ = Interlocked.Add(ref DownloadByteCount, byteCount);
+            _ = Interlocked.Increment(ref DownloadFileCount);
             if (!pipe)
             {
                 logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
@@ -81,8 +81,8 @@ public partial class NetworkClient
                 }
             } while (branch == null);
 
-            Interlocked.Add(ref DownloadByteCount, byteCount);
-            Interlocked.Increment(ref DownloadFileCount);
+            _ = Interlocked.Add(ref DownloadByteCount, byteCount);
+            _ = Interlocked.Increment(ref DownloadFileCount);
             if (!pipe)
             {
                 logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
@@ -158,14 +158,13 @@ public partial class NetworkClient
             try
             {
                 var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), pipe, token).ConfigureAwait(false);
-                var converted = Artwork.ConvertFromNetwrok(detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
-                artwork.Overwrite(converted);
+                LocalNetworkConverter.Overwrite(artwork, detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                 if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
                 {
                     artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), pipe, token).ConfigureAwait(false);
                 }
 
-                success = !converted.IsOfficiallyRemoved;
+                success = !artwork.IsOfficiallyRemoved;
             }
             catch (HttpRequestException e) when (e.StatusCode.HasValue)
             {

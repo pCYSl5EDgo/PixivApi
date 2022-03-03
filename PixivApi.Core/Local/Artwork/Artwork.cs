@@ -3,7 +3,7 @@
 namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
-public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
+public sealed partial class Artwork : IEquatable<Artwork>
 {
     // 8 * 4
     public ulong Id;
@@ -40,49 +40,6 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     public string? ExtraMemo;
     public Dictionary<uint, HideReason>? ExtraPageHideReasonDictionary;
     public ushort[]? UgoiraFrames;
-
-    public void Overwrite(Artwork source)
-    {
-        if (Id != source.Id)
-        {
-            return;
-        }
-
-        if (UserId != source.UserId || source.UserId == 0)
-        {
-            IsOfficiallyRemoved = true;
-        }
-
-        if (TotalView < source.TotalView)
-        {
-            TotalView = source.TotalView;
-        }
-
-        TotalBookmarks = source.TotalBookmarks;
-        PageCount = source.PageCount;
-        Width = source.Width;
-        Height = source.Height;
-        Type = source.Type;
-        Extension = source.Extension;
-        ExtraHideReason = source.ExtraHideReason;
-        IsOfficiallyRemoved = source.IsOfficiallyRemoved;
-        IsXRestricted = source.IsXRestricted;
-        IsBookmarked = source.IsBookmarked;
-        IsVisible = source.IsVisible;
-        IsMuted = source.IsMuted;
-        ExtraHideLast = source.ExtraHideLast;
-        CreateDate = source.CreateDate;
-        FileDate = source.FileDate;
-        Tags = source.Tags;
-        OverwriteExtensions.Overwrite(ref ExtraTags, source.ExtraTags);
-        OverwriteExtensions.Overwrite(ref ExtraFakeTags, source.ExtraFakeTags);
-        Tools = source.Tools;
-        Title = source.Title;
-        Caption = source.Caption;
-        OverwriteExtensions.Overwrite(ref ExtraMemo, source.ExtraMemo);
-        OverwriteExtensions.Overwrite(ref ExtraPageHideReasonDictionary, source.ExtraPageHideReasonDictionary);
-        OverwriteExtensions.Overwrite(ref UgoiraFrames, source.UgoiraFrames);
-    }
 
     private void AddDateToUrl(ref DefaultInterpolatedStringHandler handler)
     {
@@ -202,127 +159,6 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         FileExtensionKind.Zip => ".zip",
         FileExtensionKind.None or _ => "",
     };
-
-    private static FileExtensionKind ConvertFromReadOnlySpanToFileExtensionKind(ReadOnlySpan<char> ext)
-    {
-        if (ext.SequenceEqual(".jpg") || ext.SequenceEqual(".jpeg"))
-        {
-            return FileExtensionKind.Jpg;
-        }
-        else if (ext.SequenceEqual(".png"))
-        {
-            return FileExtensionKind.Png;
-        }
-        else if (ext.SequenceEqual(".zip"))
-        {
-            return FileExtensionKind.Zip;
-        }
-        else
-        {
-            return FileExtensionKind.None;
-        }
-    }
-
-    // Local Save Format is seems to be unstable.
-    // This type should rely on relatively stable Network.Artwork
-    public static Artwork ConvertFromNetwrok(Network.ArtworkResponseContent artwork, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
-    {
-        Artwork answer = new()
-        {
-            Id = artwork.Id,
-            UserId = artwork.User.Id,
-            TotalView = artwork.TotalView,
-            TotalBookmarks = artwork.TotalBookmarks,
-            PageCount = artwork.PageCount,
-            Width = artwork.Width,
-            Height = artwork.Height,
-            Type = artwork.Type,
-            Extension = ConvertFromReadOnlySpanToFileExtensionKind(artwork.MetaSinglePage.OriginalImageUrl is string url ? url.AsSpan(url.LastIndexOf('.')) : artwork.MetaPages[0].ImageUrls.Original is string original ? original.AsSpan(original.LastIndexOf('.')) : throw new NullReferenceException()),
-            CreateDate = artwork.CreateDate,
-            Title = artwork.Title,
-            Caption = artwork.Caption,
-            IsXRestricted = artwork.XRestrict != 0,
-            IsBookmarked = artwork.IsBookmarked,
-            IsMuted = artwork.IsMuted,
-            IsVisible = artwork.Visible,
-        };
-
-        userDictionary.TryAdd(artwork.User.Id, artwork.User);
-
-        if (artwork.Tags.Length > 0)
-        {
-            answer.Tags = new uint[artwork.Tags.Length];
-            for (var i = 0; i < answer.Tags.Length; i++)
-            {
-                answer.Tags[i] = tagSet.Register(artwork.Tags[i].Name);
-            }
-        }
-
-        if (artwork.Tools.Length > 0)
-        {
-            answer.Tools = new uint[artwork.Tools.Length];
-            for (var i = 0; i < answer.Tools.Length; i++)
-            {
-                answer.Tools[i] = toolSet.Register(artwork.Tools[i]);
-            }
-        }
-
-        var page = (artwork.MetaSinglePage.OriginalImageUrl ?? artwork.MetaPages[0].ImageUrls.Original).AsSpan();
-        if (!TryParseDate(page, out answer.FileDate))
-        {
-            answer.IsOfficiallyRemoved = true;
-            answer.FileDate = answer.CreateDate.ToLocalTime();
-        }
-
-        return answer;
-
-        static bool TryParseDate(ReadOnlySpan<char> page, out DateTime dateTime)
-        {
-            Unsafe.SkipInit(out dateTime);
-            page = page[..page.LastIndexOf('/')];
-            var secondIndex = page.LastIndexOf('/');
-            if (secondIndex == -1 || !byte.TryParse(page[(secondIndex + 1)..], out var second))
-            {
-                return false;
-            }
-
-            page = page[..secondIndex];
-            var minuteIndex = page.LastIndexOf('/');
-            if (minuteIndex == -1 || !byte.TryParse(page[(minuteIndex + 1)..], out var minute))
-            {
-                return false;
-            }
-
-            page = page[..minuteIndex];
-            var hourIndex = page.LastIndexOf('/');
-            if (hourIndex == -1 || !byte.TryParse(page[(hourIndex + 1)..], out var hour))
-            {
-                return false;
-            }
-
-            page = page[..hourIndex];
-            var dayIndex = page.LastIndexOf('/');
-            if (dayIndex == -1 || !byte.TryParse(page[(dayIndex + 1)..], out var day))
-            {
-                return false;
-            }
-            page = page[..dayIndex];
-            var monthIndex = page.LastIndexOf('/');
-            if (monthIndex == -1 || !byte.TryParse(page[(monthIndex + 1)..], out var month))
-            {
-                return false;
-            }
-            page = page[..monthIndex];
-            var yearIndex = page.LastIndexOf('/');
-            if (yearIndex == -1 || !uint.TryParse(page[(yearIndex + 1)..], out var year))
-            {
-                return false;
-            }
-
-            dateTime = new((int)year, month, day, hour, minute, second);
-            return true;
-        }
-    }
 
     public override string ToString() => Id.ToString();
 

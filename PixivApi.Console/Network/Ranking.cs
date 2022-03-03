@@ -28,26 +28,26 @@ public partial class NetworkClient
                         return;
                     }
 
-                    var converted = Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
-                    rankingList.Add(converted.Id);
-                    database.ArtworkDictionary.AddOrUpdate(
+                    rankingList.Add(item.Id);
+                    _ = database.ArtworkDictionary.AddOrUpdate(
                         item.Id,
                         _ =>
                         {
                             ++add;
                             if (pipe)
                             {
-                                logger.LogInformation($"{converted.Id}");
+                                logger.LogInformation($"{item.Id}");
                             }
                             else
                             {
-                                logger.LogInformation($"{add,4}: {converted.Id,20}");
+                                logger.LogInformation($"{add,4}: {item.Id,20}");
                             }
-                            return converted;
+
+                            return LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary);
                         },
                         (_, v) =>
                         {
-                            v.Overwrite(converted);
+                            LocalNetworkConverter.Overwrite(v, item, database.TagSet, database.ToolSet, database.UserDictionary);
                             return v;
                         }
                     );

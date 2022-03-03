@@ -24,7 +24,7 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var database = await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
         if (addBehaviour)
         {
             await Parallel.ForEachAsync(database.UserDictionary.Values, token, (user, token) =>
@@ -54,25 +54,25 @@ public partial class NetworkClient
                         return;
                     }
 
-                    Core.Local.User converted = item;
-                    database.UserDictionary.AddOrUpdate(item.User.Id,
+                    _ = database.UserDictionary.AddOrUpdate(item.User.Id,
                         _ =>
                         {
                             ++add;
                             if (pipe)
                             {
-                                logger.LogInformation($"{converted.Id}");
+                                logger.LogInformation($"{item.User.Id}");
                             }
                             else
                             {
-                                logger.LogInformation($"{add,4}: {converted.Id,20}");
+                                logger.LogInformation($"{add,4}: {item.User.Id,20}");
                             }
-                            return converted;
+
+                            return item.Convert();
                         },
                         (_, v) =>
                         {
                             ++update;
-                            v.Overwrite(converted);
+                            LocalNetworkConverter.Overwrite(v, item);
                             return v;
                         });
 
@@ -85,17 +85,17 @@ public partial class NetworkClient
                                 return;
                             }
 
-                            var convertedArtwork = Core.Local.Artwork.ConvertFromNetwrok(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
-                            database.ArtworkDictionary.AddOrUpdate(artwork.Id,
+                            _ = database.ArtworkDictionary.AddOrUpdate(artwork.Id,
                                 _ =>
                                 {
                                     ++addArtwork;
+                                    var convertedArtwork = LocalNetworkConverter.Convert(artwork, database.TagSet, database.ToolSet, database.UserDictionary);
                                     return convertedArtwork;
                                 },
                                 (_, v) =>
                                 {
                                     ++updateArtwork;
-                                    v.Overwrite(convertedArtwork);
+                                    LocalNetworkConverter.Overwrite(v, artwork, database.TagSet, database.ToolSet, database.UserDictionary);
                                     return v;
                                 });
                         }

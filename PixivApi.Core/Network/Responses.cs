@@ -4,10 +4,10 @@ public sealed class ArtworkResponseContent
 {
     [JsonPropertyName("id")] public ulong Id;
     [JsonPropertyName("type")] public ArtworkType Type;
-    [JsonPropertyName("image_urls")] public ImageUrls ImageUrls;
+    [JsonPropertyName("image_urls")] public ImageUrlsResponse ImageUrls;
     [JsonPropertyName("title")] public string Title = string.Empty;
     [JsonPropertyName("caption")] public string Caption = string.Empty;
-    [JsonPropertyName("user")] public User User;
+    [JsonPropertyName("user")] public UserResponse User;
     [JsonPropertyName("tags")] public Tag[] Tags = Array.Empty<Tag>();
     [JsonPropertyName("tools")] public string[] Tools = Array.Empty<string>();
     [JsonPropertyName("create_date")] public DateTime CreateDate;
@@ -38,7 +38,7 @@ public sealed class ArtworkResponseContent
     public struct InnerMetaPage
     {
         [JsonPropertyName("image_urls")]
-        public ImageUrls ImageUrls;
+        public ImageUrlsResponse ImageUrls;
     }
 }
 
@@ -52,7 +52,7 @@ public struct Tag : ITag
     [JsonIgnore] string ITag.Tag => Name;
 }
 
-public struct ImageUrls
+public struct ImageUrlsResponse
 {
     [JsonPropertyName("square_medium")] public string? SquareMedium;
     [JsonPropertyName("medium")] public string? Medium;
@@ -60,19 +60,19 @@ public struct ImageUrls
     [JsonPropertyName("original")] public string? Original;
 }
 
-public struct User
+public struct UserResponse
 {
     [JsonPropertyName("id")] public ulong Id;
     [JsonPropertyName("name")] public string Name;
     [JsonPropertyName("account")] public string Account;
     [JsonPropertyName("is_followed")] public bool IsFollowed;
-    [JsonPropertyName("profile_image_urls")] public ImageUrls ProfileImageUrls;
+    [JsonPropertyName("profile_image_urls")] public ImageUrlsResponse ProfileImageUrls;
     [JsonPropertyName("comment")] public string? Comment;
 }
 
 public sealed class UserPreviewResponseContent
 {
-    [JsonPropertyName("user")] public User User;
+    [JsonPropertyName("user")] public UserResponse User;
     [JsonPropertyName("illusts")] public ArtworkResponseContent[]? Illusts;
     [JsonPropertyName("is_muted")] public bool IsMuted;
 }
@@ -109,7 +109,7 @@ public struct UgoiraMetadataResponseData
 
 public struct UserDetailInfo
 {
-    [JsonPropertyName("user")] public User User;
+    [JsonPropertyName("user")] public UserResponse User;
     [JsonPropertyName("profile")] public UserDetailProfile Profile;
     [JsonPropertyName("profile_publicity")] public UserDetailProfilePublicity ProfilePublicity;
     [JsonPropertyName("workspace")] public UserDetailWorkspace Workspace;
@@ -188,7 +188,7 @@ public struct UserPreviewsResponseData
 
 public struct UserDetailResponseData
 {
-    [JsonPropertyName("user")] public User User;
+    [JsonPropertyName("user")] public UserResponse User;
     [JsonPropertyName("profile")] public UserDetailProfile? Profile;
     [JsonPropertyName("profile_publicity")] public UserDetailProfilePublicity? ProfilePublicity;
     [JsonPropertyName("workspace")] public UserDetailWorkspace? Workspace;
