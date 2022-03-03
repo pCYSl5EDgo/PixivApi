@@ -4,9 +4,9 @@ namespace PixivApi.Core.Local;
 
 public sealed class FileExistanceFilter
 {
-    [JsonPropertyName("original")] public FileExistanceType Original = FileExistanceType.None;
-    [JsonPropertyName("thumbnail")] public FileExistanceType Thumbnail = FileExistanceType.None;
-    [JsonPropertyName("ugoira")] public bool? Ugoira = null;
+    [JsonPropertyName("original")] public InnerFilter? Original;
+    [JsonPropertyName("thumbnail")] public InnerFilter? Thumbnail;
+    [JsonPropertyName("ugoira")] public bool? Ugoira;
 
     private FinderFacade finder = null!;
 
@@ -14,12 +14,12 @@ public sealed class FileExistanceFilter
 
     public bool Filter(Artwork artwork)
     {
-        if (Original != FileExistanceType.None && !OriginalFilter(artwork, Original))
+        if (Original is not null && !PrivateFilter(artwork, Original, finder.IllustOriginalFinder, finder.MangaOriginalFinder, finder.UgoiraOriginalFinder))
         {
             return false;
         }
 
-        if (Thumbnail != FileExistanceType.None && !ThumbnailFilter(artwork, Thumbnail))
+        if (Thumbnail is not null && !PrivateFilter(artwork, Thumbnail, finder.IllustThumbnailFinder, finder.MangaThumbnailFinder, finder.UgoiraThumbnailFinder))
         {
             return false;
         }
@@ -32,191 +32,157 @@ public sealed class FileExistanceFilter
         return true;
     }
 
-    private static bool ShouldDismiss(Artwork artwork, uint i) => (artwork.ExtraHideLast && i == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(i, out var reason) && reason != HideReason.NotHidden);
-
-    private bool ThumbnailFilter(Artwork artwork, FileExistanceType existanceType)
+    private static bool PrivateFilter(Artwork artwork, InnerFilter filter, IFinderWithIndex illustFinder, IFinderWithIndex mangaFinder, IFinder ugoiraFinder) => artwork.Type switch
     {
-        var finder = artwork.Type == ArtworkType.Illust ? this.finder.IllustThumbnailFinder : this.finder.MangaThumbnailFinder;
-        switch (existanceType)
+        ArtworkType.Illust => filter.Filter(artwork, illustFinder),
+        ArtworkType.Manga => filter.Filter(artwork, mangaFinder),
+        ArtworkType.Ugoira => filter.Filter(artwork, ugoiraFinder),
+        _ => false,
+    };
+
+    public sealed record class InnerFilter(bool IsAllMax, uint Max, bool IsAllMin, uint Min)
+    {
+        private static bool ShouldDismiss(Artwork artwork) => (artwork.ExtraHideLast && artwork.PageCount == 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(0U, out var reason) && reason != HideReason.NotHidden);
+        private static bool ShouldDismiss(Artwork artwork, uint i) => (artwork.ExtraHideLast && i == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(i, out var reason) && reason != HideReason.NotHidden);
+
+        private bool Filter(uint count, uint pageCount)
         {
-            case FileExistanceType.ExistAll:
-                for (uint i = 0; i < artwork.PageCount; i++)
-                {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
-
-                    if (!finder.Exists(artwork, i))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            case FileExistanceType.ExistAny:
-                for (uint i = 0; i < artwork.PageCount; i++)
-                {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
-
-                    if (finder.Exists(artwork, i))
-                    {
-                        return true;
-                    }
-                }
-
+            if (IsAllMin)
+            {
+                return count == pageCount;
+            }
+            else if (count < Min)
+            {
                 return false;
-            case FileExistanceType.NotExistAll:
-                for (uint i = 0; i < artwork.PageCount; i++)
-                {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
-
-                    if (!finder.Exists(artwork, i))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            case FileExistanceType.NotExistAny:
-                for (uint i = 0; i < artwork.PageCount; i++)
-                {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
-
-                    if (finder.Exists(artwork, i))
-                    {
-                        return false;
-                    }
-                }
-
+            }
+            else if (IsAllMax)
+            {
                 return true;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(existanceType));
+            }
+            else
+            {
+                return count <= Max;
+            }
         }
 
-    }
-
-    public bool OriginalFilter(Artwork artwork, FileExistanceType existanceType)
-    {
-        var finder = artwork.Type == ArtworkType.Illust ? this.finder.IllustOriginalFinder : this.finder.MangaOriginalFinder;
-        switch (existanceType)
+        public bool Filter(Artwork artwork, IFinder finder)
         {
-            case FileExistanceType.ExistAll:
-                for (uint i = 0; i < artwork.PageCount; i++)
-                {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
+            if (ShouldDismiss(artwork))
+            {
+                return Filter(0, 0);
+            }
+            else
+            {
+                return Filter(finder.Exists(artwork) ? 1U : 0U, 1);
+            }
+        }
 
-                    if (!finder.Exists(artwork, i))
-                    {
-                        return false;
-                    }
+        public bool Filter(Artwork artwork, IFinderWithIndex finder)
+        {
+            uint count = 0, dissmiss = 0;
+            for (var i = 0U; i < artwork.PageCount; i++)
+            {
+                if (ShouldDismiss(artwork, i))
+                {
+                    dissmiss++;
+                    continue;
                 }
 
-                return true;
-            case FileExistanceType.ExistAny:
-                for (uint i = 0; i < artwork.PageCount; i++)
+                if (finder.Exists(artwork, i))
                 {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
-
-                    if (finder.Exists(artwork, i))
-                    {
-                        return true;
-                    }
+                    count++;
                 }
+            }
 
-                return false;
-            case FileExistanceType.NotExistAll:
-                for (uint i = 0; i < artwork.PageCount; i++)
-                {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
-
-                    if (!finder.Exists(artwork, i))
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            case FileExistanceType.NotExistAny:
-                for (uint i = 0; i < artwork.PageCount; i++)
-                {
-                    if (ShouldDismiss(artwork, i))
-                    {
-                        continue;
-                    }
-
-                    if (finder.Exists(artwork, i))
-                    {
-                        return false;
-                    }
-                }
-
-                return true;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(existanceType));
+            return Filter(count, artwork.PageCount - dissmiss);
         }
     }
 }
 
-public enum FileExistanceType
+public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<FileExistanceFilter.InnerFilter?>
 {
-    None,
-    ExistAll,
-    ExistAny,
-    NotExistAll,
-    NotExistAny,
-}
+    public static readonly FileExistanceInnerFilterConverter Instance = new();
 
-public sealed partial class FileExistanceTypeFormatter : JsonConverter<FileExistanceType>
-{
-    public static readonly FileExistanceTypeFormatter Instance = new();
+    [StringLiteral.Utf8("max")] private static partial ReadOnlySpan<byte> LiteralMax();
+    [StringLiteral.Utf8("min")] private static partial ReadOnlySpan<byte> LiteralMin();
+    [StringLiteral.Utf8("all")] private static partial ReadOnlySpan<byte> LiteralAll();
 
-    [StringLiteral.Utf8("exist-all")] private static partial ReadOnlySpan<byte> LiteralExistAll();
-    [StringLiteral.Utf8("exist-any")] private static partial ReadOnlySpan<byte> LiteralExistAny();
-    [StringLiteral.Utf8("not-exist-all")] private static partial ReadOnlySpan<byte> LiteralNotExistAll();
-    [StringLiteral.Utf8("not-exist-any")] private static partial ReadOnlySpan<byte> LiteralNotExistAny();
-
-    public override FileExistanceType Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    public override FileExistanceFilter.InnerFilter? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (reader.ValueTextEquals(LiteralExistAll()))
+    LOOP:
+        switch (reader.TokenType)
         {
-            return FileExistanceType.ExistAll;
+            case JsonTokenType.Null:
+                return null;
+            case JsonTokenType.StartObject:
+                break;
+            case JsonTokenType.Comment:
+                reader.Read();
+                goto LOOP;
+            default:
+                throw new JsonException();
         }
-        else if (reader.ValueTextEquals(LiteralExistAny()))
+
+        bool isAllMax = false, isAllMin = false;
+        uint max = 0U, min = 0U;
+        var any = false;
+
+        while (reader.Read())
         {
-            return FileExistanceType.ExistAny;
+            switch (reader.TokenType)
+            {
+                case JsonTokenType.EndObject:
+                    break;
+                case JsonTokenType.PropertyName:
+                    if (reader.ValueTextEquals(LiteralMax()))
+                    {
+                        any = true;
+                        if (!reader.Read())
+                        {
+                            goto default;
+                        }
+
+                        if (!reader.TryGetUInt32(out max))
+                        {
+                            isAllMax = reader.ValueTextEquals(LiteralAll());
+                            if (!isAllMax)
+                            {
+                                goto default;
+                            }
+                        }
+                    }
+                    else if (reader.ValueTextEquals(LiteralMin()))
+                    {
+                        any = true;
+                        if (!reader.Read())
+                        {
+                            goto default;
+                        }
+
+                        if (!reader.TryGetUInt32(out min))
+                        {
+                            isAllMin = reader.ValueTextEquals(LiteralAll());
+                            if (!isAllMin)
+                            {
+                                goto default;
+                            }
+                        }
+                    }
+                    else if (!reader.Read())
+                    {
+                        goto default;
+                    }
+
+                    continue;
+                case JsonTokenType.Comment:
+                    continue;
+                default:
+                    throw new JsonException();
+            }
         }
-        else if (reader.ValueTextEquals(LiteralNotExistAll()))
-        {
-            return FileExistanceType.NotExistAll;
-        }
-        else if (reader.ValueTextEquals(LiteralNotExistAny()))
-        {
-            return FileExistanceType.NotExistAny;
-        }
-        else
-        {
-            return FileExistanceType.None;
-        }
+
+        return any ? new(isAllMax, max, isAllMin, min) : null;
     }
 
-    public override void Write(Utf8JsonWriter writer, FileExistanceType value, JsonSerializerOptions options) => throw new NotSupportedException();
+    public override void Write(Utf8JsonWriter writer, FileExistanceFilter.InnerFilter? value, JsonSerializerOptions options) => throw new NotSupportedException();
 }

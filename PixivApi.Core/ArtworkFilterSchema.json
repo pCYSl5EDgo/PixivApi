@@ -32,12 +32,25 @@
       "additionalProperties": false,
       "properties": {
         "original": {
-          "enum": [
-            "exist-all",
-            "exist-any",
-            "not-exist-all",
-            "not-exist-any"
-          ]
+          "additionalItems": false,
+          "type": "object",
+          "properties": {
+            "max": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [ "all" ]
+                },
+                {
+                  "title": "interger",
+                  "minimum": 0
+                }
+              ]
+            },
+            "min": {
+              "$ref": "#/properties/file-filter/properties/original/properties/max"
+            }
+          }
         },
         "thumbnail": {
           "$ref": "#/properties/file-filter/properties/original"

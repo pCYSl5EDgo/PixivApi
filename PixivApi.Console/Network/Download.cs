@@ -21,9 +21,9 @@ public partial class NetworkClient
             return;
         }
 
-        var shouldDownloadOriginal = fileFilter.Original != FileExistanceType.None;
-        var shouldDownloadThumbnail = fileFilter.Thumbnail != FileExistanceType.None;
-        var shouldDownloadUgoira = fileFilter.Ugoira is not null;
+        var shouldDownloadOriginal = fileFilter.Original is not null;
+        var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
+        var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
         if (!shouldDownloadOriginal && !shouldDownloadThumbnail && !shouldDownloadUgoira)
         {
             return;
