@@ -40,6 +40,7 @@
 		<Using Include="System.Net" />
 		<Using Include="System.Net.Http.Headers" />
 		<Using Include="PixivApi.Core" />
+		<Using Include="PixivApi.Core.Local" />
 		<Using Include="PixivApi.Core.Plugin" />
 	</ItemGroup>
 

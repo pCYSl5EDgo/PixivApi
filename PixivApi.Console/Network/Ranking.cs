@@ -1,6 +1,4 @@
-﻿using PixivApi.Core.Network;
-
-namespace PixivApi.Console;
+﻿namespace PixivApi.Console;
 
 public partial class NetworkClient
 {
@@ -8,20 +6,20 @@ public partial class NetworkClient
     public async ValueTask DownloadRankingAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(1, ArgumentDescriptions.RankingDescription)] Core.Local.RankingKind ranking = Core.Local.RankingKind.day,
+        [Option(1, ArgumentDescriptions.RankingDescription)] RankingKind ranking = RankingKind.day,
         DateOnly? date = null,
         bool pipe = false
     )
     {
         var token = Context.CancellationToken;
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
-        var database = (await IOUtility.MessagePackDeserializeAsync<Core.Local.DatabaseFile>(output, token).ConfigureAwait(false)) ?? new();
+        var database = (await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false)) ?? new();
         var add = 0UL;
         var rankingList = new List<ulong>();
         try
         {
             var url = GetRankingUrl(date, ranking);
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new Core.Network.DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {
@@ -30,7 +28,7 @@ public partial class NetworkClient
                         return;
                     }
 
-                    var converted = Core.Local.Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
+                    var converted = Artwork.ConvertFromNetwrok(item, database.TagSet, database.ToolSet, database.UserDictionary);
                     rankingList.Add(converted.Id);
                     database.ArtworkDictionary.AddOrUpdate(
                         item.Id,
@@ -72,7 +70,7 @@ public partial class NetworkClient
         }
     }
 
-    private static string GetRankingUrl(DateOnly? date, Core.Local.RankingKind ranking)
+    private static string GetRankingUrl(DateOnly? date, RankingKind ranking)
     {
         DefaultInterpolatedStringHandler url = $"https://{ApiHost}/v1/illust/ranking?mode={ranking}";
         if (date.HasValue)

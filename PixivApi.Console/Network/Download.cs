@@ -1,6 +1,4 @@
-﻿using PixivApi.Core.Local;
-
-namespace PixivApi.Console;
+﻿namespace PixivApi.Console;
 
 public partial class NetworkClient
 {
