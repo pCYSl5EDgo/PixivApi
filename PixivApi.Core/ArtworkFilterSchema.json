@@ -42,7 +42,7 @@
                   "enum": [ "all" ]
                 },
                 {
-                  "title": "interger",
+                  "type": "integer",
                   "minimum": 0
                 }
               ]
