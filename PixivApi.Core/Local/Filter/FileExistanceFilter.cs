@@ -40,7 +40,7 @@ public sealed class FileExistanceFilter
         _ => false,
     };
 
-    public sealed record class InnerFilter(bool IsAllMax, uint Max, bool IsAllMin, uint Min)
+    public sealed record class InnerFilter(int? Max, bool IsAllMin, int Min)
     {
         private static bool ShouldDismiss(Artwork artwork) => (artwork.ExtraHideLast && artwork.PageCount == 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(0U, out var reason) && reason != HideReason.NotHidden);
         private static bool ShouldDismiss(Artwork artwork, uint i) => (artwork.ExtraHideLast && i == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(i, out var reason) && reason != HideReason.NotHidden);
@@ -51,18 +51,18 @@ public sealed class FileExistanceFilter
             {
                 return count == pageCount;
             }
-            else if (count < Min)
+
+            if (count < (Min < 0 ? pageCount : 0) + Min)
             {
                 return false;
             }
-            else if (IsAllMax)
+
+            if (Max is { } max)
             {
-                return true;
+                return count <= (max < 0 ? pageCount : 0) + max;
             }
-            else
-            {
-                return count <= Max;
-            }
+
+            return true;
         }
 
         public bool Filter(Artwork artwork, IFinder finder)
@@ -123,8 +123,9 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                 throw new JsonException();
         }
 
-        bool isAllMax = false, isAllMin = false;
-        uint max = 0U, min = 0U;
+        var isAllMin = false;
+        var maxSelected = false;
+        int max = 0, min = 0;
         var any = false;
 
         while (reader.Read())
@@ -137,18 +138,10 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                     if (reader.ValueTextEquals(LiteralMax()))
                     {
                         any = true;
-                        if (!reader.Read())
+                        maxSelected = true;
+                        if (!reader.Read() || !reader.TryGetInt32(out max))
                         {
                             goto default;
-                        }
-
-                        if (!reader.TryGetUInt32(out max))
-                        {
-                            isAllMax = reader.ValueTextEquals(LiteralAll());
-                            if (!isAllMax)
-                            {
-                                goto default;
-                            }
                         }
                     }
                     else if (reader.ValueTextEquals(LiteralMin()))
@@ -159,7 +152,7 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                             goto default;
                         }
 
-                        if (!reader.TryGetUInt32(out min))
+                        if (!reader.TryGetInt32(out min))
                         {
                             isAllMin = reader.ValueTextEquals(LiteralAll());
                             if (!isAllMin)
@@ -181,7 +174,7 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
             }
         }
 
-        return any ? new(isAllMax, max, isAllMin, min) : null;
+        return any ? new(maxSelected ? max : null, isAllMin, min) : null;
     }
 
     public override void Write(Utf8JsonWriter writer, FileExistanceFilter.InnerFilter? value, JsonSerializerOptions options) => throw new NotSupportedException();

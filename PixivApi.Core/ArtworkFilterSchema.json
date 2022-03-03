@@ -36,19 +36,18 @@
           "type": "object",
           "properties": {
             "max": {
+              "type": "integer"
+            },
+            "min": {
               "anyOf": [
                 {
                   "type": "string",
                   "enum": [ "all" ]
                 },
                 {
-                  "type": "integer",
-                  "minimum": 0
+                  "type": "integer"
                 }
               ]
-            },
-            "min": {
-              "$ref": "#/properties/file-filter/properties/original/properties/max"
             }
           }
         },
