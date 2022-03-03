@@ -1,0 +1,46 @@
+﻿{
+  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/ConfigSettingsSchema.json",
+  "$schema": "https://json-schema.org/draft-04/schema",
+  "additionalProperties": false,
+  "description": "A general configuration setting json file",
+  "properties": {
+    "$schema": {
+      "format": "uri",
+      "type": "string"
+    },
+    "AppOS": { "type": "string" },
+    "AppOSVersion": { "type": "string" },
+    "ClientId": { "type": "string" },
+    "ClientSecret": { "type": "string" },
+    "HashSecret": { "type": "string" },
+    "IllustOriginalFinderPlugin": { "type": "string" },
+    "IllustThumbnailFinderPlugin": { "type": "string" },
+    "MangaOriginalFinderPlugin": { "type": "string" },
+    "MangaThumbnailFinderPlugin": { "type": "string" },
+    "OriginalConverterPlugin": { "type": "string" },
+    "OriginalFolder": { "type": "string" },
+    "ReconnectLoopIntervalMinutes": {
+      "type": "number",
+      "minimum": 1
+    },
+    "RefreshToken": { "type": "string" },
+    "RetrySeconds": {
+      "type": "number",
+      "minimum": 1
+    },
+    "ThumbnailConverterPlugin": { "type": "string" },
+    "ThumbnailFolder": { "type": "string" },
+    "UgoiraFolder": { "type": "string" },
+    "UgoiraOriginalFinderPlugin": { "type": "string" },
+    "UgoiraThumbnailFinderPlugin": { "type": "string" },
+    "UgoiraZipConverterPlugin": { "type": "string" },
+    "UgoiraZipFinderPlugin": { "type": "string" },
+    "UserAgent": { "type": "string" },
+    "UserId": {
+      "type": "integer",
+      "minimum": 0
+    }
+  },
+  "title": "ConfigSettings",
+  "type": "object"
+}
