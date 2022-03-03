@@ -136,8 +136,8 @@ public static partial class AccessTokenUtility
 
     private static (string CodeVerifier, string CodeChallenge) GeneratePkce()
     {
-        using var segment = ArraySegmentFromPool.Rent(32);
-        var verifier = GenerateRandomDataBase64url(segment.AsSpan());
+        Span<byte> span = stackalloc byte[32];
+        var verifier = GenerateRandomDataBase64url(span);
         var challenge = Base64UrlEncodeNoPadding(Sha256Ascii(verifier));
         return (verifier, challenge);
     }

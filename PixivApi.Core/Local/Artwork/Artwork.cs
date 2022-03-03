@@ -440,8 +440,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             }
 
             var answer = new Artwork();
-            var segment = ArraySegmentFromPool.Rent(BinLength);
-            var segmentSpan = segment.AsSpan();
+            Span<byte> segmentSpan = stackalloc byte[BinLength];
             for (var i = 0; i < header; i++)
             {
                 switch (i)
@@ -531,7 +530,6 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
                 }
             }
 
-            segment.Dispose();
             return answer;
         }
 
