@@ -66,7 +66,7 @@ public static class PluginUtility
         Assembly assembly;
         try
         {
-            assembly = Assembly.LoadFrom(dllPath);
+            assembly = Assembly.LoadFile(dllPath);
         }
         catch
         {
