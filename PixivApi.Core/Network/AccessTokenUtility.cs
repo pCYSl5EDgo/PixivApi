@@ -73,24 +73,6 @@ public static partial class AccessTokenUtility
         return code;
     }
 
-    private static async ValueTask<(ChromeDriver Driver, string Verifier)> SetUpChromeDriverAndNavigateToLoginPage(HttpClient client, CancellationToken token)
-    {
-        token.ThrowIfCancellationRequested();
-        Directory.CreateDirectory("ChromeDriver");
-        await ChromeDriverManager.Installer.InstallLatestAsync(client, "ChromeDriver", true, token).ConfigureAwait(false);
-        var chromeOptions = new ChromeOptions();
-        chromeOptions.SetLoggingPreference("performance", OpenQA.Selenium.LogLevel.All);
-
-        token.ThrowIfCancellationRequested();
-        var driver = new ChromeDriver(chromeOptions);
-        var (verifier, challenge) = GeneratePkce();
-
-        token.ThrowIfCancellationRequested();
-        var url = $"https://app-api.pixiv.net/web/v1/login?code_challenge={challenge}&code_challenge_method=S256&client=pixiv-android";
-        driver.Navigate().GoToUrl(url);
-        return (driver, verifier);
-    }
-
     private static async ValueTask<(string CodeVerfier, string? Code)> FirstAuthAsync(HttpClient client, CancellationToken token)
     {
         var (driver, verifier) = await SetUpChromeDriverAndNavigateToLoginPage(client, token).ConfigureAwait(false);
@@ -108,6 +90,24 @@ public static partial class AccessTokenUtility
         {
             driver.Dispose();
         }
+    }
+
+    private static async ValueTask<(ChromeDriver Driver, string Verifier)> SetUpChromeDriverAndNavigateToLoginPage(HttpClient client, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        Directory.CreateDirectory("ChromeDriver");
+        await ChromeDriverManager.Installer.InstallLatestAsync(client, "ChromeDriver", true, token).ConfigureAwait(false);
+        var chromeOptions = new ChromeOptions();
+        chromeOptions.SetLoggingPreference("performance", OpenQA.Selenium.LogLevel.All);
+
+        token.ThrowIfCancellationRequested();
+        var driver = new ChromeDriver(chromeOptions);
+        var (verifier, challenge) = GeneratePkce();
+
+        token.ThrowIfCancellationRequested();
+        var url = $"https://app-api.pixiv.net/web/v1/login?code_challenge={challenge}&code_challenge_method=S256&client=pixiv-android";
+        driver.Navigate().GoToUrl(url);
+        return (driver, verifier);
     }
 
     private static string? GetCode(ReadOnlySpan<char> documentUrl)
