@@ -10,7 +10,7 @@ public partial class NetworkClient
         [Option(1, "search text")] string text,
         [Option("e", "end_date")] string? end_date = null,
         ushort offset = 0,
-        [Option("o", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {

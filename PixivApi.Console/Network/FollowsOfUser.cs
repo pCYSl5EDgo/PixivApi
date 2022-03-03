@@ -8,7 +8,7 @@ public partial class NetworkClient
     public async ValueTask DownloadFollowsOfUserAsync
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option("o", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {

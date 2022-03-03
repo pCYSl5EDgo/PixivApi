@@ -9,7 +9,7 @@ public partial class NetworkClient
     (
         [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
         [Option(1)] ulong id,
-        [Option("o", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {
