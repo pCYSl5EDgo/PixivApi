@@ -94,7 +94,7 @@ public static class IOUtility
         {
             Local.Artwork.JsonFormatter.Instance,
             Local.FileExistanceInnerFilterConverter.Instance,
-            CamelCaseArtworkOrderKindConverter.Instance,
+            Local.ArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },
     };
@@ -108,7 +108,7 @@ public static class IOUtility
         {
             Local.Artwork.JsonFormatter.Instance,
             Local.FileExistanceInnerFilterConverter.Instance,
-            CamelCaseArtworkOrderKindConverter.Instance,
+            Local.ArtworkOrderKindConverter.Instance,
             new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
         },
     };

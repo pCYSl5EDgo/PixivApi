@@ -1,8 +1,8 @@
-﻿namespace PixivApi.Core;
+﻿namespace PixivApi.Core.Local;
 
-public sealed partial class CamelCaseArtworkOrderKindConverter : JsonConverter<ArtworkOrderKind>
+public sealed partial class ArtworkOrderKindConverter : JsonConverter<ArtworkOrderKind>
 {
-    public static readonly CamelCaseArtworkOrderKindConverter Instance = new();
+    public static readonly ArtworkOrderKindConverter Instance = new();
 
     public override ArtworkOrderKind Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
