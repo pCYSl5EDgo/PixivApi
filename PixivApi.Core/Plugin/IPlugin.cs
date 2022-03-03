@@ -1,4 +1,4 @@
-﻿namespace PixivApi.Core;
+﻿namespace PixivApi.Core.Plugin;
 
 public interface IPlugin : IAsyncDisposable
 {

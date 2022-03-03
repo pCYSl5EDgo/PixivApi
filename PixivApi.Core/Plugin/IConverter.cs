@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using PixivApi.Core.Local;
 
-namespace PixivApi.Core;
+namespace PixivApi.Core.Plugin;
 
 public interface IConverter : IPlugin
 {

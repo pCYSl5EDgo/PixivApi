@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using PixivApi.Core.Local;
 using System.Reflection;
 
-namespace PixivApi.Core;
+namespace PixivApi.Core.Plugin;
 
 public static class PluginUtility
 {

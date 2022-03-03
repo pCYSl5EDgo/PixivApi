@@ -1,4 +1,6 @@
-﻿namespace PixivApi.Core.Local;
+﻿using PixivApi.Core.Plugin;
+
+namespace PixivApi.Core.Local;
 
 public sealed class FileExistanceFilter
 {

@@ -1,5 +1,4 @@
-﻿
-namespace PixivApi.Plugin.JpegXl;
+﻿namespace PixivApi.Plugin.JpegXl;
 
 public sealed record class ThumbnailConverter(string ExePath, ConfigSettings ConfigSettings) : IConverter
 {

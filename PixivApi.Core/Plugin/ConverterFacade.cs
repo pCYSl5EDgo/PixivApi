@@ -1,11 +1,8 @@
-﻿namespace PixivApi.Core;
+﻿namespace PixivApi.Core.Plugin;
 
 public sealed record class ConverterFacade(IConverter? UgoiraZipConverter, IConverter? OriginalConverter, IConverter? ThumbnailConverter)
 {
-    private static async ValueTask<IConverter?> GetAsync(string? plugin, ConfigSettings configSettings, object boxedCancellationToken)
-    {
-        return await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IConverter;
-    }
+    private static async ValueTask<IConverter?> GetAsync(string? plugin, ConfigSettings configSettings, object boxedCancellationToken) => await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IConverter;
 
     public static async ValueTask<ConverterFacade> CreateAsync(ConfigSettings configSettings, CancellationToken token)
     {

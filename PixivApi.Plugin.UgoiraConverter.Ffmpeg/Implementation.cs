@@ -1,7 +1,5 @@
 ﻿using Cysharp.Text;
 using Microsoft.Extensions.Logging;
-using PixivApi.Core;
-using PixivApi.Core.Local;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 

@@ -11,5 +11,9 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
+
+		<Using Include="PixivApi.Core" />
+		<Using Include="PixivApi.Core.Local" />
+		<Using Include="PixivApi.Core.Plugin"/>
 	</ItemGroup>
 </Project>

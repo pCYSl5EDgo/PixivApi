@@ -1,6 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using PixivApi.Core;
 using PixivApi.Core.Network;
 
 namespace PixivApi.Console;
