@@ -199,9 +199,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     {
         FileExtensionKind.Jpg => ".jpg",
         FileExtensionKind.Png => ".png",
-        FileExtensionKind.Gif => ".gif",
         FileExtensionKind.Zip => ".zip",
-        FileExtensionKind.Bmp => ".bmp",
         FileExtensionKind.None or _ => "",
     };
 
@@ -215,17 +213,9 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
         {
             return FileExtensionKind.Png;
         }
-        else if (ext.SequenceEqual(".gif"))
-        {
-            return FileExtensionKind.Gif;
-        }
         else if (ext.SequenceEqual(".zip"))
         {
             return FileExtensionKind.Zip;
-        }
-        else if (ext.SequenceEqual(".bmp"))
-        {
-            return FileExtensionKind.Bmp;
         }
         else
         {
@@ -798,9 +788,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
     [StringLiteral.Utf8("extension")] private static partial ReadOnlySpan<byte> LiteralExtension();
     [StringLiteral.Utf8("jpg")] private static partial ReadOnlySpan<byte> LiteralJpg();
     [StringLiteral.Utf8("png")] private static partial ReadOnlySpan<byte> LiteralPng();
-    [StringLiteral.Utf8("gif")] private static partial ReadOnlySpan<byte> LiteralGif();
     [StringLiteral.Utf8("zip")] private static partial ReadOnlySpan<byte> LiteralZip();
-    [StringLiteral.Utf8("bmp")] private static partial ReadOnlySpan<byte> LiteralBmp();
 
     [StringLiteral.Utf8("hide-reason")] private static partial ReadOnlySpan<byte> LiteralHideReason();
     [StringLiteral.Utf8("not-hidden")] private static partial ReadOnlySpan<byte> LiteralNotHidden();
@@ -881,9 +869,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
             {
                 FileExtensionKind.Jpg => LiteralJpg(),
                 FileExtensionKind.Png => LiteralPng(),
-                FileExtensionKind.Gif => LiteralGif(),
                 FileExtensionKind.Zip => LiteralZip(),
-                FileExtensionKind.Bmp => LiteralBmp(),
                 FileExtensionKind.None or _ => LiteralNone(),
             });
 
