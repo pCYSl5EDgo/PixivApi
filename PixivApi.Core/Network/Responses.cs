@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.Network;
 
-public sealed class Artwork
+public sealed class ArtworkResponseContent
 {
     [JsonPropertyName("id")] public ulong Id;
     [JsonPropertyName("type")] public ArtworkType Type;
@@ -70,10 +70,10 @@ public struct User
     [JsonPropertyName("comment")] public string? Comment;
 }
 
-public sealed class UserPreview
+public sealed class UserPreviewResponseContent
 {
     [JsonPropertyName("user")] public User User;
-    [JsonPropertyName("illusts")] public Artwork[]? Illusts;
+    [JsonPropertyName("illusts")] public ArtworkResponseContent[]? Illusts;
     [JsonPropertyName("is_muted")] public bool IsMuted;
 }
 
@@ -172,18 +172,18 @@ public struct UserDetailWorkspace
 
 public struct IllustsResponseData
 {
-    [JsonPropertyName("illusts")] public Artwork[] Illusts;
+    [JsonPropertyName("illusts")] public ArtworkResponseContent[] Illusts;
     [JsonPropertyName("next_url")] public string? NextUrl { get; set; }
 
-    public Artwork[] GetContainer() => Illusts;
+    public ArtworkResponseContent[] GetContainer() => Illusts;
 }
 
 public struct UserPreviewsResponseData
 {
-    [JsonPropertyName("user_previews")] public UserPreview[] UserPreviews;
+    [JsonPropertyName("user_previews")] public UserPreviewResponseContent[] UserPreviews;
     [JsonPropertyName("next_url")] public string? NextUrl { get; set; }
 
-    public UserPreview[] GetContainer() => UserPreviews;
+    public UserPreviewResponseContent[] GetContainer() => UserPreviews;
 }
 
 public struct UserDetailResponseData
@@ -196,5 +196,5 @@ public struct UserDetailResponseData
 
 public struct IllustDateilResponseData
 {
-    [JsonPropertyName("illust")] public Artwork Illust;
+    [JsonPropertyName("illust")] public ArtworkResponseContent Illust;
 }

@@ -225,7 +225,7 @@ public sealed partial class Artwork : IOverwrite<Artwork>, IEquatable<Artwork>
 
     // Local Save Format is seems to be unstable.
     // This type should rely on relatively stable Network.Artwork
-    public static Artwork ConvertFromNetwrok(Network.Artwork artwork, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
+    public static Artwork ConvertFromNetwrok(Network.ArtworkResponseContent artwork, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
     {
         Artwork answer = new()
         {

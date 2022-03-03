@@ -104,7 +104,7 @@ public partial class NetworkClient
         }
     }
 
-    private async ValueTask<Core.Network.Artwork> GetArtworkDetailAsync(ulong id, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
+    private async ValueTask<Core.Network.ArtworkResponseContent> GetArtworkDetailAsync(ulong id, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
     {
         var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
         var content = await RetryGetAsync(url, authentication, pipe, token).ConfigureAwait(false);

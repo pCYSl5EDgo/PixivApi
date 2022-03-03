@@ -1,5 +1,5 @@
-﻿using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.Artwork>;
-using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreview>;
+﻿using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.ArtworkResponseContent>;
+using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreviewResponseContent>;
 using Authentication = System.Net.Http.Headers.AuthenticationHeaderValue;
 using QueryAsync = System.Func<string, System.Net.Http.Headers.AuthenticationHeaderValue, bool, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]>>;
 using ReconnectAsyncFunc = System.Func<System.Exception, bool, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Net.Http.Headers.AuthenticationHeaderValue>>;
@@ -36,7 +36,7 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
         private readonly bool pipe;
         private readonly CancellationToken cancellationToken;
 
-        private Artwork[]? array;
+        private ArtworkResponseContent[]? array;
 
         public Enumerator(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
         {
@@ -48,7 +48,7 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
             this.cancellationToken = cancellationToken;
         }
 
-        public Artworks Current => array ?? Array.Empty<Artwork>();
+        public Artworks Current => array ?? Array.Empty<ArtworkResponseContent>();
 
         public ValueTask DisposeAsync()
         {
@@ -138,7 +138,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
         private Authentication authentication;
         private readonly ReconnectAsyncFunc reconnect;
         private readonly bool pipe;
-        private Artwork[]? array;
+        private ArtworkResponseContent[]? array;
 
         public Enumerator(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
         {
@@ -150,7 +150,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
             this.cancellationToken = cancellationToken;
         }
 
-        public Artworks Current => array ?? Array.Empty<Artwork>();
+        public Artworks Current => array ?? Array.Empty<ArtworkResponseContent>();
 
         public ValueTask DisposeAsync()
         {
@@ -212,7 +212,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
                 }
                 else
                 {
-                    array = dayIndex == 0 ? Array.Empty<Artwork>() : array[..dayIndex];
+                    array = dayIndex == 0 ? Array.Empty<ArtworkResponseContent>() : array[..dayIndex];
                     url = SearchUrlUtility.CalculateNextEndDateUrl(url.AsSpan(0, partsIndex), date);
                 }
 
@@ -256,7 +256,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
         private readonly bool pipe;
         private readonly CancellationToken cancellationToken;
 
-        private UserPreview[]? array;
+        private UserPreviewResponseContent[]? array;
 
         public Enumerator(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect, bool pipe, CancellationToken cancellationToken)
         {
@@ -268,7 +268,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
             this.cancellationToken = cancellationToken;
         }
 
-        public Users Current => array ?? Array.Empty<UserPreview>();
+        public Users Current => array ?? Array.Empty<UserPreviewResponseContent>();
 
         public ValueTask DisposeAsync()
         {

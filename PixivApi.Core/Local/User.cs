@@ -27,7 +27,7 @@ public sealed class User : IOverwrite<User>
         Comment = user.Comment,
     };
 
-    public static implicit operator User(Network.UserPreview user)
+    public static implicit operator User(Network.UserPreviewResponseContent user)
     {
         User answer = user.User;
         answer.IsMuted = user.IsMuted;

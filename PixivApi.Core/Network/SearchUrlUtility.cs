@@ -74,7 +74,7 @@ public sealed class SearchUrlUtility
         }
     }
 
-    public static int GetIndexOfOldestDay(ReadOnlySpan<Artwork> newToOld)
+    public static int GetIndexOfOldestDay(ReadOnlySpan<ArtworkResponseContent> newToOld)
     {
         Debug.Assert(!newToOld.IsEmpty);
         var date = DateOnly.FromDateTime(newToOld[^1].CreateDate);
@@ -91,7 +91,7 @@ public sealed class SearchUrlUtility
         return 0;
     }
 
-    public static int GetIndexOfNewestDay(ReadOnlySpan<Artwork> oldToNew)
+    public static int GetIndexOfNewestDay(ReadOnlySpan<ArtworkResponseContent> oldToNew)
     {
         Debug.Assert(!oldToNew.IsEmpty);
         var date = DateOnly.FromDateTime(oldToNew[^1].CreateDate);
