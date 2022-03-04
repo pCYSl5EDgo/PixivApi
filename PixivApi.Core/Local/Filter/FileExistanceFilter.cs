@@ -182,6 +182,8 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                 reader.Skip();
             }
         }
+
+        throw new JsonException();
     }
 
     public override void Write(Utf8JsonWriter writer, FileExistanceFilter.InnerFilter? value, JsonSerializerOptions options) => throw new NotSupportedException();
