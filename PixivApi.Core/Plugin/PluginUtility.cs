@@ -66,7 +66,7 @@ public static class PluginUtility
         Assembly assembly;
         try
         {
-            assembly = Assembly.LoadFile(dllPath);
+            assembly = Assembly.LoadFile(Path.GetFullPath(dllPath));
         }
         catch
         {
@@ -79,42 +79,7 @@ public static class PluginUtility
         }
 
         var typeName = ToStringFromSpan(plugin[(index + 1)..].TrimStart());
-        Type? type = null;
-        if (string.IsNullOrWhiteSpace(typeName))
-        {
-            foreach (var item in assembly.ExportedTypes)
-            {
-                if (!typeof(IFinder).IsAssignableFrom(item))
-                {
-                    continue;
-                }
-
-                if (type is not null)
-                {
-                    goto NULL;
-                }
-
-                type = item;
-            }
-        }
-        else
-        {
-            foreach (var item in assembly.ExportedTypes)
-            {
-                if (!item.FullName.AsSpan().SequenceEqual(typeName.AsSpan()))
-                {
-                    continue;
-                }
-
-                if (type is not null)
-                {
-                    goto NULL;
-                }
-
-                type = item;
-            }
-        }
-
+        var type = assembly.GetType(typeName, false);
         if (type?.GetMethod(nameof(IPlugin.CreateAsync))?.Invoke(null, new object[] { dllPath, configSettings, boxedCancellationToken }) is Task<IPlugin?> task)
         {
             return task;
