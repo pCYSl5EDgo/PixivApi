@@ -140,13 +140,10 @@ public partial class NetworkClient
                 response.Dispose();
             }
 
-            _ = converter?.TryConvertAsync(artwork, logger, CancellationToken.None).AsTask().ContinueWith((Task<bool> task) =>
+            if (converter is not null && await converter.TryConvertAsync(artwork, logger, CancellationToken.None).ConfigureAwait(false))
             {
-                if (task.Result)
-                {
-                    converter.DeleteUnneccessaryOriginal(artwork, logger);
-                }
-            });
+                converter.DeleteUnneccessaryOriginal(artwork, logger);
+            }
 
             return (true, byteCount, noDetailDownload);
         }
