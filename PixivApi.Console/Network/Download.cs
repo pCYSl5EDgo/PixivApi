@@ -75,6 +75,25 @@ public partial class NetworkClient
 
     private async ValueTask<bool> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, ConverterFacade? converter)
     {
+        IFinderWithIndex finderWithIndexOriginal, finderWithIndexOriginalDefault, finderWithIndexThumbnail, finderWithIndexThumbnailDefault;
+        switch (artwork.Type)
+        {
+            case ArtworkType.Illust:
+                finderWithIndexOriginal = finder.IllustOriginalFinder;
+                finderWithIndexOriginalDefault = finder.DefaultIllustOriginalFinder;
+                finderWithIndexThumbnail = finder.IllustThumbnailFinder;
+                finderWithIndexThumbnailDefault = finder.DefaultIllustThumbnailFinder;
+                break;
+            case ArtworkType.Manga:
+                finderWithIndexOriginal = finder.MangaOriginalFinder;
+                finderWithIndexOriginalDefault = finder.DefaultMangaOriginalFinder;
+                finderWithIndexThumbnail = finder.MangaThumbnailFinder;
+                finderWithIndexThumbnailDefault = finder.DefaultMangaThumbnailFinder;
+                break;
+            default:
+                return false;
+        }
+
         var downloadAny = false;
         var noDetailDownload = true;
         for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
@@ -86,13 +105,12 @@ public partial class NetworkClient
 
             if (shouldDownloadOriginal)
             {
-                var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetNotUgoiraOriginalFileName(pageIndex));
-                if (pageFile.Exists)
+                if (finderWithIndexOriginal.Exists(artwork, pageIndex))
                 {
                     continue;
                 }
 
-                var (Success, NoDetailDownload) = await machine.DownloadAsync(pageFile, artwork, converter?.OriginalConverter, noDetailDownload, artwork.GetNotUgoiraOriginalUrl, pageIndex).ConfigureAwait(false);
+                var (Success, NoDetailDownload) = await machine.DownloadAsync(finderWithIndexOriginalDefault.Find(artwork, pageIndex), artwork, converter?.OriginalConverter, noDetailDownload, artwork.GetNotUgoiraOriginalUrl, pageIndex).ConfigureAwait(false);
                 if (!Success)
                 {
                     return false;
@@ -104,13 +122,12 @@ public partial class NetworkClient
 
             if (shouldDownloadThumbnail)
             {
-                var pageFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetNotUgoiraThumbnailFileName(pageIndex));
-                if (pageFile.Exists)
+                if (finderWithIndexThumbnail.Exists(artwork, pageIndex))
                 {
                     continue;
                 }
 
-                var (Success, NoDetailDownload) = await machine.DownloadAsync(pageFile, artwork, converter?.ThumbnailConverter, noDetailDownload, artwork.GetNotUgoiraThumbnailUrl, pageIndex).ConfigureAwait(false);
+                var (Success, NoDetailDownload) = await machine.DownloadAsync(finderWithIndexThumbnailDefault.Find(artwork, pageIndex), artwork, converter?.ThumbnailConverter, noDetailDownload, artwork.GetNotUgoiraThumbnailUrl, pageIndex).ConfigureAwait(false);
                 if (!Success)
                 {
                     return false;
@@ -127,46 +144,34 @@ public partial class NetworkClient
     private async ValueTask<bool> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira, ConverterFacade? converter)
     {
         var noDetailDownload = true;
-        if (shouldDownloadUgoira)
+        if (shouldDownloadUgoira && !finder.UgoiraZipFinder.Exists(artwork))
         {
-            var ugoiraZipFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.UgoiraFolder, artwork.Id, artwork.GetUgoiraZipFileName());
-            if (!ugoiraZipFile.Exists)
+            var (Success, NoDetailDownload) = await machine.DownloadAsync(finder.DefaultUgoiraZipFinder.Find(artwork), artwork, converter?.UgoiraZipConverter, noDetailDownload, calcUrl: artwork.GetUgoiraZipUrl).ConfigureAwait(false);
+            if (!Success)
             {
-                var (Success, NoDetailDownload) = await machine.DownloadAsync(ugoiraZipFile, artwork, converter?.UgoiraZipConverter, noDetailDownload, calcUrl: artwork.GetUgoiraZipUrl).ConfigureAwait(false);
-                if (!Success)
-                {
-                    return false;
-                }
-
-                noDetailDownload = NoDetailDownload;
+                return false;
             }
+
+            noDetailDownload = NoDetailDownload;
         }
 
-        if (shouldDownloadOriginal)
+        if (shouldDownloadOriginal && !finder.UgoiraOriginalFinder.Exists(artwork))
         {
-            var originalFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.OriginalFolder, artwork.Id, artwork.GetUgoiraOriginalFileName());
-            if (!originalFile.Exists)
+            var (Success, NoDetailDownload) = await machine.DownloadAsync(finder.DefaultUgoiraOriginalFinder.Find(artwork), artwork, converter?.OriginalConverter, noDetailDownload, calcUrl: artwork.GetUgoiraOriginalUrl).ConfigureAwait(false);
+            if (!Success)
             {
-                var (Success, NoDetailDownload) = await machine.DownloadAsync(originalFile, artwork, converter?.OriginalConverter, noDetailDownload, calcUrl: artwork.GetUgoiraOriginalUrl).ConfigureAwait(false);
-                if (!Success)
-                {
-                    return false;
-                }
-
-                noDetailDownload = NoDetailDownload;
+                return false;
             }
+
+            noDetailDownload = NoDetailDownload;
         }
 
-        if (shouldDownloadThumbnail)
+        if (shouldDownloadThumbnail && !finder.UgoiraThumbnailFinder.Exists(artwork))
         {
-            var thumbnailFile = DownloadAsyncMachine.PrepareFileInfo(configSettings.ThumbnailFolder, artwork.Id, artwork.GetUgoiraThumbnailFileName());
-            if (!thumbnailFile.Exists)
+            var (Success, NoDetailDownload) = await machine.DownloadAsync(finder.DefaultUgoiraThumbnailFinder.Find(artwork), artwork, converter?.ThumbnailConverter, noDetailDownload, calcUrl: artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false);
+            if (!Success)
             {
-                var (Success, NoDetailDownload) = await machine.DownloadAsync(thumbnailFile, artwork, converter?.ThumbnailConverter, noDetailDownload, calcUrl: artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false);
-                if (!Success)
-                {
-                    return false;
-                }
+                return false;
             }
         }
 

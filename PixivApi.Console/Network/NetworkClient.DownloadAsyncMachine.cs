@@ -25,20 +25,6 @@ public partial class NetworkClient
         public int DownloadFileCount = 0;
         public ulong DownloadByteCount = 0UL;
 
-        public static FileInfo PrepareFileInfo(string folder, ulong id, string fileName)
-        {
-            DefaultInterpolatedStringHandler handler = $"{folder}";
-            if (folder.Length != 0 && folder[^1] != '/' && folder[^1] != '\\')
-            {
-                handler.AppendLiteral("/");
-            }
-
-            IOUtility.AppendHashPath(ref handler, id);
-            handler.AppendFormatted(fileName);
-            var path = handler.ToStringAndClear();
-            return new(path);
-        }
-
         public async ValueTask<(bool Success, bool NoDetailDownload)> DownloadAsync(FileInfo file, Artwork artwork, IConverter? converter, bool noDetailDownload, Func<uint, string> calcUrl, uint index)
         {
             string url;
@@ -140,9 +126,9 @@ public partial class NetworkClient
                 response.Dispose();
             }
 
-            if (converter is not null && await converter.TryConvertAsync(artwork, logger, CancellationToken.None).ConfigureAwait(false))
+            if (converter is not null && await converter.TryConvertAsync(file, logger, CancellationToken.None).ConfigureAwait(false))
             {
-                converter.DeleteUnneccessaryOriginal(artwork, logger);
+                file.Delete();
             }
 
             return (true, byteCount, noDetailDownload);
