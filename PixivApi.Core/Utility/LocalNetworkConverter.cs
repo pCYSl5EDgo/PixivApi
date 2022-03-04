@@ -5,7 +5,7 @@ namespace PixivApi.Core;
 
 public static class LocalNetworkConverter
 {
-    public static Artwork Convert(ArtworkResponseContent source, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
+    public static Artwork Convert(in ArtworkResponseContent source, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
     {
         Artwork answer = new()
         {
@@ -20,8 +20,8 @@ public static class LocalNetworkConverter
             Extension = source.ConvertToFileExtensionKind(),
             CreateDate = source.CreateDate,
             FileDate = ParseFileDate(source),
-            Title = source.Title,
-            Caption = source.Caption,
+            Title = source.Title ?? "",
+            Caption = source.Caption ?? "",
             IsXRestricted = source.XRestrict != 0,
             IsBookmarked = source.IsBookmarked,
             IsMuted = source.IsMuted,
@@ -34,7 +34,7 @@ public static class LocalNetworkConverter
         return answer;
     }
 
-    public static void Overwrite(Artwork destination, ArtworkResponseContent source, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
+    public static void Overwrite(Artwork destination, in ArtworkResponseContent source, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
     {
         if (destination.Id != source.Id)
         {
@@ -65,20 +65,20 @@ public static class LocalNetworkConverter
         destination.FileDate = source.CreateDate.ToLocalTime();
         destination.Tags = tagSet.Calculate(source.Tags);
         destination.Tools = toolSet.Calculate(source.Tools);
-        destination.Title = source.Title;
-        destination.Caption = source.Caption;
+        destination.Title = source.Title ?? string.Empty;
+        destination.Caption = source.Caption ?? string.Empty;
 
         _ = userDictionary.GetOrAdd(source.User.Id, static (_, user) => user.Convert(), source.User);
     }
 
-    public static User Convert(this UserPreviewResponseContent user)
+    public static User Convert(this in UserPreviewResponseContent user)
     {
         var answer = user.User.Convert();
         answer.IsMuted = user.IsMuted;
         return answer;
     }
 
-    public static void Overwrite(User destination, UserPreviewResponseContent source)
+    public static void Overwrite(User destination, in UserPreviewResponseContent source)
     {
         if (destination.Id != source.User.Id)
         {
@@ -93,7 +93,7 @@ public static class LocalNetworkConverter
         OverwriteExtensions.Overwrite(ref destination.Comment, source.User.Comment);
     }
 
-    public static User Convert(this UserResponse user) => new()
+    public static User Convert(this in UserResponse user) => new()
     {
         Id = user.Id,
         Name = user.Name,
@@ -103,7 +103,7 @@ public static class LocalNetworkConverter
         Comment = user.Comment,
     };
 
-    public static User.DetailProfile Convert(UserDetailProfile source) => new()
+    public static User.DetailProfile Convert(this in UserDetailProfile source) => new()
     {
         Webpage = source.Webpage,
         Gender = source.Gender,
@@ -131,7 +131,7 @@ public static class LocalNetworkConverter
         IsUsingCustomProfileImage = source.IsUsingCustomProfileImage,
     };
 
-    public static void Overwrite(User.DetailProfile destination, UserDetailProfile source)
+    public static void Overwrite(User.DetailProfile destination, in UserDetailProfile source)
     {
         OverwriteExtensions.Overwrite(ref destination.Webpage, source.Webpage);
         OverwriteExtensions.Overwrite(ref destination.Gender, source.Gender);
@@ -159,7 +159,7 @@ public static class LocalNetworkConverter
         destination.IsUsingCustomProfileImage = source.IsUsingCustomProfileImage;
     }
 
-    public static User.DetailProfilePublicity Convert(UserDetailProfilePublicity source) => new()
+    public static User.DetailProfilePublicity Convert(in UserDetailProfilePublicity source) => new()
     {
         Gender = source.Gender,
         Region = source.Region,
@@ -169,7 +169,7 @@ public static class LocalNetworkConverter
         Pawoo = source.Pawoo,
     };
 
-    public static void Overwrite(User.DetailProfilePublicity destination, UserDetailProfilePublicity source)
+    public static void Overwrite(User.DetailProfilePublicity destination, in UserDetailProfilePublicity source)
     {
         OverwriteExtensions.Overwrite(ref destination.Gender, source.Gender);
         OverwriteExtensions.Overwrite(ref destination.Region, source.Region);
@@ -179,7 +179,7 @@ public static class LocalNetworkConverter
         destination.Pawoo = source.Pawoo;
     }
 
-    public static User.DetailWorkspace Convert(UserDetailWorkspace source) => new()
+    public static User.DetailWorkspace Convert(in UserDetailWorkspace source) => new()
     {
         Pc = source.Pc,
         Monitor = source.Monitor,
@@ -196,7 +196,7 @@ public static class LocalNetworkConverter
         WorkspaceImageUrl = source.WorkspaceImageUrl,
     };
 
-    public static void Overwrite(User.DetailWorkspace destination, UserDetailWorkspace source)
+    public static void Overwrite(User.DetailWorkspace destination, in UserDetailWorkspace source)
     {
         OverwriteExtensions.Overwrite(ref destination.Pc, source.Pc);
         OverwriteExtensions.Overwrite(ref destination.Monitor, source.Monitor);
@@ -213,9 +213,9 @@ public static class LocalNetworkConverter
         OverwriteExtensions.Overwrite(ref destination.WorkspaceImageUrl, source.WorkspaceImageUrl);
     }
 
-    private static uint[] Calculate(this StringSet set, Tag[] array)
+    private static uint[] Calculate(this StringSet set, Tag[]? array)
     {
-        if (array.Length == 0)
+        if (array is not { Length: > 0 })
         {
             return Array.Empty<uint>();
         }
@@ -230,9 +230,9 @@ public static class LocalNetworkConverter
         return answer;
     }
 
-    private static uint[] Calculate(this StringSet set, string[] array)
+    private static uint[] Calculate(this StringSet set, string[]? array)
     {
-        if (array.Length == 0)
+        if (array is not { Length: > 0 })
         {
             return Array.Empty<uint>();
         }
@@ -247,9 +247,9 @@ public static class LocalNetworkConverter
         return answer;
     }
 
-    private static FileExtensionKind ConvertToFileExtensionKind(this ArtworkResponseContent source)
+    private static FileExtensionKind ConvertToFileExtensionKind(this in ArtworkResponseContent source)
     {
-        var ext = source.MetaSinglePage.OriginalImageUrl is string url ? url.AsSpan(url.LastIndexOf('.')) : source.MetaPages[0].ImageUrls.Original is string original ? original.AsSpan(original.LastIndexOf('.')) : throw new NullReferenceException();
+        var ext = source.MetaSinglePage.OriginalImageUrl is string url ? url.AsSpan(url.LastIndexOf('.')) : source.MetaPages?[0].ImageUrls.Original is string original ? original.AsSpan(original.LastIndexOf('.')) : throw new NullReferenceException();
         if (ext.SequenceEqual(".jpg") || ext.SequenceEqual(".jpeg"))
         {
             return FileExtensionKind.Jpg;
@@ -268,9 +268,9 @@ public static class LocalNetworkConverter
         }
     }
 
-    private static DateTime ParseFileDate(ArtworkResponseContent source)
+    private static DateTime ParseFileDate(in ArtworkResponseContent source)
     {
-        var page = (source.MetaSinglePage.OriginalImageUrl ?? source.MetaPages[0].ImageUrls.Original).AsSpan();
+        var page = (source.MetaSinglePage.OriginalImageUrl ?? source.MetaPages?[0].ImageUrls.Original).AsSpan();
         if (!TryParseDate(page, out var answer))
         {
             answer = source.CreateDate.ToLocalTime();
