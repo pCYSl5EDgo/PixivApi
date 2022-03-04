@@ -171,7 +171,7 @@ public static class PluginUtility
         }
     }
 
-    public static bool Exists(this IFinder finder, Artwork artwork) => finder.Find(artwork) is { Exists: true };
+    public static bool Exists(this IFinder finder, Artwork artwork) => finder.Find(artwork).Exists;
 
-    public static bool Exists(this IFinderWithIndex finder, Artwork artwork, uint index) => finder.Find(artwork, index) is { Exists: true };
+    public static bool Exists(this IFinderWithIndex finder, Artwork artwork, uint index) => finder.Find(artwork, index).Exists;
 }
