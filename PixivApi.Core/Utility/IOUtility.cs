@@ -85,6 +85,7 @@ public static class IOUtility
     }
 
     private static readonly JavaScriptEncoder javaScriptEncoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+    private static readonly JsonStringEnumConverter enumConverter = new(JsonNamingPolicy.CamelCase);
     public static readonly JsonSerializerOptions JsonSerializerOptionsWithIndent = new()
     {
         Encoder = javaScriptEncoder,
@@ -92,10 +93,11 @@ public static class IOUtility
         WriteIndented = true,
         Converters =
         {
-            Local.Artwork.JsonFormatter.Instance,
+            Local.Artwork.Converter.Instance,
             Local.FileExistanceInnerFilterConverter.Instance,
             Local.ArtworkOrderKindConverter.Instance,
-            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
+            Network.ChromeLogJson.Converter.Instance,
+            enumConverter,
         },
     };
 
@@ -106,10 +108,11 @@ public static class IOUtility
         WriteIndented = false,
         Converters =
         {
-            Local.Artwork.JsonFormatter.Instance,
+            Local.Artwork.Converter.Instance,
             Local.FileExistanceInnerFilterConverter.Instance,
             Local.ArtworkOrderKindConverter.Instance,
-            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
+            Network.ChromeLogJson.Converter.Instance,
+            enumConverter,
         },
     };
 

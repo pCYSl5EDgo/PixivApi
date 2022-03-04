@@ -49,23 +49,11 @@ public static partial class AccessTokenUtility
         foreach (var log in logs)
         {
             var message = log.Message;
-            try
+            var logJson = JsonSerializer.Deserialize<ChromeLogJson?>(message);
+            if (logJson is not null)
             {
-                var logJson = JsonSerializer.Deserialize<ChromeLogJson>(message);
-                const string head = "pixiv://";
-                if (logJson is not { Message: { Method: "Network.requestWillBeSent", Params.DocumentUrl: string documentUrl } } || !documentUrl.StartsWith(head))
-                {
-                    continue;
-                }
-
-                code = GetCode(documentUrl)!;
-                if (code is not null)
-                {
-                    break;
-                }
-            }
-            catch
-            {
+                code = logJson.Code;
+                break;
             }
         }
 
@@ -108,30 +96,6 @@ public static partial class AccessTokenUtility
         var url = $"https://app-api.pixiv.net/web/v1/login?code_challenge={challenge}&code_challenge_method=S256&client=pixiv-android";
         driver.Navigate().GoToUrl(url);
         return (driver, verifier);
-    }
-
-    private static string? GetCode(ReadOnlySpan<char> documentUrl)
-    {
-        const string codeEqual = "code=";
-        var codeEqualIndex = documentUrl.IndexOf(codeEqual);
-        if (codeEqualIndex == -1)
-        {
-            return null;
-        }
-
-        var codeSpan = documentUrl[(codeEqualIndex + codeEqual.Length)..];
-        var ampersandIndex = codeSpan.IndexOf('&');
-        if (ampersandIndex != -1)
-        {
-            codeSpan = codeSpan[..ampersandIndex];
-        }
-
-        if (codeSpan.IsEmpty)
-        {
-            return null;
-        }
-
-        return new(codeSpan);
     }
 
     private static (string CodeVerifier, string CodeChallenge) GeneratePkce()
@@ -236,5 +200,204 @@ public static partial class AccessTokenUtility
         // Strips padding.
         base64 = base64.Replace("=", "");
         return base64;
+    }
+}
+
+public partial class ChromeLogJson
+{
+    public readonly string Code;
+
+    public ChromeLogJson(string code) => Code = code;
+
+    [StringLiteral.Utf8("message")]
+    private static partial ReadOnlySpan<byte> LiteralMessage();
+
+    [StringLiteral.Utf8("method")]
+    private static partial ReadOnlySpan<byte> LiteralMethod();
+
+    [StringLiteral.Utf8("Network.requestWillBeSent")]
+    private static partial ReadOnlySpan<byte> LiteralNetwork_RequestWillBeSent();
+
+    [StringLiteral.Utf8("params")]
+    private static partial ReadOnlySpan<byte> LiteralParams();
+
+    [StringLiteral.Utf8("documentURL")]
+    private static partial ReadOnlySpan<byte> LiteralDocumentUrl();
+
+    public sealed class Converter : JsonConverter<ChromeLogJson?>
+    {
+        public static readonly Converter Instance = new();
+
+        public override ChromeLogJson? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                reader.Skip();
+                return null;
+            }
+
+            var code = default(string);
+            while (reader.Read())
+            {
+                var tokenType = reader.TokenType;
+                if (tokenType == JsonTokenType.EndObject)
+                {
+                    return string.IsNullOrWhiteSpace(code) ? null : new ChromeLogJson(code);
+                }
+
+                if (tokenType == JsonTokenType.Comment)
+                {
+                    continue;
+                }
+
+                if (tokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException();
+                }
+
+                if (!reader.ValueTextEquals(LiteralMessage()))
+                {
+                    reader.Skip();
+                    reader.Skip();
+                    continue;
+                }
+
+                if (!reader.Read())
+                {
+                    throw new JsonException();
+                }
+
+                code = ReadCode(ref reader);
+            }
+
+            throw new JsonException();
+        }
+
+        private static string? ReadCode(ref Utf8JsonReader reader)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                reader.Skip();
+                return null;
+            }
+
+            var isRequestWillBeSent = false;
+            var documentUrl = default(string);
+            while (reader.Read())
+            {
+                var tokenType = reader.TokenType;
+                if (tokenType == JsonTokenType.EndObject)
+                {
+                    return isRequestWillBeSent ? GetCode(documentUrl) : default;
+                }
+
+                if (tokenType == JsonTokenType.Comment)
+                {
+                    continue;
+                }
+
+                if (tokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException();
+                }
+
+                if (reader.ValueTextEquals(LiteralMethod()))
+                {
+                    if (!reader.Read())
+                    {
+                        throw new JsonException();
+                    }
+
+                    isRequestWillBeSent = reader.ValueTextEquals(LiteralNetwork_RequestWillBeSent());
+                }
+                else if (reader.ValueTextEquals(LiteralParams()))
+                {
+                    if (!reader.Read())
+                    {
+                        throw new JsonException();
+                    }
+
+                    documentUrl = ReadDocumentUrl(ref reader);
+                }
+                else
+                {
+                    reader.Skip();
+                    reader.Skip();
+                }
+            }
+
+            throw new JsonException();
+        }
+
+        private static string? ReadDocumentUrl(ref Utf8JsonReader reader)
+        {
+            if (reader.TokenType != JsonTokenType.StartObject)
+            {
+                reader.Skip();
+                return null;
+            }
+
+            var documentUrl = default(string);
+            while (reader.Read())
+            {
+                var tokenType = reader.TokenType;
+                if (tokenType == JsonTokenType.EndObject)
+                {
+                    return documentUrl;
+                }
+
+                if (tokenType == JsonTokenType.Comment)
+                {
+                    continue;
+                }
+
+                if (tokenType != JsonTokenType.PropertyName)
+                {
+                    throw new JsonException();
+                }
+
+                if (!reader.ValueTextEquals(LiteralDocumentUrl()))
+                {
+                    reader.Skip();
+                    reader.Skip();
+                    continue;
+                }
+
+                if (!reader.Read())
+                {
+                    throw new JsonException();
+                }
+
+                documentUrl = reader.GetString();
+            }
+
+            throw new JsonException();
+        }
+
+        private static string? GetCode(ReadOnlySpan<char> documentUrl)
+        {
+            const string codeEqual = "code=";
+            var codeEqualIndex = documentUrl.IndexOf(codeEqual);
+            if (codeEqualIndex == -1)
+            {
+                return null;
+            }
+
+            var codeSpan = documentUrl[(codeEqualIndex + codeEqual.Length)..];
+            var ampersandIndex = codeSpan.IndexOf('&');
+            if (ampersandIndex != -1)
+            {
+                codeSpan = codeSpan[..ampersandIndex];
+            }
+
+            if (codeSpan.IsEmpty)
+            {
+                return null;
+            }
+
+            return new(codeSpan);
+        }
+
+        public override void Write(Utf8JsonWriter writer, ChromeLogJson? value, JsonSerializerOptions options) => throw new NotSupportedException();
     }
 }
