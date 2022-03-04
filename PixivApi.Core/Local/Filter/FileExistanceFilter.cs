@@ -130,47 +130,51 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
 
         while (reader.Read())
         {
-            switch (reader.TokenType)
+            var tokenType = reader.TokenType;
+            if (tokenType == JsonTokenType.EndObject)
             {
-                case JsonTokenType.EndObject:
-                    break;
-                case JsonTokenType.PropertyName:
-                    if (reader.ValueTextEquals(LiteralMax()))
-                    {
-                        any = true;
-                        maxSelected = true;
-                        if (!reader.Read() || !reader.TryGetInt32(out max))
-                        {
-                            goto default;
-                        }
-                    }
-                    else if (reader.ValueTextEquals(LiteralMin()))
-                    {
-                        any = true;
-                        if (!reader.Read())
-                        {
-                            goto default;
-                        }
+                break;
+            }
 
-                        if (!reader.TryGetInt32(out min))
-                        {
-                            isAllMin = reader.ValueTextEquals(LiteralAll());
-                            if (!isAllMin)
-                            {
-                                goto default;
-                            }
-                        }
-                    }
-                    else if (!reader.Read())
-                    {
-                        goto default;
-                    }
+            if (tokenType == JsonTokenType.Comment)
+            {
+                continue;
+            }
 
-                    continue;
-                case JsonTokenType.Comment:
-                    continue;
-                default:
+            if (tokenType != JsonTokenType.PropertyName)
+            {
+                throw new JsonException();
+            }
+
+            if (reader.ValueTextEquals(LiteralMax()))
+            {
+                any = true;
+                maxSelected = true;
+                if (!reader.Read() || !reader.TryGetInt32(out max))
+                {
                     throw new JsonException();
+                }
+            }
+            else if (reader.ValueTextEquals(LiteralMin()))
+            {
+                any = true;
+                if (!reader.Read())
+                {
+                    throw new JsonException();
+                }
+
+                if (!reader.TryGetInt32(out min))
+                {
+                    isAllMin = reader.ValueTextEquals(LiteralAll());
+                    if (!isAllMin)
+                    {
+                        throw new JsonException();
+                    }
+                }
+            }
+            else if (!reader.Read())
+            {
+                throw new JsonException();
             }
         }
 
