@@ -8,5 +8,5 @@ public sealed record class DefaultNotUgoiraThumbnailFinder(ConfigSettings Config
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    public FileInfo Find(Artwork artwork, uint index) => new(Path.Combine(ConfigSettings.ThumbnailFolder, artwork.GetNotUgoiraThumbnailFileName(index)));
+    public FileInfo Find(Artwork artwork, uint index) => new(Path.Combine(ConfigSettings.ThumbnailFolder, IOUtility.GetHashPath(artwork.Id), artwork.GetNotUgoiraThumbnailFileName(index)));
 }
