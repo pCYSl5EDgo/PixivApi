@@ -648,9 +648,9 @@ public sealed partial class Artwork : IEquatable<Artwork>
     [StringLiteral.Utf8("page-hide-reason-dictionary")] private static partial ReadOnlySpan<byte> LiteralExtraPageHideReasonDictionary();
     #endregion
 
-    public sealed class JsonFormatter : JsonConverter<Artwork>
+    public sealed class Converter : JsonConverter<Artwork>
     {
-        public static readonly JsonFormatter Instance = new();
+        public static readonly Converter Instance = new();
 
         public override Artwork? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => throw new NotSupportedException();
 
