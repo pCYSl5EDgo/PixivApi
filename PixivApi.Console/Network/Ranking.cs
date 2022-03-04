@@ -12,23 +12,36 @@ public partial class NetworkClient
     )
     {
         var token = Context.CancellationToken;
+        System.Console.Error.WriteLine($"Start loading database. Time: {DateTime.Now}");
+        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
-        var database = (await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false)) ?? new();
         var add = 0UL;
-        var rankingList = new List<ulong>();
+        var rankingList = new List<Core.Network.ArtworkResponseContent>(300);
+        var url = GetRankingUrl(date, ranking);
         try
         {
-            var url = GetRankingUrl(date, ranking);
             await foreach (var artworkCollection in new Core.Network.DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {
-                    if (token.IsCancellationRequested)
-                    {
-                        return;
-                    }
-
-                    rankingList.Add(item.Id);
+                    rankingList.Add(item);
+                }
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            logger.LogError("Accept cancel. Please wait for writing to the database file.");
+        }
+        finally
+        {
+            var databaseCount = 0;
+            if (rankingList.Count != 0)
+            {
+                var database = (await databaseTask.ConfigureAwait(false)) ?? new();
+                var rankingArray = new ulong[rankingList.Count];
+                for (var i = 0; i < rankingArray.Length; i++)
+                {
+                    var item = rankingList[i];
                     _ = database.ArtworkDictionary.AddOrUpdate(
                         item.Id,
                         _ =>
@@ -51,21 +64,18 @@ public partial class NetworkClient
                             return v;
                         }
                     );
+
+                    rankingArray[i] = item.Id;
                 }
-            }
-        }
-        finally
-        {
-            if (rankingList.Count != 0)
-            {
-                var rankingArray = rankingList.ToArray();
+
                 database.RankingSet.AddOrUpdate(new(date ?? DateOnly.FromDateTime(DateTime.Now), ranking), rankingArray, (_, _) => rankingArray);
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
+                databaseCount = database.ArtworkDictionary.Count;
             }
 
             if (!pipe)
             {
-                logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {(ulong)rankingList.Count - add}");
+                logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
             }
         }
     }
