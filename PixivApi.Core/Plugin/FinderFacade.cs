@@ -2,7 +2,7 @@
 
 public sealed class FinderFacade : IAsyncDisposable
 {
-    private FinderFacade(IFinder ugoiraZipFinder, IFinder ugoiraThumbnailFinder, IFinder ugoiraOriginalFinder, IFinderWithIndex illustThumbnailFinder, IFinderWithIndex illustOriginalFinder, IFinderWithIndex mangaThumbnailFinder, IFinderWithIndex mangaOriginalFinder)
+    private FinderFacade(IFinder ugoiraZipFinder, IFinder ugoiraThumbnailFinder, IFinder ugoiraOriginalFinder, IFinderWithIndex illustThumbnailFinder, IFinderWithIndex illustOriginalFinder, IFinderWithIndex mangaThumbnailFinder, IFinderWithIndex mangaOriginalFinder, IFinder ugoiraZipFinderDefault, IFinder ugoiraThumbnailFinderDefault, IFinder ugoiraOriginalFinderDefault, IFinderWithIndex illustThumbnailFinderDefault, IFinderWithIndex illustOriginalFinderDefault, IFinderWithIndex mangaThumbnailFinderDefault, IFinderWithIndex mangaOriginalFinderDefault)
     {
         UgoiraZipFinder = ugoiraZipFinder;
         UgoiraThumbnailFinder = ugoiraThumbnailFinder;
@@ -11,6 +11,13 @@ public sealed class FinderFacade : IAsyncDisposable
         IllustOriginalFinder = illustOriginalFinder;
         MangaThumbnailFinder = mangaThumbnailFinder;
         MangaOriginalFinder = mangaOriginalFinder;
+        DefaultUgoiraZipFinder = ugoiraZipFinderDefault;
+        DefaultUgoiraThumbnailFinder = ugoiraThumbnailFinderDefault;
+        DefaultUgoiraOriginalFinder = ugoiraOriginalFinderDefault;
+        DefaultIllustThumbnailFinder = illustThumbnailFinderDefault;
+        DefaultIllustOriginalFinder = illustOriginalFinderDefault;
+        DefaultMangaThumbnailFinder = mangaThumbnailFinderDefault;
+        DefaultMangaOriginalFinder = mangaOriginalFinderDefault;
     }
 
     public readonly IFinder UgoiraZipFinder;
@@ -21,41 +28,36 @@ public sealed class FinderFacade : IAsyncDisposable
     public readonly IFinderWithIndex MangaThumbnailFinder;
     public readonly IFinderWithIndex MangaOriginalFinder;
 
-    private static async ValueTask<IFinder> GetFinderAsync<TDefaultImpl>(string? plugin, ConfigSettings configSettings, object boxedCancellationToken, CancellationToken cancellationToken)
-        where TDefaultImpl : class, IFinder
-    {
-        var answer = await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IFinder;
-        if (answer is null)
-        {
-            answer = await TDefaultImpl.CreateAsync(Environment.ProcessPath ?? throw new NullReferenceException(), configSettings, cancellationToken).ConfigureAwait(false) as IFinder;
-        }
+    public readonly IFinder DefaultUgoiraZipFinder;
+    public readonly IFinder DefaultUgoiraThumbnailFinder;
+    public readonly IFinder DefaultUgoiraOriginalFinder;
+    public readonly IFinderWithIndex DefaultIllustThumbnailFinder;
+    public readonly IFinderWithIndex DefaultIllustOriginalFinder;
+    public readonly IFinderWithIndex DefaultMangaThumbnailFinder;
+    public readonly IFinderWithIndex DefaultMangaOriginalFinder;
 
-        return answer ?? throw new NullReferenceException();
-    }
+    private static async ValueTask<IFinder?> GetFinderAsync(string? plugin, ConfigSettings configSettings, object boxedCancellationToken) => await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IFinder;
 
-    private static async ValueTask<IFinderWithIndex> GetFinderWithIndexAsync<TDefaultImpl>(string? plugin, ConfigSettings configSettings, object boxedCancellationToken, CancellationToken cancellationToken)
-        where TDefaultImpl : class, IFinderWithIndex
-    {
-        var answer = await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IFinderWithIndex;
-        if (answer is null)
-        {
-            answer = await TDefaultImpl.CreateAsync(Environment.ProcessPath ?? throw new NullReferenceException(), configSettings, cancellationToken).ConfigureAwait(false) as IFinderWithIndex;
-        }
-
-        return answer ?? throw new NullReferenceException();
-    }
+    private static async ValueTask<IFinderWithIndex?> GetFinderWithIndexAsync(string? plugin, ConfigSettings configSettings, object boxedCancellationToken) => await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IFinderWithIndex;
 
     public static async ValueTask<FinderFacade> CreateAsync(ConfigSettings configSettings, CancellationToken token)
     {
+        var ugoiraZipFinderPluginDefault = new DefaultUgoiraZipFinder(configSettings);
+        var ugoiraThumbnailFinderPluginDefault = new DefaultUgoiraThumbnailFinder(configSettings);
+        var ugoiraOriginalFinderPluginDefault = new DefaultUgoiraOriginalFinder(configSettings);
+        var illustThumbnailFinderPluginDefault = new DefaultNotUgoiraThumbnailFinder(configSettings);
+        var illustOriginalFinderPluginDefault = new DefaultNotUgoiraOriginalFinder(configSettings);
+        var mangaThumbnailFinderPluginDefault = new DefaultNotUgoiraThumbnailFinder(configSettings);
+        var mangaOriginalFinderPluginDefault = new DefaultNotUgoiraOriginalFinder(configSettings);
         object boxedToken = token;
-        var ugoiraZipFinderPlugin = await GetFinderAsync<DefaultUgoiraZipFinder>(configSettings.UgoiraZipFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
-        var ugoiraThumbnailFinderPlugin = await GetFinderAsync<DefaultUgoiraThumbnailFinder>(configSettings.UgoiraThumbnailFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
-        var ugoiraOriginalFinderPlugin = await GetFinderAsync<DefaultUgoiraOriginalFinder>(configSettings.UgoiraOriginalFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
-        var illustThumbnailFinderPlugin = await GetFinderWithIndexAsync<DefaultNotUgoiraThumbnailFinder>(configSettings.IllustThumbnailFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
-        var illustOriginalFinderPlugin = await GetFinderWithIndexAsync<DefaultNotUgoiraOriginalFinder>(configSettings.IllustOriginalFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
-        var mangaThumbnailFinderPlugin = await GetFinderWithIndexAsync<DefaultNotUgoiraThumbnailFinder>(configSettings.MangaThumbnailFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
-        var mangaOriginalFinderPlugin = await GetFinderWithIndexAsync<DefaultNotUgoiraOriginalFinder>(configSettings.MangaOriginalFinderPlugin, configSettings, boxedToken, token).ConfigureAwait(false);
-        return new(ugoiraZipFinderPlugin, ugoiraThumbnailFinderPlugin, ugoiraOriginalFinderPlugin, illustThumbnailFinderPlugin, illustOriginalFinderPlugin, mangaThumbnailFinderPlugin, mangaOriginalFinderPlugin);
+        var ugoiraZipFinderPlugin = await GetFinderAsync(configSettings.UgoiraZipFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? ugoiraZipFinderPluginDefault;
+        var ugoiraThumbnailFinderPlugin = await GetFinderAsync(configSettings.UgoiraThumbnailFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? ugoiraThumbnailFinderPluginDefault;
+        var ugoiraOriginalFinderPlugin = await GetFinderAsync(configSettings.UgoiraOriginalFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? ugoiraOriginalFinderPluginDefault;
+        var illustThumbnailFinderPlugin = await GetFinderWithIndexAsync(configSettings.IllustThumbnailFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? illustThumbnailFinderPluginDefault;
+        var illustOriginalFinderPlugin = await GetFinderWithIndexAsync(configSettings.IllustOriginalFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? illustOriginalFinderPluginDefault;
+        var mangaThumbnailFinderPlugin = await GetFinderWithIndexAsync(configSettings.MangaThumbnailFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? mangaThumbnailFinderPluginDefault;
+        var mangaOriginalFinderPlugin = await GetFinderWithIndexAsync(configSettings.MangaOriginalFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? mangaOriginalFinderPluginDefault;
+        return new(ugoiraZipFinderPlugin, ugoiraThumbnailFinderPlugin, ugoiraOriginalFinderPlugin, illustThumbnailFinderPlugin, illustOriginalFinderPlugin, mangaThumbnailFinderPlugin, mangaOriginalFinderPlugin, ugoiraZipFinderPluginDefault, ugoiraThumbnailFinderPluginDefault, ugoiraOriginalFinderPluginDefault, illustThumbnailFinderPluginDefault, illustOriginalFinderPluginDefault, mangaThumbnailFinderPluginDefault, mangaOriginalFinderPluginDefault);
     }
 
     public async ValueTask DisposeAsync()
