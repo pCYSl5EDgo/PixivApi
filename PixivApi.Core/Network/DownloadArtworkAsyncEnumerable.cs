@@ -86,7 +86,7 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
             }
 
             var response = IOUtility.JsonDeserialize<IllustsResponseData>(responseByteArray.AsSpan());
-            var container = response.GetContainer();
+            var container = response.Illusts;
             if (container is not { Length: > 0 })
             {
                 return false;
@@ -188,7 +188,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
             }
 
             var response = IOUtility.JsonDeserialize<IllustsResponseData>(responseByteArray.AsSpan());
-            var container = response.GetContainer();
+            var container = response.Illusts;
             if (container is not { Length: > 0 })
             {
                 return false;
@@ -306,7 +306,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
             }
 
             var response = IOUtility.JsonDeserialize<UserPreviewsResponseData>(responseByteArray.AsSpan());
-            var container = response.GetContainer();
+            var container = response.UserPreviews;
             if (container is not { Length: > 0 })
             {
                 return false;

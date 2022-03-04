@@ -1,15 +1,15 @@
 ﻿namespace PixivApi.Core.Network;
 
-public sealed class ArtworkResponseContent
+public struct ArtworkResponseContent
 {
     [JsonPropertyName("id")] public ulong Id;
     [JsonPropertyName("type")] public ArtworkType Type;
     [JsonPropertyName("image_urls")] public ImageUrlsResponse ImageUrls;
-    [JsonPropertyName("title")] public string Title = string.Empty;
-    [JsonPropertyName("caption")] public string Caption = string.Empty;
+    [JsonPropertyName("title")] public string? Title;
+    [JsonPropertyName("caption")] public string? Caption;
     [JsonPropertyName("user")] public UserResponse User;
-    [JsonPropertyName("tags")] public Tag[] Tags = Array.Empty<Tag>();
-    [JsonPropertyName("tools")] public string[] Tools = Array.Empty<string>();
+    [JsonPropertyName("tags")] public Tag[]? Tags;
+    [JsonPropertyName("tools")] public string[]? Tools;
     [JsonPropertyName("create_date")] public DateTime CreateDate;
     [JsonPropertyName("page_count")] public uint PageCount;
     [JsonPropertyName("width")] public uint Width;
@@ -17,7 +17,7 @@ public sealed class ArtworkResponseContent
     [JsonPropertyName("sanity_level")] public uint SanityLevel;
     [JsonPropertyName("x_restrict")] public uint XRestrict;
     [JsonPropertyName("meta_single_page")] public InnerMetaSinglePage MetaSinglePage;
-    [JsonPropertyName("meta_pages")] public InnerMetaPage[] MetaPages = Array.Empty<InnerMetaPage>();
+    [JsonPropertyName("meta_pages")] public InnerMetaPage[]? MetaPages;
     [JsonPropertyName("total_view")] public ulong TotalView;
     [JsonPropertyName("total_bookmarks")] public ulong TotalBookmarks;
     [JsonPropertyName("is_bookmarked")] public bool IsBookmarked;
@@ -25,9 +25,11 @@ public sealed class ArtworkResponseContent
     [JsonPropertyName("is_muted")] public bool IsMuted;
     [JsonPropertyName("total_comments")] public uint TotalComments;
 
-    public override string ToString() => $"{Id} {Title}";
+#if DEBUG
+    public readonly override string ToString() => $"{Id} {Title}";
 
-    public override int GetHashCode() => Id.GetHashCode();
+    public readonly override int GetHashCode() => Id.GetHashCode();
+#endif
 
     public struct InnerMetaSinglePage
     {
@@ -42,14 +44,12 @@ public sealed class ArtworkResponseContent
     }
 }
 
-public struct Tag : ITag
+public struct Tag
 {
     [JsonPropertyName("name")]
     public string Name;
     [JsonPropertyName("translated_name")]
     public string? TranslatedName;
-
-    [JsonIgnore] string ITag.Tag => Name;
 }
 
 public struct ImageUrlsResponse
@@ -70,7 +70,7 @@ public struct UserResponse
     [JsonPropertyName("comment")] public string? Comment;
 }
 
-public sealed class UserPreviewResponseContent
+public struct UserPreviewResponseContent
 {
     [JsonPropertyName("user")] public UserResponse User;
     [JsonPropertyName("illusts")] public ArtworkResponseContent[]? Illusts;
@@ -173,17 +173,13 @@ public struct UserDetailWorkspace
 public struct IllustsResponseData
 {
     [JsonPropertyName("illusts")] public ArtworkResponseContent[] Illusts;
-    [JsonPropertyName("next_url")] public string? NextUrl { get; set; }
-
-    public ArtworkResponseContent[] GetContainer() => Illusts;
+    [JsonPropertyName("next_url")] public string? NextUrl;
 }
 
 public struct UserPreviewsResponseData
 {
     [JsonPropertyName("user_previews")] public UserPreviewResponseContent[] UserPreviews;
-    [JsonPropertyName("next_url")] public string? NextUrl { get; set; }
-
-    public UserPreviewResponseContent[] GetContainer() => UserPreviews;
+    [JsonPropertyName("next_url")] public string? NextUrl;
 }
 
 public struct UserDetailResponseData
