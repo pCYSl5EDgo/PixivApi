@@ -33,6 +33,8 @@ internal static class ConverterUtility
         }
     }
 
+    public static string GetJxlName(ulong id, uint? index) => index.HasValue ? $"{id}_{index.Value}.jxl" : $"{id}.jxl";
+
     public static async ValueTask<bool> ExecuteAsync(ILogger? logger, string exePath, string input, long inputSize, string output, string workingDirectory)
     {
         logger?.LogInformation($"Start processing. Input: {input} Size: {inputSize}  -  Output: {output}  @  {workingDirectory}");

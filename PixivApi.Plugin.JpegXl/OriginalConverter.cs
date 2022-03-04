@@ -15,99 +15,57 @@ public sealed record class OriginalConverter(string ExePath, ConfigSettings Conf
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    private static string GetJxlName(Artwork artwork) => $"{artwork.Id}.jxl";
-
-    private static string GetJxlName(Artwork artwork, uint index) => $"{artwork.Id}_{index}.jxl";
-    
-    public async ValueTask<bool> TryConvertAsync(Artwork artwork, ILogger? logger, CancellationToken cancellationToken)
+    private static bool TryParse(ReadOnlySpan<char> fileNameWithoutExtension, out ulong id, out uint? index)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
-        var anyProcess = false;
-        if (artwork.Type == ArtworkType.Ugoira)
+        index = null;
+        if (fileNameWithoutExtension.EndsWith("_ugoira0"))
         {
-            var fileName = artwork.GetUgoiraOriginalFileName();
-            var fileInfo = new FileInfo(Path.Combine(folder, fileName));
-            if (!fileInfo.Exists)
-            {
-                return false;
-            }
-
-            var jxlName = GetJxlName(artwork);
-            if (File.Exists(Path.Combine(folder, jxlName)))
-            {
-                return false;
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            anyProcess = await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
-        }
-        else
-        {
-            for (uint i = 0; i < artwork.PageCount; i++)
-            {
-                var fileName = artwork.GetNotUgoiraOriginalFileName(i);
-                var fileInfo = new FileInfo(Path.Combine(folder, fileName));
-                if (!fileInfo.Exists)
-                {
-                    continue;
-                }
-
-                var jxlName = GetJxlName(artwork, i);
-                if (File.Exists(Path.Combine(folder, jxlName)))
-                {
-                    continue;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                anyProcess |= await ConverterUtility.ExecuteAsync(logger, ExePath, fileName, fileInfo.Length, jxlName, folder).ConfigureAwait(false);
-            }
+            return ulong.TryParse(fileNameWithoutExtension[0..^"_ugoira0".Length], out id);
         }
 
-        return anyProcess;
+        var pIndex = fileNameWithoutExtension.IndexOf("_p");
+        if (pIndex <= 0)
+        {
+            id = 0;
+            return false;
+        }
+
+        if (!ulong.TryParse(fileNameWithoutExtension[0..pIndex], out id))
+        {
+            return false;
+        }
+
+        if (!uint.TryParse(fileNameWithoutExtension[(pIndex + 2)..], out var indexValue))
+        {
+            return false;
+        }
+
+        index = indexValue;
+        return true;
     }
 
-    public void DeleteUnneccessaryOriginal(Artwork artwork, ILogger? logger)
+    public async ValueTask<bool> TryConvertAsync(FileInfo file, ILogger? logger, CancellationToken cancellationToken)
     {
-        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
-        if (artwork.Type == ArtworkType.Ugoira)
+        cancellationToken.ThrowIfCancellationRequested();
+        var name = file.Name;
+        if (name.EndsWith(".jxl"))
         {
-            var fileName = artwork.GetUgoiraOriginalFileName();
-            var fileInfo = new FileInfo(Path.Combine(folder, fileName));
-            if (!fileInfo.Exists)
-            {
-                return;
-            }
-
-            var jxlName = GetJxlName(artwork);
-            if (!File.Exists(Path.Combine(folder, jxlName)))
-            {
-                return;
-            }
-
-            logger?.LogInformation($"Delete: {fileName}");
-            fileInfo.Delete();
+            return false;
         }
-        else
+
+        if (!TryParse(Path.GetFileNameWithoutExtension(name.AsSpan()), out var id, out var index))
         {
-            for (uint i = 0; i < artwork.PageCount; i++)
-            {
-                var fileName = artwork.GetNotUgoiraOriginalFileName(i);
-                var fileInfo = new FileInfo(Path.Combine(folder, fileName));
-                if (!fileInfo.Exists)
-                {
-                    continue;
-                }
-
-                var jxlName = GetJxlName(artwork, i);
-                if (!File.Exists(Path.Combine(folder, jxlName)))
-                {
-                    continue;
-                }
-
-                logger?.LogInformation($"Delete: {fileName}");
-                fileInfo.Delete();
-            }
+            return false;
         }
+
+        var workingDirectory = file.DirectoryName;
+        var jxlName = ConverterUtility.GetJxlName(id, index);
+        var jxlFile = new FileInfo(workingDirectory is null ? jxlName : Path.Combine(workingDirectory, jxlName));
+        if (jxlFile.Exists)
+        {
+            return false;
+        }
+
+        return await ConverterUtility.ExecuteAsync(logger, ExePath, name, file.Length, jxlName, workingDirectory ?? string.Empty).ConfigureAwait(false);
     }
 }
