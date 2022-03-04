@@ -2,4 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
 </Project>
