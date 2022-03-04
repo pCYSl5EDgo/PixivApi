@@ -1,5 +1,3 @@
-using PixivApi.Core.Network;
-
 namespace PixivApi.Console;
 
 public partial class NetworkClient

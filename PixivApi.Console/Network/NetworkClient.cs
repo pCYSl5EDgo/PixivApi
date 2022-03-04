@@ -1,5 +1,4 @@
-﻿using PixivApi.Core.Network;
-using System.Runtime.ExceptionServices;
+﻿using System.Runtime.ExceptionServices;
 
 namespace PixivApi.Console;
 

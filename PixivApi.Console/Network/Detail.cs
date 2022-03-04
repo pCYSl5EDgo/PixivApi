@@ -103,18 +103,18 @@ public partial class NetworkClient
         }
     }
 
-    private async ValueTask<Core.Network.ArtworkResponseContent> GetArtworkDetailAsync(ulong id, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
+    private async ValueTask<ArtworkResponseContent> GetArtworkDetailAsync(ulong id, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
     {
         var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
         var content = await RetryGetAsync(url, authentication, pipe, token).ConfigureAwait(false);
-        var response = IOUtility.JsonDeserialize<Core.Network.IllustDateilResponseData>(content.AsSpan());
+        var response = IOUtility.JsonDeserialize<IllustDateilResponseData>(content.AsSpan());
         return response.Illust;
     }
 
     private async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(ulong id, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
     {
         var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
-        var ugoiraResponse = IOUtility.JsonDeserialize<Core.Network.UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, authentication, pipe, token).ConfigureAwait(false)).AsSpan());
+        var ugoiraResponse = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, authentication, pipe, token).ConfigureAwait(false)).AsSpan());
         var frames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
         for (var frameIndex = 0; frameIndex < frames.Length; frameIndex++)
         {

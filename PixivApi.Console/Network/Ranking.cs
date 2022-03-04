@@ -16,11 +16,11 @@ public partial class NetworkClient
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
         var add = 0UL;
-        var rankingList = new List<Core.Network.ArtworkResponseContent>(300);
+        var rankingList = new List<ArtworkResponseContent>(300);
         var url = GetRankingUrl(date, ranking);
         try
         {
-            await foreach (var artworkCollection in new Core.Network.DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {
