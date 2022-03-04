@@ -163,13 +163,17 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                     throw new JsonException();
                 }
 
-                if (!reader.TryGetInt32(out min))
+                if (reader.ValueTextEquals(LiteralAll()))
                 {
-                    isAllMin = reader.ValueTextEquals(LiteralAll());
-                    if (!isAllMin)
-                    {
-                        throw new JsonException();
-                    }
+                    isAllMin = true;
+                }
+                else if (reader.TryGetInt32(out min))
+                {
+                    isAllMin = false;
+                }
+                else
+                {
+                    throw new JsonException();
                 }
             }
             else if (!reader.Read())
