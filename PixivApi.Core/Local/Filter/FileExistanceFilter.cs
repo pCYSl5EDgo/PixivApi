@@ -176,9 +176,10 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                     throw new JsonException();
                 }
             }
-            else if (!reader.Read())
+            else
             {
-                throw new JsonException();
+                reader.Skip();
+                reader.Skip();
             }
         }
     }
