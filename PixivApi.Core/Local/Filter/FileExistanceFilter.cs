@@ -133,7 +133,7 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
             var tokenType = reader.TokenType;
             if (tokenType == JsonTokenType.EndObject)
             {
-                break;
+                return any ? new(maxSelected ? max : null, isAllMin, min) : null;
             }
 
             if (tokenType == JsonTokenType.Comment)
@@ -181,8 +181,6 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                 throw new JsonException();
             }
         }
-
-        return any ? new(maxSelected ? max : null, isAllMin, min) : null;
     }
 
     public override void Write(Utf8JsonWriter writer, FileExistanceFilter.InnerFilter? value, JsonSerializerOptions options) => throw new NotSupportedException();
