@@ -5,96 +5,60 @@ public partial class LocalClient
     [Command("encode", "")]
     public async ValueTask EncodeAsync(
         [Option("o")] bool original = false,
-        [Option("t")] bool thumbanil = false,
+        [Option("t")] bool thumbnail = false,
         [Option("u")] bool ugoira = false,
         [Option("d")] bool delete = false
     )
     {
-        if (!original && !thumbanil && !ugoira)
+        if (!original && !thumbnail && !ugoira)
         {
             return;
         }
 
         var token = Context.CancellationToken;
+        ulong originalCount = 0UL, thumbnailCount = 0UL, ugoiraCount = 0UL;
         if (original && converter.OriginalConverter is { } originalConverter)
         {
-            for (var i = 0; i < 256; i++)
-            {
-                var folder0 = Path.Combine(configSettings.OriginalFolder, IOUtility.ByteTexts[i]);
-                for (var j = 0; j < 256; j++)
-                {
-                    var folder1 = Path.Combine(folder0, IOUtility.ByteTexts[j]);
-                    logger.LogInformation($"{i:X2}/{j:X2}");
-                    foreach (var file in Directory.EnumerateFiles(folder1, "*", SearchOption.TopDirectoryOnly))
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            return;
-                        }
-
-                        var info = new FileInfo(file);
-                        if (await originalConverter.TryConvertAsync(info, logger, token).ConfigureAwait(false) && delete)
-                        {
-                            logger.LogInformation($"{VirtualCodes.BrightGreenColor}{info.Name}{VirtualCodes.NormalizeColor}");
-                            info.Delete();
-                        }
-                    }
-                }
-            }
+            originalCount = await EncodeConvertAsync(originalConverter, configSettings.OriginalFolder, delete, token).ConfigureAwait(false);
         }
 
-        if (thumbanil && converter.ThumbnailConverter is { } thumbnailConverter)
+        if (thumbnail && converter.ThumbnailConverter is { } thumbnailConverter)
         {
-            for (var i = 0; i < 256; i++)
-            {
-                var folder0 = Path.Combine(configSettings.ThumbnailFolder, IOUtility.ByteTexts[i]);
-                for (var j = 0; j < 256; j++)
-                {
-                    var folder1 = Path.Combine(folder0, IOUtility.ByteTexts[j]);
-                    logger.LogInformation($"{i:X2}/{j:X2}");
-                    foreach (var file in Directory.EnumerateFiles(folder1, "*", SearchOption.TopDirectoryOnly))
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            return;
-                        }
-
-                        var info = new FileInfo(file);
-                        if (await thumbnailConverter.TryConvertAsync(info, logger, token).ConfigureAwait(false) && delete)
-                        {
-                            logger.LogInformation($"{VirtualCodes.BrightGreenColor}{info.Name}{VirtualCodes.NormalizeColor}");
-                            info.Delete();
-                        }
-                    }
-                }
-            }
+            thumbnailCount = await EncodeConvertAsync(thumbnailConverter, configSettings.ThumbnailFolder, delete, token).ConfigureAwait(false);
         }
 
         if (ugoira && converter.UgoiraZipConverter is { } ugoiraConverter)
         {
-            for (var i = 0; i < 256; i++)
-            {
-                var folder0 = Path.Combine(configSettings.UgoiraFolder, IOUtility.ByteTexts[i]);
-                for (var j = 0; j < 256; j++)
-                {
-                    var folder1 = Path.Combine(folder0, IOUtility.ByteTexts[j]);
-                    logger.LogInformation($"{i:X2}/{j:X2}");
-                    foreach (var file in Directory.EnumerateFiles(folder1, "*", SearchOption.TopDirectoryOnly))
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            return;
-                        }
+            ugoiraCount = await EncodeConvertAsync(ugoiraConverter, configSettings.UgoiraFolder, delete, token).ConfigureAwait(false);
+        }
 
-                        var info = new FileInfo(file);
-                        if (await ugoiraConverter.TryConvertAsync(info, logger, token).ConfigureAwait(false) && delete)
-                        {
-                            logger.LogInformation($"{VirtualCodes.BrightGreenColor}{info.Name}{VirtualCodes.NormalizeColor}");
-                            info.Delete();
-                        }
+        logger.LogInformation($"Original: {originalCount} Thumbnail: {thumbnailCount} Ugoira: {ugoiraCount}");
+    }
+
+    private async ValueTask<ulong> EncodeConvertAsync(IConverter converter, string folder, bool delete, CancellationToken token)
+    {
+        var count = 0UL;
+        for (var i = 0; i < 256; i++)
+        {
+            var folder0 = Path.Combine(folder, IOUtility.ByteTexts[i]);
+            for (var j = 0; j < 256; j++)
+            {
+                var folder1 = Path.Combine(folder0, IOUtility.ByteTexts[j]);
+                logger.LogInformation(folder1);
+                await Parallel.ForEachAsync(Directory.EnumerateFiles(folder1, "*", SearchOption.TopDirectoryOnly), token, async (file, token) =>
+                {
+                    token.ThrowIfCancellationRequested();
+                    var info = new FileInfo(file);
+                    if (await converter.TryConvertAsync(info, logger, token).ConfigureAwait(false) && delete)
+                    {
+                        _ = Interlocked.Increment(ref count);
+                        logger.LogInformation($"{VirtualCodes.BrightGreenColor}{info.Name}{VirtualCodes.NormalizeColor}");
+                        info.Delete();
                     }
-                }
+                }).ConfigureAwait(false);
             }
         }
+
+        return count;
     }
 }
