@@ -168,7 +168,21 @@ public sealed partial class Artwork : IEquatable<Artwork>
 
     public override bool Equals(object? obj) => Equals(obj as Artwork);
 
-    private bool stringify = false;
+    private bool stringify;
+
+    public bool IsStringified
+    {
+        get => stringify;
+        set
+        {
+            if (value)
+            {
+                return;
+            }
+
+            stringify = false;
+        }
+    }
 
     public IEnumerable<string>? StringifiedTags { get; private set; }
 
@@ -673,7 +687,7 @@ public sealed partial class Artwork : IEquatable<Artwork>
             writer.WriteString(LiteralTitle(), value.Title);
 
             writer.WriteNumber(LiteralUserId(), value.UserId);
-            if (value.stringify)
+            if (value.IsStringified)
             {
                 writer.WriteString(LiteralUserName(), value.UserName);
             }
@@ -760,7 +774,7 @@ public sealed partial class Artwork : IEquatable<Artwork>
                 }
             }
 
-            if (value.stringify)
+            if (value.IsStringified)
             {
                 if (value.StringifiedTags is { } tags)
                 {
