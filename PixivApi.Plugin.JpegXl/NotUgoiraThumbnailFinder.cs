@@ -18,7 +18,7 @@ public sealed record class NotUgoiraThumbnailFinder(ConfigSettings ConfigSetting
 
     public FileInfo Find(Artwork artwork, uint index)
     {
-        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
+        var folder = Path.Combine(ConfigSettings.ThumbnailFolder, IOUtility.GetHashPath(artwork.Id));
         var file = new FileInfo(Path.Combine(folder, artwork.GetNotUgoiraThumbnailFileName(index)));
         if (file.Exists)
         {
