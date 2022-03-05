@@ -42,13 +42,13 @@ public sealed class FinderFacade : IAsyncDisposable
 
     public static async ValueTask<FinderFacade> CreateAsync(ConfigSettings configSettings, CancellationToken token)
     {
-        var ugoiraZipFinderPluginDefault = new DefaultUgoiraZipFinder(configSettings);
-        var ugoiraThumbnailFinderPluginDefault = new DefaultUgoiraThumbnailFinder(configSettings);
-        var ugoiraOriginalFinderPluginDefault = new DefaultUgoiraOriginalFinder(configSettings);
-        var illustThumbnailFinderPluginDefault = new DefaultNotUgoiraThumbnailFinder(configSettings);
-        var illustOriginalFinderPluginDefault = new DefaultNotUgoiraOriginalFinder(configSettings);
-        var mangaThumbnailFinderPluginDefault = new DefaultNotUgoiraThumbnailFinder(configSettings);
-        var mangaOriginalFinderPluginDefault = new DefaultNotUgoiraOriginalFinder(configSettings);
+        var ugoiraZipFinderPluginDefault = new DefaultUgoiraZipFinder(configSettings.UgoiraFolder);
+        var ugoiraThumbnailFinderPluginDefault = new DefaultUgoiraThumbnailFinder(configSettings.ThumbnailFolder);
+        var ugoiraOriginalFinderPluginDefault = new DefaultUgoiraOriginalFinder(configSettings.OriginalFolder);
+        var illustThumbnailFinderPluginDefault = new DefaultNotUgoiraThumbnailFinder(configSettings.ThumbnailFolder);
+        var illustOriginalFinderPluginDefault = new DefaultNotUgoiraOriginalFinder(configSettings.OriginalFolder);
+        var mangaThumbnailFinderPluginDefault = new DefaultNotUgoiraThumbnailFinder(configSettings.ThumbnailFolder);
+        var mangaOriginalFinderPluginDefault = new DefaultNotUgoiraOriginalFinder(configSettings.OriginalFolder);
         object boxedToken = token;
         var ugoiraZipFinderPlugin = await GetFinderAsync(configSettings.UgoiraZipFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? ugoiraZipFinderPluginDefault;
         var ugoiraThumbnailFinderPlugin = await GetFinderAsync(configSettings.UgoiraThumbnailFinderPlugin, configSettings, boxedToken).ConfigureAwait(false) ?? ugoiraThumbnailFinderPluginDefault;
