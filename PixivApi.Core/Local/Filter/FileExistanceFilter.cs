@@ -188,7 +188,7 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
 
     public override void Write(Utf8JsonWriter writer, FileExistanceFilter.InnerFilter? value, JsonSerializerOptions options)
     {
-        if (value is null || (!value.Max.HasValue && value.Min == 0))
+        if (value is null)
         {
             writer.WriteNullValue();
             return;
