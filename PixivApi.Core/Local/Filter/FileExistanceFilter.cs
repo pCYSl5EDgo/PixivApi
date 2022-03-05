@@ -4,8 +4,8 @@ namespace PixivApi.Core.Local;
 
 public sealed class FileExistanceFilter
 {
-    [JsonPropertyName("original")] public InnerFilter? Original;
-    [JsonPropertyName("thumbnail")] public InnerFilter? Thumbnail;
+    [JsonPropertyName("original"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public InnerFilter? Original;
+    [JsonPropertyName("thumbnail"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public InnerFilter? Thumbnail;
     [JsonPropertyName("ugoira")] public bool? Ugoira;
 
     private FinderFacade finder = null!;
@@ -186,5 +186,30 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
         throw new JsonException();
     }
 
-    public override void Write(Utf8JsonWriter writer, FileExistanceFilter.InnerFilter? value, JsonSerializerOptions options) => throw new NotSupportedException();
+    public override void Write(Utf8JsonWriter writer, FileExistanceFilter.InnerFilter? value, JsonSerializerOptions options)
+    {
+        if (value is null || (!value.Max.HasValue && value.Min == 0))
+        {
+            writer.WriteNullValue();
+            return;
+        }
+
+        writer.WriteStartObject();
+
+        if (value.Max.HasValue)
+        {
+            writer.WriteNumber(LiteralMax(), value.Max.Value);
+        }
+
+        if (value.IsAllMin)
+        {
+            writer.WriteString(LiteralMin(), LiteralAll());
+        }
+        else if (value.Min != 0)
+        {
+            writer.WriteNumber(LiteralMin(), value.Min);
+        }
+
+        writer.WriteEndObject();
+    }
 }
