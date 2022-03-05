@@ -31,12 +31,20 @@ public sealed class Program
         };
 
         var configSettings = await GetConfigSettingAsync(httpClient, token).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+        {
+            return;
+        }
+
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
         await using var finderFacade = await FinderFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
         await using var converterFacade = await ConverterFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(configSettings?.RefreshToken))
         {
             return;
         }
+
+        var api = new Api(configSettings, httpClient, database, finderFacade, converterFacade);
 
         var builder = WebApplication.CreateBuilder(args);
         builder.WebHost.UseKestrel();
@@ -82,6 +90,9 @@ public sealed class Program
             app.UseDirectoryBrowser(new DirectoryBrowserOptions(thumbnailSharedProvider));
             app.UseDirectoryBrowser(new DirectoryBrowserOptions(ugoiraSharedProvider));
         }
+
+        app.MapGet("/local/count", api.CountAsync);
+        app.MapGet("/local/map", api.MapAsync);
 
         app.Run();
     }
