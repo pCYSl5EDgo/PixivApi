@@ -116,6 +116,8 @@ public static class IOUtility
         },
     };
 
+    public static T? JsonDeserialize<T>(ReadOnlySpan<char> span) where T : notnull => JsonSerializer.Deserialize<T>(span, JsonSerializerOptionsWithIndent);
+
     public static T? JsonDeserialize<T>(ReadOnlySpan<byte> span) where T : notnull
     {
         var reader = new Utf8JsonReader(span, new JsonReaderOptions
