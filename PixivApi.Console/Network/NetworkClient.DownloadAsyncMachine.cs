@@ -25,7 +25,7 @@ public partial class NetworkClient
         public int DownloadFileCount = 0;
         public ulong DownloadByteCount = 0UL;
 
-        public async ValueTask<(bool Success, bool NoDetailDownload)> DownloadAsync(FileInfo file, Artwork artwork, bool noDetailDownload, Func<uint, string> calcUrl, uint index)
+        public async ValueTask<(bool Success, bool NoDetailDownload)> DownloadAsync(FileInfo file, Artwork artwork, bool noDetailDownload, IConverter? converter, Func<uint, string> calcUrl, uint index)
         {
             string url;
             ulong byteCount;
@@ -34,7 +34,7 @@ public partial class NetworkClient
             {
                 token.ThrowIfCancellationRequested();
                 url = calcUrl(index);
-                (branch, byteCount, noDetailDownload) = await PrivateRetryDownloadAsync(artwork, file, url, noDetailDownload).ConfigureAwait(false);
+                (branch, byteCount, noDetailDownload) = await PrivateRetryDownloadAsync(artwork, file, url, noDetailDownload, converter).ConfigureAwait(false);
                 if (branch == false)
                 {
                     return (false, noDetailDownload);
@@ -51,7 +51,7 @@ public partial class NetworkClient
             return (true, noDetailDownload);
         }
 
-        public async ValueTask<(bool Success, bool NoDetailDownload)> DownloadAsync(FileInfo file, Artwork artwork, bool noDetailDownload, Func<string> calcUrl)
+        public async ValueTask<(bool Success, bool NoDetailDownload)> DownloadAsync(FileInfo file, Artwork artwork, bool noDetailDownload, IConverter? converter, Func<string> calcUrl)
         {
             string url;
             ulong byteCount;
@@ -60,7 +60,7 @@ public partial class NetworkClient
             {
                 token.ThrowIfCancellationRequested();
                 url = calcUrl();
-                (branch, byteCount, noDetailDownload) = await PrivateRetryDownloadAsync(artwork, file, url, noDetailDownload).ConfigureAwait(false);
+                (branch, byteCount, noDetailDownload) = await PrivateRetryDownloadAsync(artwork, file, url, noDetailDownload, converter).ConfigureAwait(false);
                 if (branch == false)
                 {
                     return (false, noDetailDownload);
@@ -77,7 +77,7 @@ public partial class NetworkClient
             return (true, noDetailDownload);
         }
 
-        private async ValueTask<(bool?, ulong, bool)> PrivateRetryDownloadAsync(Artwork artwork, FileInfo file, string url, bool noDetailDownload)
+        private async ValueTask<(bool?, ulong, bool)> PrivateRetryDownloadAsync(Artwork artwork, FileInfo file, string url, bool noDetailDownload, IConverter? converter)
         {
             HttpResponseMessage response;
             ulong byteCount;
@@ -124,6 +124,11 @@ public partial class NetworkClient
             finally
             {
                 response.Dispose();
+            }
+
+            if (converter is not null && await converter.TryConvertAsync(file, logger, token).ConfigureAwait(false))
+            {
+                file.Delete();
             }
 
             return (true, byteCount, noDetailDownload);
