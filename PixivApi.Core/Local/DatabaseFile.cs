@@ -1,7 +1,7 @@
 ﻿namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
-public sealed class DatabaseFile
+public sealed class DatabaseFile : IDatabase<Artwork>
 {
     [Key(0x00)] public uint MajorVersion;
     [Key(0x01)] public uint MinorVersion;
@@ -33,51 +33,62 @@ public sealed class DatabaseFile
         RankingSet = rankingSet;
     }
 
-    public async ValueTask OptimizeAsync(ParallelOptions parallelOptions)
+    ValueTask<bool> IDatabase<Artwork>.AddOrUpdateAsync<TArg>(ulong id, Func<TArg, Artwork> addFunc, Action<Artwork, TArg> updateFunc, TArg arg, CancellationToken token)
     {
-        var lackedTag = TagSet.Optimize();
-        var lackedTool = ToolSet.Optimize();
-        await Parallel.ForEachAsync(ArtworkDictionary.Values, parallelOptions, (artwork, token) =>
+        if (token.IsCancellationRequested)
         {
-            foreach (var (lacked, value) in lackedTag)
+            return ValueTask.FromCanceled<bool>(token);
+        }
+
+        var add = true;
+        ArtworkDictionary.AddOrUpdate(id, (_, arg) => addFunc(arg), (_, artwork, arg) =>
+        {
+            add = false;
+            updateFunc(artwork, arg);
+            return artwork;
+        }, arg);
+        return ValueTask.FromResult(add);
+    }
+
+    async ValueTask<IEnumerable<Artwork>> IDatabase<Artwork>.EnumerateAsync(IFilter<Artwork> filter, CancellationToken token)
+    {
+        var bag = new ConcurrentBag<Artwork>();
+        await Parallel.ForEachAsync(ArtworkDictionary.Values, token, (artwork, token) =>
+        {
+            if (token.IsCancellationRequested)
             {
-                foreach (ref var item in artwork.Tags.AsSpan())
-                {
-                    if (item == value)
-                    {
-                        item = lacked;
-                    }
-                }
-
-                foreach (ref var item in artwork.ExtraTags.AsSpan())
-                {
-                    if (item == value)
-                    {
-                        item = lacked;
-                    }
-                }
-
-                foreach (ref var item in artwork.ExtraFakeTags.AsSpan())
-                {
-                    if (item == value)
-                    {
-                        item = lacked;
-                    }
-                }
+                return ValueTask.FromCanceled(token);
             }
 
-            foreach (var (lacked, value) in lackedTool)
+            if (filter.FastFilter(artwork))
             {
-                foreach (ref var item in artwork.Tools.AsSpan())
-                {
-                    if (item == value)
-                    {
-                        item = lacked;
-                    }
-                }
+                bag.Add(artwork);
             }
+
             return ValueTask.CompletedTask;
         }).ConfigureAwait(false);
+
+        return filter.HasSlowFilter ? bag.Where(filter.SlowFilter) : (IEnumerable<Artwork>)bag;
+    }
+
+    ValueTask<Artwork?> IDatabase<Artwork>.GetAsync(ulong id, CancellationToken token) => token.IsCancellationRequested
+        ? ValueTask.FromCanceled<Artwork?>(token)
+        : ValueTask.FromResult(ArtworkDictionary.TryGetValue(id, out var artwork) ? artwork : null);
+
+    ValueTask<bool> IDatabase<Artwork>.GetOrAddAsync<TArg>(ulong id, Func<TArg, Artwork> addFunc, TArg arg, CancellationToken token)
+    {
+        if (token.IsCancellationRequested)
+        {
+            return ValueTask.FromCanceled<bool>(token);
+        }
+
+        var get = true;
+        _ = ArtworkDictionary.GetOrAdd(id, (_, arg) =>
+        {
+            get = false;
+            return addFunc(arg);
+        }, arg);
+        return ValueTask.FromResult(get);
     }
 
     public sealed class Formatter : IMessagePackFormatter<DatabaseFile?>
