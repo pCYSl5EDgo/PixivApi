@@ -12,6 +12,8 @@
     "AppOSVersion": { "type": "string" },
     "ClientId": { "type": "string" },
     "ClientSecret": { "type": "string" },
+    "DatabaseFilePath": { "type": "string" },
+    "FilterFilePath": { "type": "string" },
     "HashSecret": { "type": "string" },
     "HttpRequestTimeoutSeconds": {
       "minimum": 0,

@@ -5,15 +5,19 @@ public partial class NetworkClient
     [Command("ranking")]
     public async ValueTask DownloadRankingAsync
     (
-        [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(1, ArgumentDescriptions.RankingDescription)] RankingKind ranking = RankingKind.day,
+        [Option(0, ArgumentDescriptions.RankingDescription)] RankingKind ranking = RankingKind.day,
         DateOnly? date = null,
         bool pipe = false
     )
     {
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+        {
+            return;
+        }
+
         var token = Context.CancellationToken;
         System.Console.Error.WriteLine($"Start loading database. Time: {DateTime.Now}");
-        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
+        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
         var add = 0UL;
         var rankingList = new List<ArtworkResponseContent>(300);
@@ -69,7 +73,7 @@ public partial class NetworkClient
                 }
 
                 database.RankingSet.AddOrUpdate(new(date ?? DateOnly.FromDateTime(DateTime.Now), ranking), rankingArray, (_, _) => rankingArray);
-                await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
+                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
                 databaseCount = database.ArtworkDictionary.Count;
             }
 

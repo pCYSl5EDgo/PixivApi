@@ -5,12 +5,11 @@ public partial class NetworkClient
     [Command("follows")]
     public async ValueTask DownloadFollowsOfUserAsync
     (
-        [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
         [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {
-        if (string.IsNullOrWhiteSpace(output))
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return;
         }
@@ -42,7 +41,7 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var databaseTask = LoadDatabaseAsync(output, addBehaviour, token);
+        var databaseTask = LoadDatabaseAsync(configSettings.DatabaseFilePath, addBehaviour, token);
         var database = default(DatabaseFile);
         var responseList = default(List<UserPreviewResponseContent>);
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
@@ -198,7 +197,7 @@ public partial class NetworkClient
 
             if (add != 0 || update != 0 || addArtwork != 0 || updateArtwork != 0)
             {
-                await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
+                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
             }
 
             if (!pipe)

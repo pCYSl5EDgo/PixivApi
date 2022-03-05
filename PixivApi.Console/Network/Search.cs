@@ -4,14 +4,18 @@ public partial class NetworkClient
 {
     [Command("search")]
     public async ValueTask SearchAsync(
-        [Option(0, ArgumentDescriptions.DatabaseDescription)] string output,
-        [Option(1, "search text")] string text,
-        [Option("e", "end_date")] string? end_date = null,
-        ushort offset = 0,
+        [Option(0, "search text")] string text,
+        [Option("e")] string? end_date = null,
+        [Option("o")] ushort offset = 0,
         [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+        {
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(text))
         {
             if (!pipe)
@@ -34,7 +38,7 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
+        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
         var database = default(DatabaseFile);
         var responseList = default(List<ArtworkResponseContent>);
@@ -157,7 +161,7 @@ public partial class NetworkClient
 
             if (add != 0 || update != 0)
             {
-                await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
+                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
             }
 
             if (!pipe)

@@ -4,16 +4,19 @@ public partial class NetworkClient
 {
     [Command("download")]
     public async ValueTask DownloadFileFromDatabaseAsync(
-        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string path,
-        [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         [Option("g")] ulong gigaByteCount = 2UL,
         [Option("mask")] int maskPowerOf2 = 10,
         bool encode = true,
         bool pipe = false
     )
     {
+        if (string.IsNullOrWhiteSpace(configSettings.FilterFilePath) || string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+        {
+            return;
+        }
+
         var token = Context.CancellationToken;
-        var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
+        var artworkFilter =  await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.FilterFilePath, token).ConfigureAwait(false);
         if (artworkFilter is not { FileExistanceFilter: { } fileFilter })
         {
             return;
@@ -27,7 +30,7 @@ public partial class NetworkClient
             return;
         }
 
-        var (database, artworks) = await PrepareDownloadFileAsync(path, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks) = await PrepareDownloadFileAsync(configSettings.DatabaseFilePath, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
             return;
@@ -65,7 +68,7 @@ public partial class NetworkClient
                 logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ByteAmountUtility.ToDisplayable(machine.DownloadByteCount)}");
             }
 
-            await IOUtility.MessagePackSerializeAsync(path, database, FileMode.Create).ConfigureAwait(false);
+            await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
             if (alreadyCount != 0)
             {
                 await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);

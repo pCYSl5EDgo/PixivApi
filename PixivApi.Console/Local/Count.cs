@@ -4,20 +4,20 @@ public partial class LocalClient
 {
     [Command("count", "")]
     public async ValueTask CountAsync(
-        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
-        [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
+        [Option(0, ArgumentDescriptions.FilterDescription)] string? filter = null,
         bool pipe = false,
         [Option("mask")] byte maskPowerOf2 = 10
     )
     {
         var token = Context.CancellationToken;
+        filter ??= configSettings.FilterFilePath;
         var artworkItemFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(input))
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return;
         }
 
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false);
         if (database is not { ArtworkDictionary.IsEmpty: false })
         {
             logger.LogInformation("0");

@@ -4,19 +4,17 @@ public partial class LocalClient
 {
     [Command("map")]
     public async ValueTask MapAsync(
-        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
-        [Option(1, ArgumentDescriptions.FilterDescription)] string filter,
         bool toString = false,
         bool pipe = false
     )
     {
-        if (string.IsNullOrWhiteSpace(input))
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return;
         }
 
         var token = Context.CancellationToken;
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false);
         if (database is null)
         {
             if (!pipe)
@@ -27,7 +25,7 @@ public partial class LocalClient
             return;
         }
 
-        var itemFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
+        var itemFilter = string.IsNullOrWhiteSpace(configSettings.FilterFilePath) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.FilterFilePath, token).ConfigureAwait(false);
         var artworks = itemFilter is null
             ? database.ArtworkDictionary.Values
             : await FilterExtensions.CreateEnumerableAsync(finder, database, itemFilter, token).ConfigureAwait(false);

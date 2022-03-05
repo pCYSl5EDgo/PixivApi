@@ -5,24 +5,22 @@ public partial class NetworkClient
     [Command("update")]
     public async ValueTask UpdateAsync
     (
-        [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(1, $"{ArgumentDescriptions.FilterDescription}")] string filter,
         bool pipe = false
     )
     {
-        if (string.IsNullOrWhiteSpace(output) || string.IsNullOrWhiteSpace(filter))
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath) || string.IsNullOrWhiteSpace(configSettings.FilterFilePath))
         {
             return;
         }
 
         var token = Context.CancellationToken;
-        var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
+        var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.FilterFilePath, token).ConfigureAwait(false);
         if (artworkFilter is null)
         {
             return;
         }
 
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token).ConfigureAwait(false) ?? new();
+        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
 
         ulong update = 0;
@@ -93,7 +91,7 @@ public partial class NetworkClient
         {
             if (update != 0)
             {
-                await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
+                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
             }
 
             if (!pipe)

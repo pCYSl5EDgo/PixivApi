@@ -5,18 +5,17 @@ public partial class NetworkClient
     [Command("illusts")]
     public ValueTask DownloadIllustsOfUserAsync
     (
-        [Option(0, $"output {ArgumentDescriptions.DatabaseDescription}")] string output,
-        [Option(1)] ulong id,
+        [Option(0)] ulong id,
         [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool pipe = false
     )
     {
-        if (string.IsNullOrWhiteSpace(output))
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return ValueTask.CompletedTask;
         }
 
         var url = $"https://{ApiHost}/v1/user/illusts?user_id={id}";
-        return DownloadArtworkResponses(output, addBehaviour, pipe, url, Context.CancellationToken);
+        return DownloadArtworkResponses(configSettings.DatabaseFilePath, addBehaviour, pipe, url, Context.CancellationToken);
     }
 }
