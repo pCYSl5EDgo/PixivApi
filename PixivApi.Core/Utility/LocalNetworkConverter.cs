@@ -62,7 +62,7 @@ public static class LocalNetworkConverter
         destination.IsVisible = source.Visible;
         destination.IsMuted = source.IsMuted;
         destination.CreateDate = source.CreateDate;
-        destination.FileDate = source.CreateDate.ToLocalTime();
+        destination.FileDate = ParseFileDate(source);
         destination.Tags = tagSet.Calculate(source.Tags);
         destination.Tools = toolSet.Calculate(source.Tools);
         destination.Title = source.Title ?? string.Empty;
