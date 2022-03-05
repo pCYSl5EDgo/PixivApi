@@ -16,7 +16,7 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var artworkFilter =  await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.ArtworkFilterFilePath, token).ConfigureAwait(false);
+        var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.ArtworkFilterFilePath, token).ConfigureAwait(false);
         if (artworkFilter is not { FileExistanceFilter: { } fileFilter })
         {
             return;
@@ -39,18 +39,20 @@ public partial class NetworkClient
         var downloadItemCount = 0;
         var alreadyCount = 0;
         var machine = new DownloadAsyncMachine(this, database, holder, pipe, token);
+        logger.LogInformation("Start downloading.");
         try
         {
             await foreach (var artwork in artworks)
             {
-                if (token.IsCancellationRequested || (machine.DownloadByteCount >> 30) >= gigaByteCount)
+                token.ThrowIfCancellationRequested();
+                if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
                 {
                     return;
                 }
 
                 var success = artwork.Type == ArtworkType.Ugoira ?
-                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, encode).ConfigureAwait(false) :
-                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, encode).ConfigureAwait(false);
+                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, encode, token).ConfigureAwait(false) :
+                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, encode, token).ConfigureAwait(false);
                 if (success)
                 {
                     Interlocked.Increment(ref downloadItemCount);
@@ -60,6 +62,10 @@ public partial class NetworkClient
                     Interlocked.Increment(ref alreadyCount);
                 }
             }
+        }
+        catch (TaskCanceledException)
+        {
+            logger.LogError("Accept cancel.");
         }
         finally
         {
@@ -76,7 +82,7 @@ public partial class NetworkClient
         }
     }
 
-    private async ValueTask<bool> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool encode)
+    private async ValueTask<bool> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool encode, CancellationToken token)
     {
         IFinderWithIndex finderWithIndexOriginal, finderWithIndexOriginalDefault, finderWithIndexThumbnail, finderWithIndexThumbnailDefault;
         switch (artwork.Type)
@@ -101,6 +107,11 @@ public partial class NetworkClient
         var noDetailDownload = true;
         for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
         {
+            if (token.IsCancellationRequested)
+            {
+                goto END;
+            }
+
             if ((artwork.ExtraHideLast && pageIndex == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary && dictionary.TryGetValue(pageIndex, out var reason) && reason != HideReason.NotHidden))
             {
                 continue;
@@ -108,6 +119,11 @@ public partial class NetworkClient
 
             if (shouldDownloadOriginal)
             {
+                if (token.IsCancellationRequested)
+                {
+                    goto END;
+                }
+
                 if (finderWithIndexOriginal.Exists(artwork, pageIndex))
                 {
                     continue;
@@ -126,6 +142,11 @@ public partial class NetworkClient
 
             if (shouldDownloadThumbnail)
             {
+                if (token.IsCancellationRequested)
+                {
+                    goto END;
+                }
+
                 if (finderWithIndexThumbnail.Exists(artwork, pageIndex))
                 {
                     continue;
@@ -143,19 +164,26 @@ public partial class NetworkClient
             }
         }
 
+    END:
         return downloadAny;
     }
 
-    private async ValueTask<bool> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira, bool encode)
+    private async ValueTask<bool> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira, bool encode, CancellationToken token)
     {
+        var downloadAny = false;
         var noDetailDownload = true;
         if (shouldDownloadUgoira && !finder.UgoiraZipFinder.Exists(artwork))
         {
+            if (token.IsCancellationRequested)
+            {
+                goto END;
+            }
+
             var dest = finder.DefaultUgoiraZipFinder.Find(artwork);
             var (Success, NoDetailDownload) = await machine.DownloadAsync(dest, artwork, noDetailDownload, encode ? converter.UgoiraZipConverter : null, artwork.GetUgoiraZipUrl).ConfigureAwait(false);
-            if (!Success)
+            if (Success)
             {
-                return false;
+                downloadAny = true;
             }
 
             noDetailDownload = NoDetailDownload;
@@ -163,11 +191,16 @@ public partial class NetworkClient
 
         if (shouldDownloadOriginal && !finder.UgoiraOriginalFinder.Exists(artwork))
         {
+            if (token.IsCancellationRequested)
+            {
+                goto END;
+            }
+
             var dest = finder.DefaultUgoiraOriginalFinder.Find(artwork);
             var (Success, NoDetailDownload) = await machine.DownloadAsync(dest, artwork, noDetailDownload, encode ? converter.OriginalConverter : null, artwork.GetUgoiraOriginalUrl).ConfigureAwait(false);
-            if (!Success)
+            if (Success)
             {
-                return false;
+                downloadAny = true;
             }
 
             noDetailDownload = NoDetailDownload;
@@ -175,15 +208,21 @@ public partial class NetworkClient
 
         if (shouldDownloadThumbnail && !finder.UgoiraThumbnailFinder.Exists(artwork))
         {
+            if (token.IsCancellationRequested)
+            {
+                goto END;
+            }
+
             var dest = finder.DefaultUgoiraThumbnailFinder.Find(artwork);
             var (Success, NoDetailDownload) = await machine.DownloadAsync(dest, artwork, noDetailDownload, encode ? converter.ThumbnailConverter : null, artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false);
-            if (!Success)
+            if (Success)
             {
-                return false;
+                downloadAny = true;
             }
         }
 
-        return true;
+    END:
+        return downloadAny;
     }
 
     private async ValueTask<(DatabaseFile, IAsyncEnumerable<Artwork>?)> PrepareDownloadFileAsync(

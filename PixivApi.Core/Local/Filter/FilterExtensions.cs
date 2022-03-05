@@ -62,6 +62,7 @@ public static class FilterExtensions
         var index = 0;
         foreach (var artwork in artworks)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             if (filter.FileExistanceFilter is not null && !filter.FileExistanceFilter.Filter(artwork))
             {
                 continue;
