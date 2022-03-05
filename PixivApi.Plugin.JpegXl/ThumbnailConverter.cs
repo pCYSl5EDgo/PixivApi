@@ -1,16 +1,13 @@
 ﻿namespace PixivApi.Plugin.JpegXl;
 
-public sealed record class ThumbnailConverter(string ExePath, ConfigSettings ConfigSettings) : IConverter
+public sealed record class ThumbnailConverter(string ExePath, ConfigSettings ConfigSettings, SpecificConfigSettings SpecificConfigSettings) : IConverter
 {
-    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
+    public static async Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
     {
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return Task.FromCanceled<IPlugin?>(cancellationToken);
-        }
-
+        cancellationToken.ThrowIfCancellationRequested();
         var exePath = PluginUtility.Find(dllPath, "cjxl");
-        return Task.FromResult<IPlugin?>(exePath is null ? null : new ThumbnailConverter(exePath, configSettings));
+        var specificConfigSettings = await ConverterUtility.CreateSpecificConfigSettinsAsync(dllPath, cancellationToken).ConfigureAwait(false);
+        return exePath is null ? null : new ThumbnailConverter(exePath, configSettings, specificConfigSettings);
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -74,6 +71,6 @@ public sealed record class ThumbnailConverter(string ExePath, ConfigSettings Con
             return false;
         }
 
-        return await ConverterUtility.ExecuteAsync(logger, ExePath, name, file.Length, jxlName, workingDirectory ?? string.Empty).ConfigureAwait(false);
+        return await ConverterUtility.ExecuteAsync(logger, ExePath, name, file.Length, jxlName, workingDirectory ?? string.Empty, SpecificConfigSettings.DeleteWhenFailure).ConfigureAwait(false);
     }
 }

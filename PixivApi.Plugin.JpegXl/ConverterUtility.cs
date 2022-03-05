@@ -35,7 +35,7 @@ internal static class ConverterUtility
 
     public static string GetJxlName(ulong id, uint? index) => index.HasValue ? $"{id}_{index.Value}.jxl" : $"{id}.jxl";
 
-    public static async ValueTask<bool> ExecuteAsync(ILogger? logger, string exePath, string input, long inputSize, string output, string workingDirectory)
+    public static async ValueTask<bool> ExecuteAsync(ILogger? logger, string exePath, string input, long inputSize, string output, string workingDirectory, bool deleteWhenFailure)
     {
         logger?.LogInformation($"Start processing. Input: {input} Size: {inputSize}  -  Output: {output}  @  {workingDirectory}");
         try
@@ -51,21 +51,28 @@ internal static class ConverterUtility
         }
         catch (ProcessErrorException e)
         {
-            if (e.ExitCode == 3)
+            if (e.ExitCode == 3 && deleteWhenFailure)
             {
                 File.Delete(Path.Combine(workingDirectory, input));
                 logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Delete Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
-                return false;
             }
             else
             {
                 logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
-                throw;
             }
+         
+            return false;
         }
 
         var outputSize = new FileInfo(Path.Combine(workingDirectory, output)).Length;
         logger?.LogInformation($"{VirtualCodes.BrightGreenColor}Success. Input: {input} Size: {ByteAmountUtility.ToDisplayable((ulong)inputSize)}  -  Output: {output} Size: {ByteAmountUtility.ToDisplayable((ulong)outputSize)} @ {workingDirectory}  Compression Ratio: {(uint)(100d * outputSize / inputSize),3}{VirtualCodes.NormalizeColor}");
         return true;
+    }
+
+    public static async Task<SpecificConfigSettings> CreateSpecificConfigSettinsAsync(string dllPath, CancellationToken cancellationToken)
+    {
+        var filterPath = Directory.EnumerateFiles(Path.GetDirectoryName(dllPath) ?? string.Empty, "filter.json*").SingleOrDefault();
+        var specificConfigSettings = string.IsNullOrWhiteSpace(filterPath) ? new() : await IOUtility.JsonDeserializeAsync<SpecificConfigSettings>(filterPath, cancellationToken).ConfigureAwait(false) ?? new();
+        return specificConfigSettings;
     }
 }
