@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
-using PixivApi.Core;
-using PixivApi.Core.Plugin;
 
 namespace PixivApi.Site;
 
@@ -66,8 +64,6 @@ public sealed class Program
             FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.UgoiraFolder)),
             RequestPath = "/Ugoira",
         };
-
-        app.UseFileServer();
 
         var contetTypeProvider = new FileExtensionContentTypeProvider(new Dictionary<string, string>()
         {
