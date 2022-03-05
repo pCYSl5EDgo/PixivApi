@@ -9,7 +9,7 @@ public static class IOUtility
 {
     static IOUtility()
     {
-        messagePackSerializerOptions = MessagePackSerializerOptions.Standard.WithCompression(MessagePackCompression.Lz4BlockArray);
+        messagePackSerializerOptions = MessagePackSerializerOptions.Standard;
         var byteTexts = new string[256];
         for (var i = 0; i < byteTexts.Length; i++)
         {
