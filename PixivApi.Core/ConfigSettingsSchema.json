@@ -10,10 +10,13 @@
     },
     "AppOS": { "type": "string" },
     "AppOSVersion": { "type": "string" },
+    "ArtworkFilterFilePath": {
+      "pattern": ".+\\.json.*",
+      "type": "string"
+    },
     "ClientId": { "type": "string" },
     "ClientSecret": { "type": "string" },
     "DatabaseFilePath": { "type": "string" },
-    "FilterFilePath": { "type": "string" },
     "HashSecret": { "type": "string" },
     "HttpRequestTimeoutSeconds": {
       "minimum": 0,
@@ -46,6 +49,7 @@
     "UgoiraZipConverterPlugin": { "type": "string" },
     "UgoiraZipFinderPlugin": { "type": "string" },
     "UserAgent": { "type": "string" },
+    "UserFilterFilePath": { "$ref": "#/properties/ArtworkFilterFilePath" },
     "UserId": {
       "type": "integer",
       "minimum": 0

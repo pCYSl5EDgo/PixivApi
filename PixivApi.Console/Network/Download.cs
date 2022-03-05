@@ -10,13 +10,13 @@ public partial class NetworkClient
         bool pipe = false
     )
     {
-        if (string.IsNullOrWhiteSpace(configSettings.FilterFilePath) || string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+        if (string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) || string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return;
         }
 
         var token = Context.CancellationToken;
-        var artworkFilter =  await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.FilterFilePath, token).ConfigureAwait(false);
+        var artworkFilter =  await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.ArtworkFilterFilePath, token).ConfigureAwait(false);
         if (artworkFilter is not { FileExistanceFilter: { } fileFilter })
         {
             return;

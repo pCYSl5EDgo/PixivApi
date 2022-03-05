@@ -10,7 +10,7 @@ public partial class LocalClient
     )
     {
         var token = Context.CancellationToken;
-        filter ??= configSettings.FilterFilePath;
+        filter ??= configSettings.ArtworkFilterFilePath;
         var artworkItemFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {

@@ -2,8 +2,6 @@
 
 public static class ArgumentDescriptions
 {
-    public const string UserIdDescription = "user id";
-
     public const string FilterDescription = "artwork filter *.json file";
 
     public const string DatabaseDescription = "artwork database file path";

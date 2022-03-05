@@ -11,7 +11,8 @@ public sealed class ConfigSettings
     public string HashSecret { get; set; } = "";
 
     public string? DatabaseFilePath { get; set; }
-    public string? FilterFilePath { get; set; }
+    public string? ArtworkFilterFilePath { get; set; }
+    public string? UserFilterFilePath { get; set; }
 
     public string OriginalFolder { get; set; } = "Original";
     public string ThumbnailFolder { get; set; } = "Thumbnail";

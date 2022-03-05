@@ -25,7 +25,7 @@ public partial class LocalClient
             return;
         }
 
-        var itemFilter = string.IsNullOrWhiteSpace(configSettings.FilterFilePath) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.FilterFilePath, token).ConfigureAwait(false);
+        var itemFilter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.ArtworkFilterFilePath, token).ConfigureAwait(false);
         var artworks = itemFilter is null
             ? database.ArtworkDictionary.Values
             : await FilterExtensions.CreateEnumerableAsync(finder, database, itemFilter, token).ConfigureAwait(false);
