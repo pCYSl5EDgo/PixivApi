@@ -9,8 +9,7 @@ public sealed class ConfigSettings
     public string ClientId { get; set; } = "MOBrBDS8blbauoSck0ZfDbtuzpyT";
     public string ClientSecret { get; set; } = "lsACyCD94FhDUtGTXi3QzcFE2uU1hqtDaKeqrdwj";
     public string HashSecret { get; set; } = "";
-    public double RetrySeconds { get; set; } = 300d;
-    public double ReconnectLoopIntervalMinutes { get; set; } = 50d;
+
     public string OriginalFolder { get; set; } = "Original";
     public string ThumbnailFolder { get; set; } = "Thumbnail";
     public string UgoiraFolder { get; set; } = "Ugoira";
@@ -28,6 +27,14 @@ public sealed class ConfigSettings
     public string? ThumbnailConverterPlugin { get; set; }
     public string? OriginalConverterPlugin { get; set; }
 
+    public double RetrySeconds { get; set; } = 300d;
+    public double ReconnectLoopIntervalMinutes { get; set; } = 50d;
+
+    public double HttpRequestTimeoutSeconds { get; set; } = 3600d;
+    public double ShutdownTimeoutHours { get; set; } = 24d;
+
     [JsonIgnore] public TimeSpan RetryTimeSpan => TimeSpan.FromSeconds(RetrySeconds);
     [JsonIgnore] public TimeSpan ReconnectLoopIntervalTimeSpan => TimeSpan.FromMinutes(ReconnectLoopIntervalMinutes);
+    [JsonIgnore] public TimeSpan HttpRequestTimeSpan => TimeSpan.FromSeconds(HttpRequestTimeoutSeconds);
+    [JsonIgnore] public TimeSpan ShutdownTimeSpan => TimeSpan.FromHours(ShutdownTimeoutHours);
 }

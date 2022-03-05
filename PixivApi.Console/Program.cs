@@ -25,13 +25,14 @@ public sealed class Program
         };
 
         var configSettings = await GetConfigSettingAsync(httpClient, cts.Token).ConfigureAwait(false);
+        httpClient.Timeout = configSettings.HttpRequestTimeSpan;
 
         await using var finderFacade = await FinderFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
         await using var converterFacade = await ConverterFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
 
         var builder = ConsoleApp
             .CreateBuilder(args, ConfigureOptions)
-            .ConfigureHostOptions(ConfigureHostOptions)
+            .ConfigureHostOptions(options => options.ShutdownTimeout = configSettings.ShutdownTimeSpan)
             .ConfigureLogging(ConfigureLogger)
             .ConfigureServices(services =>
             {
@@ -106,8 +107,6 @@ public sealed class Program
         SimpleConsoleLoggerExtensions.AddSimpleConsole(builder);
         EnableConsoleVirtualCode();
     }
-
-    private static void ConfigureHostOptions(HostBuilderContext context, HostOptions options) => options.ShutdownTimeout = TimeSpan.FromDays(365);
 
     private static unsafe void EnableConsoleVirtualCode()
     {

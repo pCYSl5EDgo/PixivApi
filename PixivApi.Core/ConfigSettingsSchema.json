@@ -13,6 +13,10 @@
     "ClientId": { "type": "string" },
     "ClientSecret": { "type": "string" },
     "HashSecret": { "type": "string" },
+    "HttpRequestTimeoutSeconds": {
+      "minimum": 0,
+      "type": "number"
+    },
     "IllustOriginalFinderPlugin": { "type": "string" },
     "IllustThumbnailFinderPlugin": { "type": "string" },
     "MangaOriginalFinderPlugin": { "type": "string" },
@@ -20,13 +24,17 @@
     "OriginalConverterPlugin": { "type": "string" },
     "OriginalFolder": { "type": "string" },
     "ReconnectLoopIntervalMinutes": {
-      "type": "number",
-      "minimum": 1
+      "minimum": 0,
+      "type": "number"
     },
     "RefreshToken": { "type": "string" },
     "RetrySeconds": {
-      "type": "number",
-      "minimum": 1
+      "minimum": 0,
+      "type": "number"
+    },
+    "ShutdownTimeoutHours": {
+      "minimum": 0,
+      "type": "number"
     },
     "ThumbnailConverterPlugin": { "type": "string" },
     "ThumbnailFolder": { "type": "string" },
