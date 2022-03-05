@@ -19,7 +19,7 @@ public sealed class Program
 
         using var httpClient = new HttpClient(handler, true)
         {
-            Timeout = TimeSpan.FromHours(4),
+            Timeout = TimeSpan.FromHours(1),
             DefaultRequestVersion = new(2, 0),
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact,
         };
@@ -107,7 +107,7 @@ public sealed class Program
         EnableConsoleVirtualCode();
     }
 
-    private static void ConfigureHostOptions(HostBuilderContext context, HostOptions options) => options.ShutdownTimeout = TimeSpan.FromDays(1);
+    private static void ConfigureHostOptions(HostBuilderContext context, HostOptions options) => options.ShutdownTimeout = TimeSpan.FromDays(365);
 
     private static unsafe void EnableConsoleVirtualCode()
     {
