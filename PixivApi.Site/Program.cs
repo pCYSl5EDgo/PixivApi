@@ -37,67 +37,75 @@ public sealed class Program
         }
 
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
-        await using var finderFacade = await FinderFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
-        await using var converterFacade = await ConverterFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(configSettings?.RefreshToken))
+        try
         {
-            return;
+            await using var finderFacade = await FinderFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
+            await using var converterFacade = await ConverterFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(configSettings?.RefreshToken))
+            {
+                return;
+            }
+
+            var jsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
+            jsonSerializerOptions.Converters.Add(UgoiraArtworkUtilityStruct.Converter.Instance);
+            jsonSerializerOptions.Converters.Add(NotUgoiraArtworkUtilityStruct.Converter.Instance);
+            var api = new Api(configSettings, httpClient, database, finderFacade, converterFacade, jsonSerializerOptions);
+
+            var builder = WebApplication.CreateBuilder(args);
+            builder.WebHost.UseKestrel();
+
+            var app = builder.Build();
+            var isDevelopment = builder.Environment.IsDevelopment();
+
+            if (!isDevelopment)
+            {
+                app.UseHsts();
+            }
+
+            var originalSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
+            {
+                FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.OriginalFolder)),
+                RequestPath = "/Original",
+            };
+            var thumbnailSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
+            {
+                FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.ThumbnailFolder)),
+                RequestPath = "/Thumbnail",
+            };
+            var ugoiraSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
+            {
+                FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.UgoiraFolder)),
+                RequestPath = "/Ugoira",
+            };
+
+            var contetTypeProvider = new FileExtensionContentTypeProvider(new Dictionary<string, string>()
+            {
+                { ".png", "image/png" },
+                { ".jpg", "image/jpeg" },
+                { ".jxl", "image/jxl" },
+            });
+
+            app.UseStaticFiles(new StaticFileOptions(originalSharedProvider) { ContentTypeProvider = contetTypeProvider });
+            app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider) { ContentTypeProvider = contetTypeProvider });
+            app.UseStaticFiles(new StaticFileOptions(ugoiraSharedProvider) { ContentTypeProvider = contetTypeProvider });
+
+            if (isDevelopment)
+            {
+                app.UseDirectoryBrowser(new DirectoryBrowserOptions(originalSharedProvider));
+                app.UseDirectoryBrowser(new DirectoryBrowserOptions(thumbnailSharedProvider));
+                app.UseDirectoryBrowser(new DirectoryBrowserOptions(ugoiraSharedProvider));
+            }
+
+            app.MapGet("/local/count", api.CountAsync);
+            app.MapGet("/local/map", api.MapAsync);
+            app.Map("/local/hide/{id}", api.HideAsync);
+
+            app.Run();
         }
-
-        var jsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
-        jsonSerializerOptions.Converters.Add(UgoiraArtworkUtilityStruct.Converter.Instance);
-        jsonSerializerOptions.Converters.Add(NotUgoiraArtworkUtilityStruct.Converter.Instance);
-        var api = new Api(configSettings, httpClient, database, finderFacade, converterFacade, jsonSerializerOptions);
-
-        var builder = WebApplication.CreateBuilder(args);
-        builder.WebHost.UseKestrel();
-
-        var app = builder.Build();
-        var isDevelopment = builder.Environment.IsDevelopment();
-
-        if (!isDevelopment)
+        finally
         {
-            app.UseHsts();
+            await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
         }
-
-        var originalSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
-        {
-            FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.OriginalFolder)),
-            RequestPath = "/Original",
-        };
-        var thumbnailSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
-        {
-            FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.ThumbnailFolder)),
-            RequestPath = "/Thumbnail",
-        };
-        var ugoiraSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
-        {
-            FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.UgoiraFolder)),
-            RequestPath = "/Ugoira",
-        };
-
-        var contetTypeProvider = new FileExtensionContentTypeProvider(new Dictionary<string, string>()
-        {
-            { ".png", "image/png" },
-            { ".jpg", "image/jpeg" },
-            { ".jxl", "image/jxl" },
-        });
-
-        app.UseStaticFiles(new StaticFileOptions(originalSharedProvider) { ContentTypeProvider = contetTypeProvider });
-        app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider) { ContentTypeProvider = contetTypeProvider });
-        app.UseStaticFiles(new StaticFileOptions(ugoiraSharedProvider) { ContentTypeProvider = contetTypeProvider });
-
-        if (isDevelopment)
-        {
-            app.UseDirectoryBrowser(new DirectoryBrowserOptions(originalSharedProvider));
-            app.UseDirectoryBrowser(new DirectoryBrowserOptions(thumbnailSharedProvider));
-            app.UseDirectoryBrowser(new DirectoryBrowserOptions(ugoiraSharedProvider));
-        }
-
-        app.MapGet("/local/count", api.CountAsync);
-        app.MapGet("/local/map", api.MapAsync);
-
-        app.Run();
     }
 
     private static async ValueTask<ConfigSettings> GetConfigSettingAsync(HttpClient httpClient, CancellationToken token)
@@ -112,7 +120,7 @@ public sealed class Program
         configSettings ??= new();
         if (string.IsNullOrWhiteSpace(configSettings.RefreshToken))
         {
-            var valueTask = Core.Network.AccessTokenUtility.AuthAsync(httpClient, configSettings, token);
+            var valueTask = AccessTokenUtility.AuthAsync(httpClient, configSettings, token);
             await InitializeDirectoriesAsync(configSettings.OriginalFolder, token).ConfigureAwait(false);
             await InitializeDirectoriesAsync(configSettings.ThumbnailFolder, token).ConfigureAwait(false);
             await InitializeDirectoriesAsync(configSettings.UgoiraFolder, token).ConfigureAwait(false);
