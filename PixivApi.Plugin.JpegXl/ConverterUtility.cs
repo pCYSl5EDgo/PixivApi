@@ -5,14 +5,28 @@ namespace PixivApi.Plugin.JpegXl;
 
 internal static class ConverterUtility
 {
-    private static string CreateArgument(string input, string output)
+    private static void CreateArgument(ref DefaultInterpolatedStringHandler handler, string input, string output)
     {
-        DefaultInterpolatedStringHandler handler = $@"""";
+        handler.AppendLiteral("\"");
         AppendChangeToSlash(ref handler, input.AsSpan());
         handler.AppendLiteral("\" \"");
         AppendChangeToSlash(ref handler, output.AsSpan());
         handler.AppendLiteral("\" --effort=7 --num_threads=");
         handler.AppendFormatted(Environment.ProcessorCount);
+    }
+
+    private static string CreateArgument(string input, string output)
+    {
+        DefaultInterpolatedStringHandler handler = new();
+        CreateArgument(ref handler, input, output);
+        return handler.ToStringAndClear();
+    }
+
+    private static string CreateArgumentLosslessJpeg(string input, string output)
+    {
+        DefaultInterpolatedStringHandler handler = new();
+        CreateArgument(ref handler, input, output);
+        handler.AppendLiteral(" -j");
         return handler.ToStringAndClear();
     }
 
@@ -51,17 +65,37 @@ internal static class ConverterUtility
         }
         catch (ProcessErrorException e)
         {
-            if (e.ExitCode == 3 && deleteWhenFailure)
-            {
-                File.Delete(Path.Combine(workingDirectory, input));
-                logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Delete Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
-            }
-            else
+            if (e.ExitCode != 3)
             {
                 logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
+                return false;
             }
-         
-            return false;
+
+            try
+            {
+                if (logger is null)
+                {
+                    await PluginUtility.ExecuteAsync(exePath, CreateArgumentLosslessJpeg(input, output), workingDirectory).ConfigureAwait(false);
+                }
+                else
+                {
+                    await PluginUtility.ExecuteAsync(logger, exePath, CreateArgumentLosslessJpeg(input, output), workingDirectory, VirtualCodes.BrightBlueColor, VirtualCodes.NormalizeColor, VirtualCodes.BrightYellowColor, VirtualCodes.NormalizeColor).ConfigureAwait(false);
+                }
+            }
+            catch (ProcessErrorException e2)
+            {
+                if (deleteWhenFailure && e2.ExitCode == 3)
+                {
+                    File.Delete(Path.Combine(workingDirectory, input));
+                    logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Delete Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
+                }
+                else
+                {
+                    logger?.LogError(e, $"{VirtualCodes.BrightRedColor}Error. Input: {input} @ {workingDirectory} {VirtualCodes.NormalizeColor}");
+                }
+
+                return false;
+            }
         }
 
         var outputSize = new FileInfo(Path.Combine(workingDirectory, output)).Length;
