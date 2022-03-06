@@ -24,6 +24,7 @@ public sealed class ArtworkFilter
     [JsonPropertyName("user-filter")] public UserFilter? UserFilter = null;
     [JsonPropertyName("visible")] public bool? IsVisible = null;
     [JsonPropertyName("width")] public MinMaxFilter? Width = null;
+    [JsonPropertyName("hide-filter")] public HideFilter? HideFilter = null;
 
     public bool Filter(Artwork artwork)
     {
@@ -42,10 +43,18 @@ public sealed class ArtworkFilter
 
     public bool FilterWithoutFileExistance(Artwork artwork)
     {
-        if (artwork.ExtraHideReason != HideReason.NotHidden)
+        if (HideFilter is null)
+        {
+            if (artwork.ExtraHideReason != HideReason.NotHidden)
+            {
+                return false;
+            }
+        }
+        else if (!HideFilter.Filter(artwork.ExtraHideReason))
         {
             return false;
         }
+        
 
         if (IsOfficiallyRemoved.HasValue && IsOfficiallyRemoved.Value != artwork.IsOfficiallyRemoved)
         {

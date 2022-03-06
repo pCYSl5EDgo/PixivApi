@@ -74,6 +74,23 @@
       },
       "type": "object"
     },
+    "hide-filter": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "enum": [
+            "not-hidden",
+            "low-quality",
+            "irrelevant",
+            "external-link",
+            "dislike",
+            "crop"
+          ]
+        },
+        "disallow": { "$ref": "#/properties/hide-filter/properties/allow" }
+      },
+      "type": "object"
+    },
     "id-filter": {
       "additionalProperties": false,
       "properties": {

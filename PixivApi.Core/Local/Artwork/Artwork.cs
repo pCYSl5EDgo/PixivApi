@@ -643,11 +643,10 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
     [StringLiteral.Utf8("hide-reason")] private static partial ReadOnlySpan<byte> LiteralHideReason();
     [StringLiteral.Utf8("not-hidden")] private static partial ReadOnlySpan<byte> LiteralNotHidden();
     [StringLiteral.Utf8("low-quality")] private static partial ReadOnlySpan<byte> LiteralLowQuality();
-    [StringLiteral.Utf8("not-much")] private static partial ReadOnlySpan<byte> LiteralNotMuch();
     [StringLiteral.Utf8("irrelevant")] private static partial ReadOnlySpan<byte> LiteralIrrelevant();
     [StringLiteral.Utf8("external-link")] private static partial ReadOnlySpan<byte> LiteralExternalLink();
     [StringLiteral.Utf8("dislike")] private static partial ReadOnlySpan<byte> LiteralDislike();
-    [StringLiteral.Utf8("unfollow")] private static partial ReadOnlySpan<byte> LiteralUnfollow();
+    [StringLiteral.Utf8("crop")] private static partial ReadOnlySpan<byte> LiteralCrop();
 
     [StringLiteral.Utf8("officially-removed")] private static partial ReadOnlySpan<byte> LiteralIsOfficiallyRemoved();
     [StringLiteral.Utf8("r18")] private static partial ReadOnlySpan<byte> LiteralIsXRestricted();
@@ -751,11 +750,10 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         {
             HideReason.NotHidden => LiteralNotHidden(),
             HideReason.LowQuality => LiteralLowQuality(),
-            HideReason.NotMuch => LiteralNotMuch(),
             HideReason.Irrelevant => LiteralIrrelevant(),
             HideReason.ExternalLink => LiteralExternalLink(),
             HideReason.Dislike => LiteralDislike(),
-            HideReason.Unfollow => LiteralUnfollow(),
+            HideReason.Crop => LiteralCrop(),
             _ => throw new InvalidDataException(hideReason.ToString()),
         };
 

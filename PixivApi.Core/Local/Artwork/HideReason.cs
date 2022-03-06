@@ -1,13 +1,11 @@
-﻿namespace PixivApi;
+﻿namespace PixivApi.Core.Local;
 
 public enum HideReason : byte
 {
     NotHidden,
     LowQuality,
-    NotMuch,
     Irrelevant,
     ExternalLink,
     Dislike,
-    Unfollow,
     Crop,
 }
