@@ -44,7 +44,10 @@ public sealed class Program
             return;
         }
 
-        var api = new Api(configSettings, httpClient, database, finderFacade, converterFacade);
+        var jsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
+        jsonSerializerOptions.Converters.Add(UgoiraArtworkUtilityStruct.Converter.Instance);
+        jsonSerializerOptions.Converters.Add(NotUgoiraArtworkUtilityStruct.Converter.Instance);
+        var api = new Api(configSettings, httpClient, database, finderFacade, converterFacade, jsonSerializerOptions);
 
         var builder = WebApplication.CreateBuilder(args);
         builder.WebHost.UseKestrel();

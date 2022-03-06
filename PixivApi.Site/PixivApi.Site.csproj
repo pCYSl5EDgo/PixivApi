@@ -2,10 +2,11 @@
 	<ItemGroup>
 		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
 		<Folder Include="wwwroot\" />
-		<Using Include="System.Runtime.CompilerServices"/>
-		<Using Include="PixivApi.Core"/>
-		<Using Include="PixivApi.Core.Plugin"/>
-		<Using Include="PixivApi.Core.Local"/>
-		<Using Include="PixivApi.Core.Network"/>
+		<PackageReference Include="StringLiteralGenerator" Version="2.0.0" />
+		<Using Include="System.Runtime.CompilerServices" />
+		<Using Include="PixivApi.Core" />
+		<Using Include="PixivApi.Core.Plugin" />
+		<Using Include="PixivApi.Core.Local" />
+		<Using Include="PixivApi.Core.Network" />
 	</ItemGroup>
 </Project>
