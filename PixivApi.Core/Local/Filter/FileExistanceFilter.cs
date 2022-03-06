@@ -42,9 +42,6 @@ public sealed class FileExistanceFilter
 
     public sealed record class InnerFilter(int? Max, bool IsAllMin, int Min)
     {
-        private static bool ShouldDismiss(Artwork artwork) => (artwork.ExtraHideLast && artwork.PageCount == 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(0U, out var reason) && reason != HideReason.NotHidden);
-        private static bool ShouldDismiss(Artwork artwork, uint i) => (artwork.ExtraHideLast && i == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } hideDictionary && hideDictionary.TryGetValue(i, out var reason) && reason != HideReason.NotHidden);
-
         private bool Filter(uint count, uint pageCount)
         {
             if (IsAllMin)
@@ -67,34 +64,28 @@ public sealed class FileExistanceFilter
 
         public bool Filter(Artwork artwork, IFinder finder)
         {
-            if (ShouldDismiss(artwork))
-            {
-                return Filter(0, 0);
-            }
-            else
+            var enumerator = artwork.GetEnumerator();
+            if (enumerator.MoveNext())
             {
                 return Filter(finder.Exists(artwork) ? 1U : 0U, 1);
             }
+
+            return Filter(0, 0);
         }
 
         public bool Filter(Artwork artwork, IFinderWithIndex finder)
         {
-            uint count = 0, dissmiss = 0;
-            for (var i = 0U; i < artwork.PageCount; i++)
+            uint count = 0, pageCount = 0;
+            foreach (var pageIndex in artwork)
             {
-                if (ShouldDismiss(artwork, i))
-                {
-                    dissmiss++;
-                    continue;
-                }
-
-                if (finder.Exists(artwork, i))
+                ++pageCount;
+                if (finder.Exists(artwork, pageIndex))
                 {
                     count++;
                 }
             }
 
-            return Filter(count, artwork.PageCount - dissmiss);
+            return Filter(count, pageCount);
         }
     }
 }

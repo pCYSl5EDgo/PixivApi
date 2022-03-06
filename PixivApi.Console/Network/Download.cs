@@ -128,16 +128,11 @@ public partial class NetworkClient
 
         var downloadAny = false;
         var noDetailDownload = true;
-        for (uint pageIndex = 0; pageIndex < artwork.PageCount; pageIndex++)
+        foreach (var pageIndex in artwork)
         {
             if (token.IsCancellationRequested)
             {
                 goto END;
-            }
-
-            if ((artwork.ExtraHideLast && pageIndex == artwork.PageCount - 1) || (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary && dictionary.TryGetValue(pageIndex, out var reason) && reason != HideReason.NotHidden))
-            {
-                continue;
             }
 
             if (shouldDownloadOriginal)

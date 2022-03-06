@@ -3,7 +3,7 @@
 namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
-public sealed partial class Artwork : IEquatable<Artwork>
+public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 {
     // 8 * 4
     public ulong Id;
@@ -661,6 +661,65 @@ public sealed partial class Artwork : IEquatable<Artwork>
 
     [StringLiteral.Utf8("page-hide-reason-dictionary")] private static partial ReadOnlySpan<byte> LiteralExtraPageHideReasonDictionary();
     #endregion
+
+    public struct PageIndexEnumerator : IEnumerator<uint>
+    {
+        private readonly int maxExclusive;
+        private readonly Dictionary<uint, HideReason>? dictionary;
+        private int index;
+
+        public PageIndexEnumerator(Artwork artwork)
+        {
+            maxExclusive = (int)artwork.PageCount;
+            if (artwork.ExtraHideLast)
+            {
+                --maxExclusive;
+            }
+
+            index = artwork.ExtraHideReason != HideReason.NotHidden ? maxExclusive : -1;
+            if (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary)
+            {
+                this.dictionary = dictionary;
+                return;
+            }
+            else
+            {
+                this.dictionary = null;
+            }
+        }
+
+        public uint Current => (uint)index;
+
+        object IEnumerator.Current => Current;
+
+        public void Dispose() { }
+
+        public bool MoveNext()
+        {
+            do
+            {
+                if (++index >= maxExclusive)
+                {
+                    return false;
+                }
+
+                if (dictionary is not null && dictionary.TryGetValue((uint)index, out var reason) && reason != HideReason.NotHidden)
+                {
+                    continue;
+                }
+
+                return true;
+            } while (true);
+        }
+
+        public void Reset() => index = -1;
+    }
+
+    public PageIndexEnumerator GetEnumerator() => new(this);
+
+    IEnumerator<uint> IEnumerable<uint>.GetEnumerator() => GetEnumerator();
+
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     public sealed class Converter : JsonConverter<Artwork>
     {
