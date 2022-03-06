@@ -86,4 +86,31 @@ public class Api
         var response = new ArtworkWithFileUrlAsyncResponses(enumerable, shouldStringify, ugoiraZipFinder, ugoiraThumbnailFinder, ugoiraOriginalFinder, thumbnailFinder, originalFinder, jsonSerializerOptions);
         return Task.FromResult<IResult>(response);
     }
+
+    public Task<IResult> HideAsync([FromRoute] ulong id, [FromQuery(Name = "reason")] string reasonText, HttpContext context)
+    {
+        var token = context.RequestAborted;
+        if (token.IsCancellationRequested)
+        {
+            return Task.FromCanceled<IResult>(token);
+        }
+
+        if (context.Request.Method != HttpMethod.Patch.Method)
+        {
+            return Task.FromResult(Results.BadRequest("Http method must be PATCH."));
+        }
+
+        if (!database.ArtworkDictionary.TryGetValue(id, out var artwork))
+        {
+            return Task.FromResult(Results.NotFound());
+        }
+
+        if (!HideReasonConverter.TryParse(reasonText, out var reason))
+        {
+            return Task.FromResult(Results.BadRequest(reasonText + " is not supported reason."));
+        }
+
+        artwork.ExtraHideReason = reason;
+        return Task.FromResult(Results.Ok());
+    }
 }
