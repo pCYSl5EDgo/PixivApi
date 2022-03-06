@@ -662,6 +662,26 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
     [StringLiteral.Utf8("page-hide-reason-dictionary")] private static partial ReadOnlySpan<byte> LiteralExtraPageHideReasonDictionary();
     #endregion
 
+    public bool IsNotHided(uint pageIndex)
+    {
+        if (ExtraHideReason != HideReason.NotHidden)
+        {
+            return false;
+        }
+
+        if (pageIndex + 1U == PageCount && ExtraHideLast)
+        {
+            return false;
+        }
+
+        if (ExtraPageHideReasonDictionary is { Count: > 0 } dictionary && dictionary.TryGetValue(pageIndex, out var reason) && reason != HideReason.NotHidden)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     public struct PageIndexEnumerator : IEnumerator<uint>
     {
         private readonly int maxExclusive;
