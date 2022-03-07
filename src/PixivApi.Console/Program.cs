@@ -1,4 +1,6 @@
-﻿namespace PixivApi.Console;
+﻿using Microsoft.Extensions.Configuration;
+
+namespace PixivApi.Console;
 
 public sealed class Program
 {
@@ -47,7 +49,9 @@ public sealed class Program
                     client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
                     client.Timeout = config.HttpRequestTimeSpan;
                     client.AddToDefaultHeader(config);
-                }).ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>);
+                })
+                    .ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>)
+                    .SetHandlerLifetime(configSettings.RetryTimeSpan * 2);
 
                 _ = services.AddHttpClient("download", static (provider, client) =>
                 {
@@ -56,7 +60,9 @@ public sealed class Program
                     client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
                     client.Timeout = config.HttpRequestTimeSpan;
                     client.DefaultRequestHeaders.Referrer = new("https://app-api.pixiv.net/");
-                }).ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>);
+                })
+                    .ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>)
+                    .SetHandlerLifetime(configSettings.RetryTimeSpan * 2);
 
                 _ = services.AddSingleton(static provider =>
                 {
@@ -113,13 +119,15 @@ public sealed class Program
         return ValueTask.CompletedTask;
     });
 
-    private static void ConfigureOptions(HostBuilderContext context, ConsoleAppOptions options) => options.JsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
+    private static void ConfigureOptions(ConsoleAppOptions options) => options.JsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
 
-    private static void ConfigureLogger(ILoggingBuilder builder)
+    private static void ConfigureLogger(HostBuilderContext context, ILoggingBuilder builder)
     {
-        builder.ClearProviders();
-        builder.SetMinimumLevel(LogLevel.Information);
-        SimpleConsoleLoggerExtensions.AddSimpleConsole(builder);
+        var section = context.Configuration.GetSection("Logging:LogLevel:System.Net.Http.HttpClient");
+        section.Value ??= "None";
+
+        builder.AddConfiguration(context.Configuration);
+        SimpleConsoleLoggerExtensions.ReplaceToSimpleConsole(builder);
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             EnableConsoleVirtualCode();
