@@ -91,15 +91,8 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
             {
                 return false;
             }
-            else if (array is not null)
-            {
-                url = null;
-            }
-            else
-            {
-                url = response.NextUrl;
-            }
-
+            
+            url = response.NextUrl;
             array = container;
             return true;
         }
