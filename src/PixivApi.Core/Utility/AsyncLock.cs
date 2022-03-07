@@ -1,4 +1,4 @@
-﻿namespace PixivApi.Console;
+﻿namespace PixivApi.Core;
 
 public sealed class AsyncLock : IDisposable
 {
