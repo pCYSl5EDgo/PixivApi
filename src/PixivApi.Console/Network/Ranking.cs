@@ -34,7 +34,7 @@ public partial class NetworkClient
         }
         catch (TaskCanceledException)
         {
-            logger.LogError("Accept cancel. Please wait for writing to the database file.");
+            Context.Logger.LogError("Accept cancel. Please wait for writing to the database file.");
         }
         finally
         {
@@ -53,11 +53,11 @@ public partial class NetworkClient
                             ++add;
                             if (pipe)
                             {
-                                logger.LogInformation($"{item.Id}");
+                                Context.Logger.LogInformation($"{item.Id}");
                             }
                             else
                             {
-                                logger.LogInformation($"{add,4}: {item.Id,20}");
+                                Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
                             }
 
                             return LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary);
@@ -79,7 +79,7 @@ public partial class NetworkClient
 
             if (!pipe)
             {
-                logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
+                Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
             }
         }
     }

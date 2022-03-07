@@ -7,7 +7,7 @@ public partial class NetworkClient
         public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, AuthenticationHeaderValueHolder holder, bool pipe, CancellationToken token)
         {
             client = networkClient.client;
-            logger = networkClient.logger;
+            logger = networkClient.Context.Logger;
             this.networkClient = networkClient;
             this.database = database;
             this.holder = holder;

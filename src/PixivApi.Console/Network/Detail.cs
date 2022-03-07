@@ -23,6 +23,7 @@ public partial class NetworkClient
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
 
+        var logger = Context.Logger;
         ulong update = 0;
         try
         {

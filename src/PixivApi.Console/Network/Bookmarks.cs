@@ -16,7 +16,7 @@ public partial class NetworkClient
 
         if (configSettings.UserId == 0UL)
         {
-            logger.LogError($"{VirtualCodes.BrightRedColor}User Id should be written in appsettings.json{VirtualCodes.NormalizeColor}");
+            Context.Logger.LogError($"{VirtualCodes.BrightRedColor}User Id should be written in appsettings.json{VirtualCodes.NormalizeColor}");
             return ValueTask.CompletedTask;
         }
 

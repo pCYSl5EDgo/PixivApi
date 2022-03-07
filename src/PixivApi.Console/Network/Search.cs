@@ -11,6 +11,7 @@ public partial class NetworkClient
         bool pipe = false
     )
     {
+        var logger = Context.Logger;
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return;
@@ -69,11 +70,11 @@ public partial class NetworkClient
                     ++add;
                     if (pipe)
                     {
-                        logger.LogInformation($"{item.Id}");
+                        Context.Logger.LogInformation($"{item.Id}");
                     }
                     else
                     {
-                        logger.LogInformation($"{add,4}: {item.Id,20}");
+                        Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
                     }
 
                     return LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary);

@@ -7,20 +7,18 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 {
     private const string ApiHost = "app-api.pixiv.net";
     private readonly ConfigSettings configSettings;
-    private readonly ILogger<NetworkClient> logger;
     private readonly HttpClient client;
     private readonly FinderFacade finder;
     private readonly ConverterFacade converter;
     private readonly AuthenticationHeaderValueHolder holder;
 
-    public NetworkClient(ConfigSettings config, ILogger<NetworkClient> logger, HttpClient client, FinderFacade finderFacade, ConverterFacade converterFacade)
+    public NetworkClient(ConfigSettings config, HttpClient client, FinderFacade finderFacade, ConverterFacade converterFacade, AuthenticationHeaderValueHolder holder)
     {
         configSettings = config;
-        this.logger = logger;
         this.client = client;
         finder = finderFacade;
         converter = converterFacade;
-        holder = new(config, client, configSettings.ReconnectLoopIntervalTimeSpan);
+        this.holder = holder;
     }
 
     public void Dispose() => holder.Dispose();
@@ -45,6 +43,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
     private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(bool pipe, CancellationToken token)
     {
+        var logger = Context.Logger;
         if (!pipe)
         {
             logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
@@ -74,6 +73,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
     private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(Exception exception, bool pipe, CancellationToken token)
     {
+        var logger = Context.Logger;
         if (!pipe)
         {
             logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
@@ -103,6 +103,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
     private async ValueTask<byte[]> RetryGetAsync(string url, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
     {
+        var logger = Context.Logger;
         do
         {
             using HttpRequestMessage request = new(HttpMethod.Get, url);
@@ -134,6 +135,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
     private async ValueTask DownloadArtworkResponses(string output, bool addBehaviour, bool pipe, string url, CancellationToken token)
     {
+        var logger = Context.Logger;
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
         var authentication = await ConnectAsync(token).ConfigureAwait(false);
 

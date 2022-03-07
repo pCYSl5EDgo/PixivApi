@@ -12,7 +12,7 @@ public partial class NetworkClient : ConsoleAppBase
         using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
         responseMessage.EnsureSuccessStatusCode();
         var json = await responseMessage.Content.ReadAsStringAsync(token).ConfigureAwait(false);
-        logger.LogInformation(json);
+        Context.Logger.LogInformation(json);
     }
 
     [Command("http-post")]
@@ -27,7 +27,7 @@ public partial class NetworkClient : ConsoleAppBase
         using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
         responseMessage.EnsureSuccessStatusCode();
         var json = await responseMessage.Content.ReadAsStringAsync(token).ConfigureAwait(false);
-        logger.LogInformation(json);
+        Context.Logger.LogInformation(json);
     }
 
     [Command("http-get-image")]

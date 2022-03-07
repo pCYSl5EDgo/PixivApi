@@ -39,6 +39,7 @@ public partial class NetworkClient
         var downloadItemCount = 0;
         var alreadyCount = 0;
         var machine = new DownloadAsyncMachine(this, database, holder, pipe, token);
+        var logger = Context.Logger;
         logger.LogInformation("Start downloading.");
         var detailUpdate = false;
         try
@@ -257,6 +258,7 @@ public partial class NetworkClient
             return default;
         }
 
+        var logger = Context.Logger;
         if (string.IsNullOrWhiteSpace(path))
         {
             logger.LogError($"{VirtualCodes.BrightRedColor}file does not exist. Path: {path}{VirtualCodes.NormalizeColor}");

@@ -34,10 +34,12 @@ public sealed class Program
             .ConfigureLogging(ConfigureLogger)
             .ConfigureServices(services =>
             {
-                services.AddSingleton(configSettings);
-                services.AddSingleton(httpClient);
-                services.AddSingleton(finderFacade);
-                services.AddSingleton(converterFacade);
+                _ = services
+                    .AddSingleton(configSettings)
+                    .AddSingleton(httpClient)
+                    .AddSingleton(finderFacade)
+                    .AddSingleton(converterFacade)
+                    .AddSingleton(() => new AuthenticationHeaderValueHolder(configSettings, httpClient, configSettings.ReconnectLoopIntervalTimeSpan));
             });
 
         var app = builder.Build();
