@@ -1,4 +1,5 @@
-﻿using PixivApi.Core;
+﻿using Microsoft.Extensions.DependencyInjection;
+using PixivApi.Core;
 using PixivApi.Core.Local;
 using PixivApi.Core.Network;
 using PixivApi.Core.Plugin;
@@ -33,7 +34,8 @@ public sealed class Collector : ICommand
 
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(path, token);
 
-        var client = argument.Client;
+        var provider = argument.ServiceProvider;
+        var client = provider.GetRequiredService<HttpClient>();
         client.AddToDefaultHeader(configSettings);
 
         using var holder = new AuthenticationHeaderValueHolder(configSettings, client, configSettings.ReconnectLoopIntervalTimeSpan);

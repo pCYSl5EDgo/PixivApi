@@ -5,19 +5,6 @@ namespace PixivApi.Console;
 [Command("plugin")]
 public class PluginClient : ConsoleAppBase
 {
-    private readonly ILogger<PluginClient> logger;
-    private readonly ConfigSettings configSettings;
-    private readonly HttpClient client;
-    private readonly FinderFacade finder;
-
-    public PluginClient(ILogger<PluginClient> logger, ConfigSettings configSettings, HttpClient client, FinderFacade finder)
-    {
-        this.logger = logger;
-        this.configSettings = configSettings;
-        this.client = client;
-        this.finder = finder;
-    }
-
     private async ValueTask<ICommand?> PrepareCommandAsync(string dllPath, string commandName, CancellationToken token)
     {
         if (token.IsCancellationRequested || !File.Exists(dllPath))
@@ -32,7 +19,7 @@ public class PluginClient : ConsoleAppBase
         }
         catch (Exception e)
         {
-            logger.LogError(e, $"Failed to load assembly. Path: {dllPath}");
+            Context.Logger.LogError(e, $"Failed to load assembly. Path: {dllPath}");
             return null;
         }
 
@@ -57,6 +44,7 @@ public class PluginClient : ConsoleAppBase
             return null;
         }
 
+        var configSettings = Context.ServiceProvider.GetRequiredService<ConfigSettings>();
         if ((type.GetMethod(nameof(IPlugin.CreateAsync), BindingFlags.Static | BindingFlags.Public)?.Invoke(null, new object[] { dllPath, configSettings, token })) is not Task<IPlugin?> task)
         {
             return null;
@@ -77,7 +65,7 @@ public class PluginClient : ConsoleAppBase
             return;
         }
 
-        logger.LogInformation(commandObject.GetHelp());
+        Context.Logger.LogInformation(commandObject.GetHelp());
     }
 
     [Command("execute")]
@@ -103,6 +91,6 @@ public class PluginClient : ConsoleAppBase
             }
         }
 
-        await commandObject.ExecuteAsync(args.Skip(index), new(client, logger, finder), Context.CancellationToken).ConfigureAwait(false);
+        await commandObject.ExecuteAsync(args.Skip(index), new(Context.Logger, Context.ServiceProvider), Context.CancellationToken).ConfigureAwait(false);
     }
 }

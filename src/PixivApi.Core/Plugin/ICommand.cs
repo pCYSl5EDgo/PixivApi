@@ -9,6 +9,6 @@ public interface ICommand : IPlugin
     ValueTask ExecuteAsync(IEnumerable<string> commandLineArguments, CommandArgument argument, CancellationToken token);
 }
 
-public record struct CommandArgument(HttpClient Client, ILogger Logger, FinderFacade Finder)
+public readonly record struct CommandArgument(ILogger Logger, IServiceProvider ServiceProvider)
 {
 }

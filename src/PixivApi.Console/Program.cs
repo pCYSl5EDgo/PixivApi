@@ -1,7 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-
-namespace PixivApi.Console;
+﻿namespace PixivApi.Console;
 
 public sealed class Program
 {
