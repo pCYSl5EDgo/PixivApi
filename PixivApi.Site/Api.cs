@@ -3,25 +3,8 @@ using System.Text.Json;
 
 namespace PixivApi.Site;
 
-public class Api
+public static class Api
 {
-    private readonly ConfigSettings configSettings;
-    private readonly HttpClient client;
-    private readonly DatabaseFile database;
-    private readonly FinderFacade finderFacade;
-    private readonly ConverterFacade converterFacade;
-    private readonly JsonSerializerOptions jsonSerializerOptions;
-
-    public Api(ConfigSettings configSettings, HttpClient client, DatabaseFile database, FinderFacade finderFacade, ConverterFacade converterFacade, JsonSerializerOptions jsonSerializerOptions)
-    {
-        this.configSettings = configSettings;
-        this.client = client;
-        this.database = database;
-        this.finderFacade = finderFacade;
-        this.converterFacade = converterFacade;
-        this.jsonSerializerOptions = jsonSerializerOptions;
-    }
-
     private static ArtworkFilter? ParseFilter(string? filter)
     {
         ArtworkFilter? artworkFilter = null;
@@ -39,7 +22,7 @@ public class Api
         return artworkFilter;
     }
 
-    public async Task<IResult> CountAsync([FromQuery] string? filter, CancellationToken token)
+    public static async Task<IResult> CountAsync([FromQuery] string? filter, [FromServices] DatabaseFile database, [FromServices] FinderFacade finderFacade, CancellationToken token)
     {
         var artworkFilter = ParseFilter(filter);
 
@@ -68,7 +51,7 @@ public class Api
         return Results.Ok(count);
     }
 
-    public Task<IResult> MapAsync([FromQuery] string? filter, [FromQuery(Name = "to-string")] bool? toString, bool? ugoira, bool? thumbnail, bool? original, CancellationToken token)
+    public static Task<IResult> MapAsync([FromQuery] string? filter, [FromQuery(Name = "to-string")] bool? toString, bool? ugoira, bool? thumbnail, bool? original, [FromServices] DatabaseFile database, [FromServices] FinderFacade finderFacade, [FromServices] JsonSerializerOptions jsonSerializerOptions, CancellationToken token)
     {
         var artworkFilter = ParseFilter(filter);
         if (artworkFilter is null)
@@ -87,7 +70,7 @@ public class Api
         return Task.FromResult<IResult>(response);
     }
 
-    public Task<IResult> HideAsync([FromRoute] ulong id, [FromQuery(Name = "reason")] string reasonText, HttpContext context)
+    public static Task<IResult> HideAsync([FromRoute] ulong id, [FromQuery(Name = "reason")] string reasonText, HttpContext context, [FromServices] DatabaseFile database)
     {
         var token = context.RequestAborted;
         if (token.IsCancellationRequested)

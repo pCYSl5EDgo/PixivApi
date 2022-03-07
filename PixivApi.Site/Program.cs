@@ -7,100 +7,114 @@ public sealed class Program
 {
     public static async Task Main(string[] args)
     {
-        using var cancellationTokenSource = new CancellationTokenSource();
-        Console.CancelKeyPress += Console_CancelKeyPress;
-
-        void Console_CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
-        {
-            cancellationTokenSource.Cancel();
-            e.Cancel = true;
-        }
-
-        var token = cancellationTokenSource.Token;
-        using var handler = new SocketsHttpHandler()
+        var builder = WebApplication.CreateBuilder(args);
+        _ = builder.WebHost.UseKestrel();
+        _ = builder.Services.AddHttpClient("pixiv").ConfigurePrimaryHttpMessageHandler(provider => new SocketsHttpHandler()
         {
             AutomaticDecompression = System.Net.DecompressionMethods.All,
             MaxConnectionsPerServer = 2,
-        };
+        }).SetHandlerLifetime(Timeout.InfiniteTimeSpan);
 
-        using var httpClient = new HttpClient(handler, true)
+        _ = builder.Services.AddSingleton(provider =>
         {
-            Timeout = TimeSpan.FromHours(4),
-            DefaultRequestVersion = new(2, 0),
-            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact,
-        };
+            var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
+            var client = provider.GetRequiredService<HttpClient>();
+#pragma warning disable CA2012
+            return GetConfigSettingAsync(client, lifetime.ApplicationStopping).Result;
+#pragma warning restore CA2012
+        })
+        .AddSingleton(provider =>
+        {
+            var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
+            var configSettings = provider.GetRequiredService<ConfigSettings>();
+            if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+            {
+                return new();
+            }
 
-        var configSettings = await GetConfigSettingAsync(httpClient, token).ConfigureAwait(false);
+            using var stream = File.OpenRead(configSettings.DatabaseFilePath);
+            return MessagePack.MessagePackSerializer.Deserialize<DatabaseFile>(stream, null, lifetime.ApplicationStopping) ?? new();
+        })
+        .AddSingleton(provider =>
+        {
+            var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
+            var configSettings = provider.GetRequiredService<ConfigSettings>();
+#pragma warning disable CA2012
+            return FinderFacade.CreateAsync(configSettings, lifetime.ApplicationStopping).Result;
+#pragma warning restore CA2012
+        })
+        .AddSingleton(provider =>
+        {
+            var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
+            var configSettings = provider.GetRequiredService<ConfigSettings>();
+#pragma warning disable CA2012
+            return ConverterFacade.CreateAsync(configSettings, lifetime.ApplicationStopping).Result;
+#pragma warning restore CA2012
+        })
+        .AddSingleton(provider =>
+        {
+            var jsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
+            jsonSerializerOptions.Converters.Add(UgoiraArtworkUtilityStruct.Converter.Instance);
+            jsonSerializerOptions.Converters.Add(NotUgoiraArtworkUtilityStruct.Converter.Instance);
+            return jsonSerializerOptions;
+        });
+
+        var app = builder.Build();
+        var isDevelopment = builder.Environment.IsDevelopment();
+
+        if (!isDevelopment)
+        {
+            app.UseHsts();
+        }
+
+        var configSettings = app.Services.GetRequiredService<ConfigSettings>();
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return;
         }
 
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
+        var originalSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
+        {
+            FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.OriginalFolder)),
+            RequestPath = "/Original",
+        };
+        var thumbnailSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
+        {
+            FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.ThumbnailFolder)),
+            RequestPath = "/Thumbnail",
+        };
+        var ugoiraSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
+        {
+            FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.UgoiraFolder)),
+            RequestPath = "/Ugoira",
+        };
+
+        var contetTypeProvider = new FileExtensionContentTypeProvider(new Dictionary<string, string>()
+        {
+            { ".png", "image/png" },
+            { ".jpg", "image/jpeg" },
+            { ".jxl", "image/jxl" },
+        });
+
+        app.UseStaticFiles(new StaticFileOptions(originalSharedProvider) { ContentTypeProvider = contetTypeProvider });
+        app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider) { ContentTypeProvider = contetTypeProvider });
+        app.UseStaticFiles(new StaticFileOptions(ugoiraSharedProvider) { ContentTypeProvider = contetTypeProvider });
+
+        if (isDevelopment)
+        {
+            app.UseDirectoryBrowser(new DirectoryBrowserOptions(originalSharedProvider));
+            app.UseDirectoryBrowser(new DirectoryBrowserOptions(thumbnailSharedProvider));
+            app.UseDirectoryBrowser(new DirectoryBrowserOptions(ugoiraSharedProvider));
+        }
+
+        app.MapGet("/local/count", Api.CountAsync);
+        app.MapGet("/local/map", Api.MapAsync);
+        app.Map("/local/hide/{id}", Api.HideAsync);
+
+        var database = app.Services.GetRequiredService<DatabaseFile>();
         try
         {
-            await using var finderFacade = await FinderFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
-            await using var converterFacade = await ConverterFacade.CreateAsync(configSettings, cancellationTokenSource.Token).ConfigureAwait(false);
-            if (string.IsNullOrWhiteSpace(configSettings?.RefreshToken))
-            {
-                return;
-            }
-
-            var jsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
-            jsonSerializerOptions.Converters.Add(UgoiraArtworkUtilityStruct.Converter.Instance);
-            jsonSerializerOptions.Converters.Add(NotUgoiraArtworkUtilityStruct.Converter.Instance);
-            var api = new Api(configSettings, httpClient, database, finderFacade, converterFacade, jsonSerializerOptions);
-
-            var builder = WebApplication.CreateBuilder(args);
-            builder.WebHost.UseKestrel();
-
-            var app = builder.Build();
-            var isDevelopment = builder.Environment.IsDevelopment();
-
-            if (!isDevelopment)
-            {
-                app.UseHsts();
-            }
-
-            var originalSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
-            {
-                FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.OriginalFolder)),
-                RequestPath = "/Original",
-            };
-            var thumbnailSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
-            {
-                FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.ThumbnailFolder)),
-                RequestPath = "/Thumbnail",
-            };
-            var ugoiraSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
-            {
-                FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.UgoiraFolder)),
-                RequestPath = "/Ugoira",
-            };
-
-            var contetTypeProvider = new FileExtensionContentTypeProvider(new Dictionary<string, string>()
-            {
-                { ".png", "image/png" },
-                { ".jpg", "image/jpeg" },
-                { ".jxl", "image/jxl" },
-            });
-
-            app.UseStaticFiles(new StaticFileOptions(originalSharedProvider) { ContentTypeProvider = contetTypeProvider });
-            app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider) { ContentTypeProvider = contetTypeProvider });
-            app.UseStaticFiles(new StaticFileOptions(ugoiraSharedProvider) { ContentTypeProvider = contetTypeProvider });
-
-            if (isDevelopment)
-            {
-                app.UseDirectoryBrowser(new DirectoryBrowserOptions(originalSharedProvider));
-                app.UseDirectoryBrowser(new DirectoryBrowserOptions(thumbnailSharedProvider));
-                app.UseDirectoryBrowser(new DirectoryBrowserOptions(ugoiraSharedProvider));
-            }
-
-            app.MapGet("/local/count", api.CountAsync);
-            app.MapGet("/local/map", api.MapAsync);
-            app.Map("/local/hide/{id}", api.HideAsync);
-
-            app.Run();
+            await app.RunAsync().ConfigureAwait(false);
         }
         finally
         {

@@ -62,7 +62,7 @@ public readonly partial struct NotUgoiraArtworkUtilityStruct
             writer.WriteEndObject();
         }
 
-        private static void PrivateWrite(Utf8JsonWriter writer, ref Utf8ValueStringBuilder utf8builder, Artwork artwork, uint pageIndex, IFinderWithIndex finder)
+        private static void PrivateWrite(Utf8JsonWriter writer, ref Utf8ValueStringBuilder builder, Artwork artwork, uint pageIndex, IFinderWithIndex finder)
         {
             if (!artwork.IsNotHided(pageIndex))
             {
@@ -75,8 +75,8 @@ public readonly partial struct NotUgoiraArtworkUtilityStruct
                 goto NULL;
             }
 
-            FileUriUtility.Convert(ref utf8builder, info.FullName);
-            writer.WriteRawValue(utf8builder.AsSpan(), true);
+            FileUriUtility.Convert(ref builder, info.Name);
+            writer.WriteRawValue(builder.AsSpan(), true);
             return;
 
         NULL:
