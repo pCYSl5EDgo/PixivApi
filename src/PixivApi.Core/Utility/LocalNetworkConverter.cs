@@ -80,17 +80,67 @@ public static class LocalNetworkConverter
 
     public static void Overwrite(User destination, in UserPreviewResponseContent source)
     {
+        Overwrite(destination, source.User);
+        destination.IsMuted = source.IsMuted;
+    }
+
+    public static void Overwrite(User destination, in UserResponse source)
+    {
+        if (destination.Id != source.Id)
+        {
+            return;
+        }
+
+        OverwriteExtensions.Overwrite(ref destination.Name, source.Name);
+        OverwriteExtensions.Overwrite(ref destination.Account, source.Account);
+        destination.IsFollowed = source.IsFollowed;
+        OverwriteExtensions.Overwrite(ref destination.ImageUrls, source.ProfileImageUrls.Medium);
+        OverwriteExtensions.Overwrite(ref destination.Comment, source.Comment);
+    }
+
+    public static void Overwrite(User destination, in UserDetailResponseData source)
+    {
         if (destination.Id != source.User.Id)
         {
             return;
         }
 
-        OverwriteExtensions.Overwrite(ref destination.Name, source.User.Name);
-        OverwriteExtensions.Overwrite(ref destination.Account, source.User.Account);
-        destination.IsFollowed = source.User.IsFollowed;
-        destination.IsMuted = source.IsMuted;
-        OverwriteExtensions.Overwrite(ref destination.ImageUrls, source.User.ProfileImageUrls.Medium);
-        OverwriteExtensions.Overwrite(ref destination.Comment, source.User.Comment);
+        Overwrite(destination, source.User);
+        if (source.Workspace is { } workspace)
+        {
+            if (destination.Workspace is null)
+            {
+                destination.Workspace = Convert(workspace);
+            }
+            else
+            {
+                Overwrite(destination.Workspace, workspace);
+            }
+        }
+
+        if (source.ProfilePublicity is { } profilePublicity)
+        {
+            if (destination.ProfilePublicity is null)
+            {
+                destination.ProfilePublicity = Convert(profilePublicity);
+            }
+            else
+            {
+                Overwrite(destination.ProfilePublicity, profilePublicity);
+            }
+        }
+
+        if (source.Profile is { } profile)
+        {
+            if (destination.Profile is null)
+            {
+                destination.Profile = Convert(profile);
+            }
+            else
+            {
+                Overwrite(destination.Profile, profile);
+            }
+        }
     }
 
     public static User Convert(this in UserResponse user) => new()
