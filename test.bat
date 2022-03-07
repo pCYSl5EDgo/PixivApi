@@ -1,2 +1,2 @@
-cd PixivApi.Core.Test
+cd test/PixivApi.Core.Test
 dotnet run
