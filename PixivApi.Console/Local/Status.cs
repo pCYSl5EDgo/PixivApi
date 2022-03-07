@@ -17,6 +17,6 @@ public partial class LocalClient
             return;
         }
 
-        logger.LogInformation($"Artwork: {database.ArtworkDictionary.Count} User: {database.UserDictionary.Count}\nTag: {database.TagSet.Reverses.Count} Tool: {database.ToolSet.Reverses.Count}");
+        logger.LogInformation($"Version: {database.MajorVersion}.{database.MinorVersion} Artwork: {database.ArtworkDictionary.Count} User: {database.UserDictionary.Count}\nTag: {database.TagSet.Reverses.Count} Tool: {database.ToolSet.Reverses.Count} Ranking: {database.RankingSet.Count}");
     }
 }
