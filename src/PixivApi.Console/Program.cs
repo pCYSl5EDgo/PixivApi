@@ -2,69 +2,90 @@
 
 public sealed class Program
 {
-    private static readonly CancellationTokenSource cts = new();
-
     public static async Task Main(string[] args)
     {
-        System.Console.CancelKeyPress += CancelKeyPress;
+        var app = await BuildAsync(args).ConfigureAwait(false);
+        app.AddSubCommands<NetworkClient>();
+        app.AddSubCommands<LocalClient>();
+        app.AddSubCommands<PluginClient>();
+        await app.RunAsync().ConfigureAwait(false);
+    }
 
-        using var handler = new SocketsHttpHandler()
-        {
-            AutomaticDecompression = DecompressionMethods.All,
-            MaxConnectionsPerServer = 2,
-            ConnectTimeout = Timeout.InfiniteTimeSpan,
-        };
-
-        using var httpClient = new HttpClient(handler, true)
-        {
-            Timeout = Timeout.InfiniteTimeSpan,
-            DefaultRequestVersion = new(2, 0),
-            DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact,
-        };
-
-        var configSettings = await GetConfigSettingAsync(httpClient, cts.Token).ConfigureAwait(false);
-        httpClient.Timeout = configSettings.HttpRequestTimeSpan;
-
-        await using var finderFacade = await FinderFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
-        await using var converterFacade = await ConverterFacade.CreateAsync(configSettings, cts.Token).ConfigureAwait(false);
-
+    private static async ValueTask<ConsoleApp> BuildAsync(string[] args)
+    {
+        var configSettings = await GetConfigSettingAsync().ConfigureAwait(false);
         var builder = ConsoleApp
             .CreateBuilder(args, ConfigureOptions)
-            .ConfigureHostOptions(options => options.ShutdownTimeout = configSettings.ShutdownTimeSpan)
             .ConfigureLogging(ConfigureLogger)
+            .ConfigureHostOptions(options => options.ShutdownTimeout = configSettings.ShutdownTimeSpan)
             .ConfigureServices(services =>
             {
                 _ = services
                     .AddSingleton(configSettings)
-                    .AddSingleton(httpClient)
-                    .AddSingleton(finderFacade)
-                    .AddSingleton(converterFacade)
-                    .AddSingleton(() => new AuthenticationHeaderValueHolder(configSettings, httpClient, configSettings.ReconnectLoopIntervalTimeSpan));
+                    .AddSingleton(static provier =>
+                    {
+                        var config = provier.GetRequiredService<ConfigSettings>();
+                        var token = provier.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+                        return FinderFacade.CreateAsync(config, token).Result;
+                    })
+                    .AddSingleton(static provier =>
+                    {
+                        var config = provier.GetRequiredService<ConfigSettings>();
+                        var token = provier.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+                        return ConverterFacade.CreateAsync(config, token).Result;
+                    })
+                    .AddSingleton<HttpMessageHandler, SocketsHttpHandler>(static _ => new SocketsHttpHandler
+                    {
+                        AutomaticDecompression = DecompressionMethods.All,
+                        MaxConnectionsPerServer = 2,
+                    });
+
+                _ = services.AddHttpClient(Options.DefaultName, static (provider, client) =>
+                {
+                    var config = provider.GetRequiredService<ConfigSettings>();
+                    client.DefaultRequestVersion = new(2, 0);
+                    client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    client.Timeout = config.HttpRequestTimeSpan;
+                    client.AddToDefaultHeader(config);
+                }).ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>);
+
+                _ = services.AddHttpClient("download", static (provider, client) =>
+                {
+                    var config = provider.GetRequiredService<ConfigSettings>();
+                    client.DefaultRequestVersion = new(2, 0);
+                    client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+                    client.Timeout = config.HttpRequestTimeSpan;
+                    client.DefaultRequestHeaders.Referrer = new("https://app-api.pixiv.net/");
+                }).ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>);
+
+                _ = services.AddSingleton(static provider =>
+                {
+                    var config = provider.GetRequiredService<ConfigSettings>();
+                    var client = provider.GetRequiredService<HttpClient>();
+                    return new AuthenticationHeaderValueHolder(config, client, config.ReconnectLoopIntervalTimeSpan);
+                });
             });
 
-        var app = builder.Build();
-        app.AddSubCommands<NetworkClient>();
-        app.AddSubCommands<LocalClient>();
-        app.AddSubCommands<PluginClient>();
-        await app.RunAsync(cts.Token).ConfigureAwait(false);
+        return builder.Build();
     }
 
-    private static async ValueTask<ConfigSettings> GetConfigSettingAsync(HttpClient httpClient, CancellationToken token)
+    private static async ValueTask<ConfigSettings> GetConfigSettingAsync()
     {
         var configFileName = IOUtility.GetConfigFileNameDependsOnEnvironmentVariable();
         ConfigSettings? configSettings = null;
         if (File.Exists(configFileName))
         {
-            configSettings = await IOUtility.JsonDeserializeAsync<ConfigSettings>(configFileName, token).ConfigureAwait(false);
+            configSettings = await IOUtility.JsonDeserializeAsync<ConfigSettings>(configFileName, CancellationToken.None).ConfigureAwait(false);
         }
 
         configSettings ??= new();
         if (string.IsNullOrWhiteSpace(configSettings.RefreshToken))
         {
-            var valueTask = AccessTokenUtility.AuthAsync(httpClient, configSettings, token);
-            await InitializeDirectoriesAsync(configSettings.OriginalFolder, token).ConfigureAwait(false);
-            await InitializeDirectoriesAsync(configSettings.ThumbnailFolder, token).ConfigureAwait(false);
-            await InitializeDirectoriesAsync(configSettings.UgoiraFolder, token).ConfigureAwait(false);
+            using var httpClient = new HttpClient();
+            var valueTask = AccessTokenUtility.AuthAsync(httpClient, configSettings, CancellationToken.None);
+            await InitializeDirectoriesAsync(configSettings.OriginalFolder, CancellationToken.None).ConfigureAwait(false);
+            await InitializeDirectoriesAsync(configSettings.ThumbnailFolder, CancellationToken.None).ConfigureAwait(false);
+            await InitializeDirectoriesAsync(configSettings.UgoiraFolder, CancellationToken.None).ConfigureAwait(false);
             configSettings.RefreshToken = await valueTask.ConfigureAwait(false) ?? string.Empty;
             await IOUtility.JsonSerializeAsync(configFileName, configSettings, FileMode.Create).ConfigureAwait(false);
         }
@@ -94,18 +115,15 @@ public sealed class Program
 
     private static void ConfigureOptions(HostBuilderContext context, ConsoleAppOptions options) => options.JsonSerializerOptions = IOUtility.JsonSerializerOptionsNoIndent;
 
-    private static void CancelKeyPress(object? sender, ConsoleCancelEventArgs e)
-    {
-        e.Cancel = true;
-        cts.Cancel();
-    }
-
     private static void ConfigureLogger(ILoggingBuilder builder)
     {
         builder.ClearProviders();
         builder.SetMinimumLevel(LogLevel.Information);
         SimpleConsoleLoggerExtensions.AddSimpleConsole(builder);
-        EnableConsoleVirtualCode();
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            EnableConsoleVirtualCode();
+        }
     }
 
     private static unsafe void EnableConsoleVirtualCode()

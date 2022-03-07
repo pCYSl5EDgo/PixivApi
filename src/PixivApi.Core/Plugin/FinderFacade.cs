@@ -40,7 +40,7 @@ public sealed class FinderFacade : IAsyncDisposable
 
     private static async ValueTask<IFinderWithIndex?> GetFinderWithIndexAsync(string? plugin, ConfigSettings configSettings, object boxedCancellationToken) => await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IFinderWithIndex;
 
-    public static async ValueTask<FinderFacade> CreateAsync(ConfigSettings configSettings, CancellationToken token)
+    public static async Task<FinderFacade> CreateAsync(ConfigSettings configSettings, CancellationToken token)
     {
         var ugoiraZipFinderPluginDefault = new DefaultUgoiraZipFinder(configSettings.UgoiraFolder);
         var ugoiraThumbnailFinderPluginDefault = new DefaultUgoiraThumbnailFinder(configSettings.ThumbnailFolder);

@@ -17,9 +17,8 @@ public partial class NetworkClient
             return;
         }
 
+        var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
-
         var logger = Context.Logger;
         ulong update = 0;
         try
@@ -29,7 +28,7 @@ public partial class NetworkClient
             RETRY:
                 try
                 {
-                    var artwork = await GetArtworkDetailAsync(item.Id, authentication, token).ConfigureAwait(false);
+                    var artwork = await GetArtworkDetailAsync(item.Id, token).ConfigureAwait(false);
                     if (artwork.User.Id == 0)
                     {
                         goto REMOVED;
@@ -38,7 +37,7 @@ public partial class NetworkClient
                     ++update;
                     if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                     {
-                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(artwork.Id, authentication, token).ConfigureAwait(false);
+                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(artwork.Id, token).ConfigureAwait(false);
                     }
 
                     LocalNetworkConverter.Overwrite(item, artwork, database.TagSet, database.ToolSet, database.UserDictionary);
@@ -72,8 +71,6 @@ public partial class NetworkClient
                     }
 
                     await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                    authentication = await ReconnectAsync(e, token).ConfigureAwait(false);
-
                     goto RETRY;
                 }
 
@@ -99,18 +96,21 @@ public partial class NetworkClient
         }
     }
 
-    private async ValueTask<ArtworkResponseContent> GetArtworkDetailAsync(ulong id, AuthenticationHeaderValue authentication, CancellationToken token)
+    private async ValueTask<ArtworkResponseContent> GetArtworkDetailAsync(ulong id, CancellationToken token)
     {
         var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
-        var content = await RetryGetAsync(url, authentication, token).ConfigureAwait(false);
+        using var responseMessage = await RetryAndReconnectGetAsync(url, token).ConfigureAwait(false);
+        var content = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
         var response = IOUtility.JsonDeserialize<IllustDateilResponseData>(content.AsSpan());
         return response.Illust;
     }
 
-    private async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(ulong id, AuthenticationHeaderValue authentication, CancellationToken token)
+    private async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(ulong id, CancellationToken token)
     {
         var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
-        var ugoiraResponse = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>((await RetryGetAsync(ugoiraUrl, authentication, token).ConfigureAwait(false)).AsSpan());
+        using var responseMessage = await RetryAndReconnectGetAsync(ugoiraUrl, token).ConfigureAwait(false);
+        var content = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
+        var ugoiraResponse = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>(content.AsSpan());
         var frames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
         for (var frameIndex = 0; frameIndex < frames.Length; frameIndex++)
         {

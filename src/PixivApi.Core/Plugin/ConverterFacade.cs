@@ -4,7 +4,7 @@ public sealed record class ConverterFacade(IConverter? UgoiraZipConverter, IConv
 {
     private static async ValueTask<IConverter?> GetAsync(string? plugin, ConfigSettings configSettings, object boxedCancellationToken) => await PluginUtility.LoadPluginAsync(plugin, configSettings, boxedCancellationToken).ConfigureAwait(false) as IConverter;
 
-    public static async ValueTask<ConverterFacade> CreateAsync(ConfigSettings configSettings, CancellationToken token)
+    public static async Task<ConverterFacade> CreateAsync(ConfigSettings configSettings, CancellationToken token)
     {
         object boxedToken = token;
         var ugoiraZipConverter = await GetAsync(configSettings.UgoiraZipConverterPlugin, configSettings, boxedToken).ConfigureAwait(false);

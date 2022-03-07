@@ -39,8 +39,6 @@ public sealed class Collector : ICommand
         client.AddToDefaultHeader(configSettings);
 
         using var holder = new AuthenticationHeaderValueHolder(configSettings, client, configSettings.ReconnectLoopIntervalTimeSpan);
-        _ = await holder.ConnectAsync(token).ConfigureAwait(false);
-
         var database = await databaseTask.ConfigureAwait(false);
         if (database is null)
         {

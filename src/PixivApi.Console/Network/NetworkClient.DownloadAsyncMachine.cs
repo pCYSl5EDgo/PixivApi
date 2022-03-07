@@ -4,13 +4,13 @@ public partial class NetworkClient
 {
     private sealed class DownloadAsyncMachine
     {
-        public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, AuthenticationHeaderValueHolder holder, CancellationToken token)
+        public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, CancellationToken token)
         {
-            client = networkClient.client;
+            var factory = networkClient.Context.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+            client = factory.CreateClient("download");
             logger = networkClient.Context.Logger;
             this.networkClient = networkClient;
             this.database = database;
-            this.holder = holder;
             this.token = token;
         }
 
@@ -18,7 +18,6 @@ public partial class NetworkClient
         private readonly ILogger logger;
         private readonly NetworkClient networkClient;
         private readonly DatabaseFile database;
-        private readonly AuthenticationHeaderValueHolder holder;
         private readonly CancellationToken token;
         public int DownloadFileCount = 0;
         public ulong DownloadByteCount = 0UL;
@@ -90,7 +89,7 @@ public partial class NetworkClient
             {
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    await networkClient.ReconnectAsync(token).ConfigureAwait(false);
+                    await networkClient.holder.InvalidateAsync(token).ConfigureAwait(false);
                     return (default, default, noDetailDownload);
                 }
 
@@ -138,11 +137,11 @@ public partial class NetworkClient
         RETRY:
             try
             {
-                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), token).ConfigureAwait(false);
+                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, token).ConfigureAwait(false);
                 LocalNetworkConverter.Overwrite(artwork, detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                 if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
                 {
-                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), token).ConfigureAwait(false);
+                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, token).ConfigureAwait(false);
                 }
 
                 success = !artwork.IsOfficiallyRemoved;
@@ -155,7 +154,7 @@ public partial class NetworkClient
                 }
                 else if (e.StatusCode.Value == HttpStatusCode.BadRequest)
                 {
-                    await networkClient.ReconnectAsync(e, token).ConfigureAwait(false);
+                    await networkClient.holder.InvalidateAsync(token).ConfigureAwait(false);
                     goto RETRY;
                 }
                 else if (!System.Console.IsOutputRedirected)

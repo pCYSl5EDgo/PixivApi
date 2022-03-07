@@ -1,52 +1,47 @@
 ﻿using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.ArtworkResponseContent>;
 using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreviewResponseContent>;
-using Authentication = System.Net.Http.Headers.AuthenticationHeaderValue;
-using QueryAsync = System.Func<string, System.Net.Http.Headers.AuthenticationHeaderValue, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]>>;
-using ReconnectAsyncFunc = System.Func<System.Exception, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Net.Http.Headers.AuthenticationHeaderValue>>;
-using System.Net.Sockets;
+using QueryWithRetryAndReconnectAsync = System.Func<string, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Net.Http.HttpResponseMessage>>;
 
 namespace PixivApi.Core.Network;
 
 public static class NetworkAsyncEnumerableHelper
 {
-    public static bool ShouldReconnect(this HttpRequestException e) => e.StatusCode == HttpStatusCode.BadRequest || e.InnerException is IOException { InnerException: SocketException { ErrorCode: 10054 } };
+    public static async ValueTask<byte[]> GetByteArrayAsync(QueryWithRetryAndReconnectAsync query, string url, CancellationToken token)
+    {
+        using var responseMessage = await query(url, token).ConfigureAwait(false);
+        responseMessage.EnsureSuccessStatusCode();
+        var answer = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
+        return answer;
+    }
 }
 
 public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
 {
     private readonly string initialUrl;
-    private readonly Authentication authentication;
-    private readonly QueryAsync query;
-    private readonly ReconnectAsyncFunc reconnect;
+    private readonly QueryWithRetryAndReconnectAsync query;
 
-    public DownloadArtworkAsyncEnumerable(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect)
+    public DownloadArtworkAsyncEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query)
     {
         this.initialUrl = initialUrl;
-        this.authentication = authentication;
         this.query = query;
-        this.reconnect = reconnect;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, authentication, query, reconnect, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
     public sealed class Enumerator : IAsyncEnumerator<Artworks>
     {
         private string? url;
-        private Authentication authentication;
-        private readonly QueryAsync query;
-        private readonly ReconnectAsyncFunc reconnect;
+        private readonly QueryWithRetryAndReconnectAsync query;
         private readonly CancellationToken cancellationToken;
 
         private ArtworkResponseContent[]? array;
 
-        public Enumerator(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, CancellationToken cancellationToken)
         {
-            this.query = query;
             url = initialUrl;
-            this.authentication = authentication;
-            this.reconnect = reconnect;
+            this.query = query;
             this.cancellationToken = cancellationToken;
         }
 
@@ -66,30 +61,15 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
                 return false;
             }
 
-            byte[] responseByteArray;
-            do
-            {
-                try
-                {
-                    responseByteArray = await query(url, authentication, cancellationToken).ConfigureAwait(false);
-                }
-                catch (HttpRequestException e) when (e.ShouldReconnect())
-                {
-                    authentication = await reconnect(e, cancellationToken).ConfigureAwait(false);
-                    continue;
-                }
-
-                break;
-            } while (true);
-
+            var responseByteArray = await NetworkAsyncEnumerableHelper.GetByteArrayAsync(query, url, cancellationToken).ConfigureAwait(false);
             if (responseByteArray.Length == 0)
             {
                 return false;
             }
 
             var response = IOUtility.JsonDeserialize<IllustsResponseData>(responseByteArray.AsSpan());
-            var container = response.Illusts;
-            if (container is not { Length: > 0 })
+            array = response.Illusts;
+            if (array is not { Length: > 0 })
             {
                 return false;
             }
@@ -103,7 +83,6 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
                 url = response.NextUrl;
             }
 
-            array = container;
             return true;
         }
     }
@@ -114,38 +93,30 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
     public delegate string SearchNextUrl(ReadOnlySpan<char> url, DateOnly date);
 
     private readonly string initialUrl;
-    private readonly Authentication authentication;
-    private readonly QueryAsync query;
-    private readonly ReconnectAsyncFunc reconnect;
+    private readonly QueryWithRetryAndReconnectAsync query;
 
-    public SearchArtworkAsyncNewToOldEnumerable(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect)
+    public SearchArtworkAsyncNewToOldEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query)
     {
         this.initialUrl = initialUrl;
-        this.authentication = authentication;
         this.query = query;
-        this.reconnect = reconnect;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, authentication, query, reconnect, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
     public sealed class Enumerator : IAsyncEnumerator<Artworks>
     {
-        private readonly QueryAsync query;
+        private readonly QueryWithRetryAndReconnectAsync query;
         private readonly CancellationToken cancellationToken;
 
         private string? url;
-        private Authentication authentication;
-        private readonly ReconnectAsyncFunc reconnect;
         private ArtworkResponseContent[]? array;
 
-        public Enumerator(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, CancellationToken cancellationToken)
         {
             url = initialUrl;
-            this.authentication = authentication;
             this.query = query;
-            this.reconnect = reconnect;
             this.cancellationToken = cancellationToken;
         }
 
@@ -165,22 +136,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
                 return false;
             }
 
-            byte[] responseByteArray;
-            do
-            {
-                try
-                {
-                    responseByteArray = await query(url, authentication, cancellationToken).ConfigureAwait(false);
-                }
-                catch (HttpRequestException e) when (e.ShouldReconnect())
-                {
-                    authentication = await reconnect(e, cancellationToken).ConfigureAwait(false);
-                    continue;
-                }
-
-                break;
-            } while (true);
-
+            var responseByteArray = await NetworkAsyncEnumerableHelper.GetByteArrayAsync(query, url, cancellationToken).ConfigureAwait(false);
             if (responseByteArray.Length == 0)
             {
                 return false;
@@ -227,39 +183,31 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
 
 public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
 {
-    private readonly QueryAsync query;
+    private readonly QueryWithRetryAndReconnectAsync query;
     private readonly string initialUrl;
-    private readonly Authentication authentication;
-    private readonly ReconnectAsyncFunc reconnect;
 
-    public DownloadUserPreviewAsyncEnumerable(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect)
+    public DownloadUserPreviewAsyncEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query)
     {
-        this.query = query;
         this.initialUrl = initialUrl;
-        this.authentication = authentication;
-        this.reconnect = reconnect;
+        this.query = query;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, authentication, query, reconnect, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, cancellationToken);
 
     IAsyncEnumerator<Users> IAsyncEnumerable<Users>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
     public sealed class Enumerator : IAsyncEnumerator<Users>
     {
         private string? url;
-        private Authentication authentication;
-        private readonly QueryAsync query;
-        private readonly ReconnectAsyncFunc reconnect;
+        private readonly QueryWithRetryAndReconnectAsync query;
         private readonly CancellationToken cancellationToken;
 
         private UserPreviewResponseContent[]? array;
 
-        public Enumerator(string initialUrl, Authentication authentication, QueryAsync query, ReconnectAsyncFunc reconnect, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, CancellationToken cancellationToken)
         {
             url = initialUrl;
-            this.authentication = authentication;
             this.query = query;
-            this.reconnect = reconnect;
             this.cancellationToken = cancellationToken;
         }
 
@@ -279,30 +227,15 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
                 return false;
             }
 
-            byte[] responseByteArray;
-            do
-            {
-                try
-                {
-                    responseByteArray = await query(url, authentication, cancellationToken).ConfigureAwait(false);
-                }
-                catch (HttpRequestException e) when (e.ShouldReconnect())
-                {
-                    authentication = await reconnect(e, cancellationToken).ConfigureAwait(false);
-                    continue;
-                }
-
-                break;
-            } while (true);
-
+            var responseByteArray = await NetworkAsyncEnumerableHelper.GetByteArrayAsync(query, url, cancellationToken).ConfigureAwait(false);
             if (responseByteArray.Length == 0)
             {
                 return false;
             }
 
             var response = IOUtility.JsonDeserialize<UserPreviewsResponseData>(responseByteArray.AsSpan());
-            var container = response.UserPreviews;
-            if (container is not { Length: > 0 })
+            array = response.UserPreviews;
+            if (array is not { Length: > 0 })
             {
                 return false;
             }
@@ -316,7 +249,6 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
                 url = response.NextUrl;
             }
 
-            array = container;
             return true;
         }
     }

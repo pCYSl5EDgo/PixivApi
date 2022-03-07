@@ -17,13 +17,12 @@ public partial class NetworkClient
         var token = Context.CancellationToken;
         System.Console.Error.WriteLine($"Start loading database. Time: {DateTime.Now}");
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
         var add = 0UL;
         var rankingList = new List<ArtworkResponseContent>(300);
         var url = GetRankingUrl(date, ranking);
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, RetryAndReconnectGetAsync).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {

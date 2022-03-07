@@ -6,7 +6,7 @@ public partial class NetworkClient : ConsoleAppBase
     public async ValueTask GetAsync([Option(0)] string url)
     {
         var token = Context.CancellationToken;
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
+        var authentication = await holder.GetAsync(token).ConfigureAwait(false);
         using HttpRequestMessage request = new(HttpMethod.Get, $"https://{ApiHost}/{url}");
         AddToHeader(request, authentication);
         using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
@@ -19,7 +19,7 @@ public partial class NetworkClient : ConsoleAppBase
     public async ValueTask PostAsync([Option(0)] string url, [Option(1)] string content)
     {
         var token = Context.CancellationToken;
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
+        var authentication = await holder.GetAsync(token).ConfigureAwait(false);
         using HttpRequestMessage request = new(HttpMethod.Post, $"https://{ApiHost}/{url}");
         AddToHeader(request, authentication);
         request.Content = new StringContent($"get_secure_url=1&{content}", new System.Text.UTF8Encoding(false));
@@ -34,7 +34,7 @@ public partial class NetworkClient : ConsoleAppBase
     public async ValueTask GetImageAsync([Option(0)] string url)
     {
         var token = Context.CancellationToken;
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
+        var authentication = await holder.GetAsync(token).ConfigureAwait(false);
         using HttpRequestMessage request = new(HttpMethod.Get, $"https://i.pximg.net/{url}");
         var headers = request.Headers;
         headers.Referrer = referer;

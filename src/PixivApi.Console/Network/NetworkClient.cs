@@ -1,6 +1,4 @@
-﻿using System.Runtime.ExceptionServices;
-
-namespace PixivApi.Console;
+﻿namespace PixivApi.Console;
 
 [Command("net")]
 public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
@@ -8,16 +6,12 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
     private const string ApiHost = "app-api.pixiv.net";
     private readonly ConfigSettings configSettings;
     private readonly HttpClient client;
-    private readonly FinderFacade finder;
-    private readonly ConverterFacade converter;
     private readonly AuthenticationHeaderValueHolder holder;
 
-    public NetworkClient(ConfigSettings config, HttpClient client, FinderFacade finderFacade, ConverterFacade converterFacade, AuthenticationHeaderValueHolder holder)
+    public NetworkClient(ConfigSettings config, HttpClient client, AuthenticationHeaderValueHolder holder)
     {
         configSettings = config;
         this.client = client;
-        finder = finderFacade;
-        converter = converterFacade;
         this.holder = holder;
     }
 
@@ -32,103 +26,49 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
     }
 
-    /// <summary>
-    /// This must be called from single thread.
-    /// </summary>
-    private ValueTask<AuthenticationHeaderValue> ConnectAsync(CancellationToken token)
+    private async ValueTask<HttpResponseMessage> RetryAndReconnectGetAsync(string url, CancellationToken token)
     {
-        client.AddToDefaultHeader(configSettings);
-        return holder.ConnectAsync(token);
-    }
-
-    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(CancellationToken token)
-    {
-        var logger = Context.Logger;
-        if (!System.Console.IsOutputRedirected)
-        {
-            logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
-        }
-
-        await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        var authentication = await holder.RegetAsync(token).ConfigureAwait(false);
-        if (authentication is null)
-        {
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogError($"{VirtualCodes.BrightRedColor}Reconnection failed.{VirtualCodes.NormalizeColor}");
-            }
-
-            throw new IOException();
-        }
-        else
-        {
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect.{VirtualCodes.NormalizeColor}");
-            }
-        }
-
-        return authentication;
-    }
-
-    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(Exception exception, CancellationToken token)
-    {
-        var logger = Context.Logger;
-        if (!System.Console.IsOutputRedirected)
-        {
-            logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
-        }
-
-        await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-        var authentication = await holder.RegetAsync(token).ConfigureAwait(false);
-        if (authentication is null)
-        {
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogError($"{VirtualCodes.BrightRedColor}Reconnection failed. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
-            }
-
-            ExceptionDispatchInfo.Throw(exception);
-        }
-        else
-        {
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
-            }
-        }
-
-        return authentication;
-    }
-
-    private async ValueTask<byte[]> RetryGetAsync(string url, AuthenticationHeaderValue authentication, CancellationToken token)
-    {
+        HttpResponseMessage responseMessage;
         var logger = Context.Logger;
         do
         {
-            using HttpRequestMessage request = new(HttpMethod.Get, url);
-            AddToHeader(request, authentication);
-            using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-            if (responseMessage.IsSuccessStatusCode)
-            {
-                return await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
-            }
-
-            if (responseMessage.StatusCode != HttpStatusCode.Forbidden)
-            {
-                responseMessage.EnsureSuccessStatusCode();
-            }
-
             token.ThrowIfCancellationRequested();
-            if (!System.Console.IsOutputRedirected)
+            using (HttpRequestMessage request = new(HttpMethod.Get, url))
             {
-                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
+                var authentication = await holder.GetAsync(token).ConfigureAwait(false);
+                AddToHeader(request, authentication);
+                responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
             }
 
-            await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-            if (!System.Console.IsOutputRedirected)
+            var statusCode = responseMessage.StatusCode;
+            var isBadRequest = statusCode == HttpStatusCode.BadRequest;
+            if (responseMessage.IsSuccessStatusCode || (statusCode != HttpStatusCode.Forbidden && !isBadRequest))
             {
-                logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
+                return responseMessage;
+            }
+
+            try
+            {
+                if (!System.Console.IsOutputRedirected)
+                {
+                    var text = isBadRequest ? "not found" : "a bad request";
+                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is {text}. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
+                }
+
+                await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
+                if (isBadRequest)
+                {
+                    await holder.InvalidateAsync(token).ConfigureAwait(false);
+                }
+
+                if (!System.Console.IsOutputRedirected)
+                {
+                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
+                }
+            }
+            finally
+            {
+                responseMessage.Dispose();
             }
         } while (true);
     }
@@ -137,8 +77,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
     {
         var logger = Context.Logger;
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
-
         // When addBehaviour is false, we should wait for the database initialization in order not to query unneccessarily.
         var database = addBehaviour ? null : await databaseTask.ConfigureAwait(false);
         var responseList = default(List<ArtworkResponseContent>);
@@ -189,7 +127,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, RetryAndReconnectGetAsync).WithCancellation(token))
             {
                 if (database is null)
                 {

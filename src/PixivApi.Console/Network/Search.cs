@@ -39,7 +39,6 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
-        var authentication = await ConnectAsync(token).ConfigureAwait(false);
         var database = default(DatabaseFile);
         var responseList = default(List<ArtworkResponseContent>);
         ulong add = 0UL, update = 0UL;
@@ -89,7 +88,7 @@ public partial class NetworkClient
 
         try
         {
-            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, authentication, RetryGetAsync, ReconnectAsync).WithCancellation(token))
+            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, RetryAndReconnectGetAsync).WithCancellation(token))
             {
                 token.ThrowIfCancellationRequested();
                 if (database is null)
