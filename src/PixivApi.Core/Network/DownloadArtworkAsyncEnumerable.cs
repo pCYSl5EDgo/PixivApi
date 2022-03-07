@@ -3,8 +3,14 @@ using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserP
 using Authentication = System.Net.Http.Headers.AuthenticationHeaderValue;
 using QueryAsync = System.Func<string, System.Net.Http.Headers.AuthenticationHeaderValue, bool, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]>>;
 using ReconnectAsyncFunc = System.Func<System.Exception, bool, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Net.Http.Headers.AuthenticationHeaderValue>>;
+using System.Net.Sockets;
 
 namespace PixivApi.Core.Network;
+
+public static class NetworkAsyncEnumerableHelper
+{
+    public static bool ShouldReconnect(this HttpRequestException e) => e.StatusCode == HttpStatusCode.BadRequest || e.InnerException is IOException { InnerException: SocketException { ErrorCode: 10054 } };
+}
 
 public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
 {
@@ -71,7 +77,7 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
                 {
                     responseByteArray = await query(url, authentication, pipe, cancellationToken).ConfigureAwait(false);
                 }
-                catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.BadRequest)
+                catch (HttpRequestException e) when (e.ShouldReconnect())
                 {
                     authentication = await reconnect(e, pipe, cancellationToken).ConfigureAwait(false);
                     continue;
@@ -91,8 +97,16 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
             {
                 return false;
             }
-            
-            url = response.NextUrl;
+
+            if (response.NextUrl is null || response.NextUrl.Contains("&offset=5010"))
+            {
+                url = null;
+            }
+            else
+            {
+                url = response.NextUrl;
+            }
+
             array = container;
             return true;
         }
@@ -166,7 +180,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
                 {
                     responseByteArray = await query(url, authentication, pipe, cancellationToken).ConfigureAwait(false);
                 }
-                catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.BadRequest)
+                catch (HttpRequestException e) when (e.ShouldReconnect())
                 {
                     authentication = await reconnect(e, pipe, cancellationToken).ConfigureAwait(false);
                     continue;
@@ -284,7 +298,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
                 {
                     responseByteArray = await query(url, authentication, pipe, cancellationToken).ConfigureAwait(false);
                 }
-                catch (HttpRequestException e) when (e.StatusCode == HttpStatusCode.BadRequest)
+                catch (HttpRequestException e) when (e.ShouldReconnect())
                 {
                     authentication = await reconnect(e, pipe, cancellationToken).ConfigureAwait(false);
                     continue;
@@ -304,7 +318,8 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
             {
                 return false;
             }
-            else if (array is not null && array.Length > container.Length)
+
+            if (response.NextUrl is null || response.NextUrl.Contains("&offset=5010"))
             {
                 url = null;
             }
