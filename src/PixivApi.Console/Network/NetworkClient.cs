@@ -41,10 +41,10 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         return holder.ConnectAsync(token);
     }
 
-    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(bool pipe, CancellationToken token)
+    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(CancellationToken token)
     {
         var logger = Context.Logger;
-        if (!pipe)
+        if (!System.Console.IsOutputRedirected)
         {
             logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
         }
@@ -53,7 +53,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         var authentication = await holder.RegetAsync(token).ConfigureAwait(false);
         if (authentication is null)
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogError($"{VirtualCodes.BrightRedColor}Reconnection failed.{VirtualCodes.NormalizeColor}");
             }
@@ -62,7 +62,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
         else
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect.{VirtualCodes.NormalizeColor}");
             }
@@ -71,10 +71,10 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         return authentication;
     }
 
-    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(Exception exception, bool pipe, CancellationToken token)
+    private async ValueTask<AuthenticationHeaderValue> ReconnectAsync(Exception exception, CancellationToken token)
     {
         var logger = Context.Logger;
-        if (!pipe)
+        if (!System.Console.IsOutputRedirected)
         {
             logger.LogInformation($"{VirtualCodes.BrightYellowColor}Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds to reconnect. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
         }
@@ -83,7 +83,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         var authentication = await holder.RegetAsync(token).ConfigureAwait(false);
         if (authentication is null)
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogError($"{VirtualCodes.BrightRedColor}Reconnection failed. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
             }
@@ -92,7 +92,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
         else
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"{VirtualCodes.BrightYellowColor}Reconnect. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
             }
@@ -101,7 +101,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         return authentication;
     }
 
-    private async ValueTask<byte[]> RetryGetAsync(string url, AuthenticationHeaderValue authentication, bool pipe, CancellationToken token)
+    private async ValueTask<byte[]> RetryGetAsync(string url, AuthenticationHeaderValue authentication, CancellationToken token)
     {
         var logger = Context.Logger;
         do
@@ -120,20 +120,20 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
             }
 
             token.ThrowIfCancellationRequested();
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is forbidden. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
             }
 
             await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
             }
         } while (true);
     }
 
-    private async ValueTask DownloadArtworkResponses(string output, bool addBehaviour, bool pipe, string url, CancellationToken token)
+    private async ValueTask DownloadArtworkResponses(string output, bool addBehaviour, string url, CancellationToken token)
     {
         var logger = Context.Logger;
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
@@ -160,14 +160,14 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
             return isAdd;
         }
 
-        void RegisterShow(DatabaseFile database, ArtworkResponseContent item, bool pipe)
+        void RegisterShow(DatabaseFile database, ArtworkResponseContent item)
         {
             _ = database.ArtworkDictionary.AddOrUpdate(
                 item.Id,
                 _ =>
                 {
                     ++add;
-                    if (pipe)
+                    if (System.Console.IsOutputRedirected)
                     {
                         logger.LogInformation($"{item.Id}");
                     }
@@ -189,7 +189,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync).WithCancellation(token))
             {
                 if (database is null)
                 {
@@ -199,7 +199,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         foreach (var item in artworkCollection)
                         {
                             responseList.Add(item);
-                            if (pipe)
+                            if (System.Console.IsOutputRedirected)
                             {
                                 logger.LogInformation($"{item.Id}");
                             }
@@ -228,7 +228,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
                 {
-                    RegisterShow(database, item, pipe);
+                    RegisterShow(database, item);
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -263,7 +263,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
             }
 
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {update}");
             }

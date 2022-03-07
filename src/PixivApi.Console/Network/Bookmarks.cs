@@ -5,8 +5,7 @@ public partial class NetworkClient
     [Command("bookmarks")]
     public ValueTask DownloadBookmarksOfUserAsync
     (
-        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
-        bool pipe = false
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -21,6 +20,6 @@ public partial class NetworkClient
         }
 
         var url = $"https://{ApiHost}/v1/user/bookmarks/illust?user_id={configSettings.UserId}&restrict=public";
-        return DownloadArtworkResponses(configSettings.DatabaseFilePath, addBehaviour, pipe, url, Context.CancellationToken);
+        return DownloadArtworkResponses(configSettings.DatabaseFilePath, addBehaviour, url, Context.CancellationToken);
     }
 }

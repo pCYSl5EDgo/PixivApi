@@ -5,7 +5,6 @@ public partial class LocalClient
     [Command("count", "")]
     public async ValueTask CountAsync(
         [Option(0, ArgumentDescriptions.FilterDescription)] string? filter = null,
-        bool pipe = false,
         [Option("mask")] byte maskPowerOf2 = 10
     )
     {
@@ -32,7 +31,7 @@ public partial class LocalClient
 
         await artworkItemFilter.InitializeAsync(finder, database.UserDictionary, database.TagSet, token);
         var artworks = FilterExtensions.FilterBy(database.ArtworkDictionary, artworkItemFilter.IdFilter);
-        if (pipe)
+        if (System.Console.IsOutputRedirected)
         {
             logger.LogInformation($"{await CountPipeAsync(artworkItemFilter, artworks, token).ConfigureAwait(false)}");
         }

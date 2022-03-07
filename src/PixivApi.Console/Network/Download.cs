@@ -6,8 +6,7 @@ public partial class NetworkClient
     public async ValueTask DownloadFileFromDatabaseAsync(
         [Option("g")] ulong gigaByteCount = 2UL,
         [Option("mask")] int maskPowerOf2 = 10,
-        bool encode = true,
-        bool pipe = false
+        bool encode = true
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) || string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -38,7 +37,7 @@ public partial class NetworkClient
 
         var downloadItemCount = 0;
         var alreadyCount = 0;
-        var machine = new DownloadAsyncMachine(this, database, holder, pipe, token);
+        var machine = new DownloadAsyncMachine(this, database, holder, token);
         var logger = Context.Logger;
         logger.LogInformation("Start downloading.");
         var detailUpdate = false;
@@ -76,14 +75,14 @@ public partial class NetworkClient
         }
         finally
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ByteAmountUtility.ToDisplayable(machine.DownloadByteCount)}");
             }
 
             if (detailUpdate)
             {
-                if (!pipe)
+                if (!System.Console.IsOutputRedirected)
                 {
                     logger.LogInformation($"Save to the database file.");
                 }

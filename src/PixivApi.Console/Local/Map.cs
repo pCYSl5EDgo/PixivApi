@@ -4,8 +4,7 @@ public partial class LocalClient
 {
     [Command("map")]
     public async ValueTask MapAsync(
-        bool toString = false,
-        bool pipe = false
+        bool toString = false
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -17,7 +16,7 @@ public partial class LocalClient
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false);
         if (database is null)
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation("null");
             }
@@ -56,7 +55,7 @@ public partial class LocalClient
 
         token.ThrowIfCancellationRequested();
         var first = true;
-        if (!pipe)
+        if (!System.Console.IsOutputRedirected)
         {
             logger.LogInformation("[");
         }
@@ -64,7 +63,7 @@ public partial class LocalClient
         foreach (var item in artworks)
         {
             token.ThrowIfCancellationRequested();
-            if (pipe)
+            if (System.Console.IsOutputRedirected)
             {
                 logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
             }
@@ -79,7 +78,7 @@ public partial class LocalClient
             }
         }
 
-        if (!pipe)
+        if (!System.Console.IsOutputRedirected)
         {
             logger.LogInformation("]");
         }
@@ -90,8 +89,7 @@ public partial class LocalClient
         [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
         [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
         uint count = uint.MaxValue,
-        uint offset = 0,
-        bool pipe = false
+        uint offset = 0
     )
     {
         if (string.IsNullOrWhiteSpace(input))
@@ -103,7 +101,7 @@ public partial class LocalClient
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
         if (database is null)
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation("null");
             }
@@ -131,7 +129,7 @@ public partial class LocalClient
 
         token.ThrowIfCancellationRequested();
         var first = true;
-        if (!pipe)
+        if (!System.Console.IsOutputRedirected)
         {
             logger.LogInformation("[");
         }
@@ -139,7 +137,7 @@ public partial class LocalClient
         foreach (var item in users)
         {
             token.ThrowIfCancellationRequested();
-            if (pipe)
+            if (System.Console.IsOutputRedirected)
             {
                 logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
             }
@@ -154,7 +152,7 @@ public partial class LocalClient
             }
         }
 
-        if (!pipe)
+        if (!System.Console.IsOutputRedirected)
         {
             logger.LogInformation("]");
         }

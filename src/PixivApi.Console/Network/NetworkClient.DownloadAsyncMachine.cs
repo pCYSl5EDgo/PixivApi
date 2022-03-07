@@ -4,14 +4,13 @@ public partial class NetworkClient
 {
     private sealed class DownloadAsyncMachine
     {
-        public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, AuthenticationHeaderValueHolder holder, bool pipe, CancellationToken token)
+        public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, AuthenticationHeaderValueHolder holder, CancellationToken token)
         {
             client = networkClient.client;
             logger = networkClient.Context.Logger;
             this.networkClient = networkClient;
             this.database = database;
             this.holder = holder;
-            this.pipe = pipe;
             this.token = token;
         }
 
@@ -20,7 +19,6 @@ public partial class NetworkClient
         private readonly NetworkClient networkClient;
         private readonly DatabaseFile database;
         private readonly AuthenticationHeaderValueHolder holder;
-        private readonly bool pipe;
         private readonly CancellationToken token;
         public int DownloadFileCount = 0;
         public ulong DownloadByteCount = 0UL;
@@ -43,7 +41,7 @@ public partial class NetworkClient
 
             _ = Interlocked.Add(ref DownloadByteCount, byteCount);
             _ = Interlocked.Increment(ref DownloadFileCount);
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
             }
@@ -69,7 +67,7 @@ public partial class NetworkClient
 
             _ = Interlocked.Add(ref DownloadByteCount, byteCount);
             _ = Interlocked.Increment(ref DownloadFileCount);
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"{VirtualCodes.BrightBlueColor}Download success. Index: {DownloadFileCount,6} Transfer: {byteCount,20} Url: {url}{VirtualCodes.NormalizeColor}");
             }
@@ -92,13 +90,13 @@ public partial class NetworkClient
             {
                 if (response.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    await networkClient.ReconnectAsync(pipe, token).ConfigureAwait(false);
+                    await networkClient.ReconnectAsync(token).ConfigureAwait(false);
                     return (default, default, noDetailDownload);
                 }
 
                 if (noDetailDownload && response.StatusCode == HttpStatusCode.NotFound)
                 {
-                    if (!pipe)
+                    if (!System.Console.IsOutputRedirected)
                     {
                         logger.LogError($"{VirtualCodes.BrightRedColor}Not Found: {url}{VirtualCodes.NormalizeColor}");
                     }
@@ -108,7 +106,7 @@ public partial class NetworkClient
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    if (!pipe)
+                    if (!System.Console.IsOutputRedirected)
                     {
                         logger.LogError($"{VirtualCodes.BrightRedColor}Download failed. Url: {url}{VirtualCodes.NormalizeColor}");
                     }
@@ -140,11 +138,11 @@ public partial class NetworkClient
         RETRY:
             try
             {
-                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), pipe, token).ConfigureAwait(false);
+                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), token).ConfigureAwait(false);
                 LocalNetworkConverter.Overwrite(artwork, detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                 if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
                 {
-                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), pipe, token).ConfigureAwait(false);
+                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, await holder.GetAsync(token).ConfigureAwait(false), token).ConfigureAwait(false);
                 }
 
                 success = !artwork.IsOfficiallyRemoved;
@@ -157,10 +155,10 @@ public partial class NetworkClient
                 }
                 else if (e.StatusCode.Value == HttpStatusCode.BadRequest)
                 {
-                    await networkClient.ReconnectAsync(e, pipe, token).ConfigureAwait(false);
+                    await networkClient.ReconnectAsync(e, token).ConfigureAwait(false);
                     goto RETRY;
                 }
-                else if (!pipe)
+                else if (!System.Console.IsOutputRedirected)
                 {
                     logger.LogInformation(e, $"Other failure. {artwork.Id}");
                 }
@@ -168,7 +166,7 @@ public partial class NetworkClient
                 success = false;
             }
 
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"Detail success: {success} Id: {artwork.Id,20}");
             }

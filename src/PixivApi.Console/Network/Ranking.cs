@@ -6,8 +6,7 @@ public partial class NetworkClient
     public async ValueTask DownloadRankingAsync
     (
         [Option(0, ArgumentDescriptions.RankingDescription)] RankingKind ranking = RankingKind.day,
-        DateOnly? date = null,
-        bool pipe = false
+        DateOnly? date = null
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -24,7 +23,7 @@ public partial class NetworkClient
         var url = GetRankingUrl(date, ranking);
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {
@@ -51,7 +50,7 @@ public partial class NetworkClient
                         _ =>
                         {
                             ++add;
-                            if (pipe)
+                            if (System.Console.IsOutputRedirected)
                             {
                                 Context.Logger.LogInformation($"{item.Id}");
                             }
@@ -77,7 +76,7 @@ public partial class NetworkClient
                 databaseCount = database.ArtworkDictionary.Count;
             }
 
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
             }

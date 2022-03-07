@@ -7,8 +7,7 @@ public partial class NetworkClient
         [Option(0, "search text")] string text,
         [Option("e")] string? end_date = null,
         [Option("o")] ushort offset = 0,
-        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
-        bool pipe = false
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false
     )
     {
         var logger = Context.Logger;
@@ -19,7 +18,7 @@ public partial class NetworkClient
 
         if (string.IsNullOrWhiteSpace(text))
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogError("empty.");
             }
@@ -30,7 +29,7 @@ public partial class NetworkClient
         var searchArray = text.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (CalcSearchUrl(searchArray, end_date, offset) is not string url)
         {
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogError("invalid url.");
             }
@@ -61,14 +60,14 @@ public partial class NetworkClient
             return isAdd;
         }
 
-        void RegisterShow(DatabaseFile database, ArtworkResponseContent item, bool pipe)
+        void RegisterShow(DatabaseFile database, ArtworkResponseContent item)
         {
             _ = database.ArtworkDictionary.AddOrUpdate(
                 item.Id,
                 _ =>
                 {
                     ++add;
-                    if (pipe)
+                    if (System.Console.IsOutputRedirected)
                     {
                         Context.Logger.LogInformation($"{item.Id}");
                     }
@@ -90,7 +89,7 @@ public partial class NetworkClient
 
         try
         {
-            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, authentication, RetryGetAsync, ReconnectAsync).WithCancellation(token))
             {
                 token.ThrowIfCancellationRequested();
                 if (database is null)
@@ -101,7 +100,7 @@ public partial class NetworkClient
                         foreach (var item in artworkCollection)
                         {
                             responseList.Add(item);
-                            if (pipe)
+                            if (System.Console.IsOutputRedirected)
                             {
                                 logger.LogInformation($"{item.Id}");
                             }
@@ -130,7 +129,7 @@ public partial class NetworkClient
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
                 {
-                    RegisterShow(database, item, pipe);
+                    RegisterShow(database, item);
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -165,7 +164,7 @@ public partial class NetworkClient
                 await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
             }
 
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {update}");
             }

@@ -5,8 +5,7 @@ public partial class NetworkClient
     [Command("follows")]
     public async ValueTask DownloadFollowsOfUserAsync
     (
-        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
-        bool pipe = false
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -81,13 +80,13 @@ public partial class NetworkClient
             return isAdd;
         }
 
-        void RegisterShow(DatabaseFile database, UserPreviewResponseContent item, bool pipe)
+        void RegisterShow(DatabaseFile database, UserPreviewResponseContent item)
         {
             _ = database.UserDictionary.AddOrUpdate(item.User.Id,
                 _ =>
                 {
                     ++add;
-                    if (pipe)
+                    if (System.Console.IsOutputRedirected)
                     {
                         logger.LogInformation($"{item.User.Id}");
                     }
@@ -127,7 +126,7 @@ public partial class NetworkClient
 
         try
         {
-            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync, pipe).WithCancellation(token))
+            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(url, authentication, RetryGetAsync, ReconnectAsync).WithCancellation(token))
             {
                 token.ThrowIfCancellationRequested();
                 if (database is null)
@@ -138,7 +137,7 @@ public partial class NetworkClient
                         foreach (var item in userPreviewCollection)
                         {
                             responseList.Add(item);
-                            if (pipe)
+                            if (System.Console.IsOutputRedirected)
                             {
                                 logger.LogInformation($"{item.User.Id}");
                             }
@@ -167,7 +166,7 @@ public partial class NetworkClient
                 var oldAdd = add;
                 foreach (var item in userPreviewCollection)
                 {
-                    RegisterShow(database, item, pipe);
+                    RegisterShow(database, item);
                 }
 
                 if (!addBehaviour && add == oldAdd)
@@ -201,7 +200,7 @@ public partial class NetworkClient
                 await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
             }
 
-            if (!pipe)
+            if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"User Total: {database.UserDictionary.Count} Add: {add} Update: {update}    Artwork Total: {database.ArtworkDictionary.Count} Add: {addArtwork} Update: {updateArtwork}");
             }
