@@ -12,11 +12,12 @@ public sealed class Program
         {
             AutomaticDecompression = DecompressionMethods.All,
             MaxConnectionsPerServer = 2,
+            ConnectTimeout = Timeout.InfiniteTimeSpan,
         };
 
         using var httpClient = new HttpClient(handler, true)
         {
-            Timeout = TimeSpan.FromHours(1),
+            Timeout = Timeout.InfiniteTimeSpan,
             DefaultRequestVersion = new(2, 0),
             DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact,
         };
