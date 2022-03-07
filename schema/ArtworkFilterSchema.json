@@ -1,5 +1,5 @@
 ﻿{
-  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/ArtworkFilterSchema.json",
+  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/schema/ArtworkFilterSchema.json",
   "$schema": "https://json-schema.org/draft-04/schema",
   "additionalProperties": false,
   "description": "A filter for artwork json file",

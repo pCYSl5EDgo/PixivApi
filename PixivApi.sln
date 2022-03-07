@@ -3,26 +3,26 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Console", "PixivApi.Console\PixivApi.Console.csproj", "{8E967DF2-ECE7-4C23-A0D7-9045DF47428B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Console", "src\PixivApi.Console\PixivApi.Console.csproj", "{8E967DF2-ECE7-4C23-A0D7-9045DF47428B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core", "PixivApi.Core\PixivApi.Core.csproj", "{AA5124D5-4D2B-4B20-8097-3544A70763EE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core", "src\PixivApi.Core\PixivApi.Core.csproj", "{AA5124D5-4D2B-4B20-8097-3544A70763EE}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{D5C1A651-D08D-41D1-885F-96E7568B1161}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core.Test", "PixivApi.Core.Test\PixivApi.Core.Test.csproj", "{DAD5393F-C528-4D4A-B543-BA4338D93C20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core.Test", "test\PixivApi.Core.Test\PixivApi.Core.Test.csproj", "{DAD5393F-C528-4D4A-B543-BA4338D93C20}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Site", "PixivApi.Site\PixivApi.Site.csproj", "{5C035BB6-CAAD-40E5-846B-1A62883E6F35}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Site", "src\PixivApi.Site\PixivApi.Site.csproj", "{5C035BB6-CAAD-40E5-846B-1A62883E6F35}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.ChromeDriverManager", "PixivApi.ChromeDriverManager\PixivApi.ChromeDriverManager.csproj", "{500D2178-ACC6-4048-A769-07997C750817}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.ChromeDriverManager", "src\PixivApi.ChromeDriverManager\PixivApi.ChromeDriverManager.csproj", "{500D2178-ACC6-4048-A769-07997C750817}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.UgoiraConverter.Ffmpeg", "PixivApi.Plugin.UgoiraConverter.Ffmpeg\PixivApi.Plugin.UgoiraConverter.Ffmpeg.csproj", "{04812EFA-FA42-4CB9-89C2-427D2757ED0F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.UgoiraConverter.Ffmpeg", "plugin\PixivApi.Plugin.UgoiraConverter.Ffmpeg\PixivApi.Plugin.UgoiraConverter.Ffmpeg.csproj", "{04812EFA-FA42-4CB9-89C2-427D2757ED0F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.JpegXl", "PixivApi.Plugin.JpegXl\PixivApi.Plugin.JpegXl.csproj", "{2FE42246-504C-49D6-AB3C-A55734651AB5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.JpegXl", "plugin\PixivApi.Plugin.JpegXl\PixivApi.Plugin.JpegXl.csproj", "{2FE42246-504C-49D6-AB3C-A55734651AB5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.Console.Utility", "PixivApi.Console.Utility\PixivApi.Console.Utility.csproj", "{31346F46-A479-4E77-927C-D05627B8CC51}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.Console.Utility", "src\PixivApi.Console.Utility\PixivApi.Console.Utility.csproj", "{31346F46-A479-4E77-927C-D05627B8CC51}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

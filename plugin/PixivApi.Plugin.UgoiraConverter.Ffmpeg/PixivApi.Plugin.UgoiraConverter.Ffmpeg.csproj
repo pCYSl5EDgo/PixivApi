@@ -6,7 +6,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
+		<ProjectReference Include="..\..\src\PixivApi.Core\PixivApi.Core.csproj" />
 		<PackageReference Include="RuntimeT4Generator" Version="0.3.20">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

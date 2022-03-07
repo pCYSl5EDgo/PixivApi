@@ -1,5 +1,5 @@
 ﻿{
-  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/PixivApi.Core/UserFilterSchema.json",
+  "$id": "https://raw.githubusercontent.com/pCYSl5EDgo/PixivApi/main/schema/UserFilterSchema.json",
   "$schema": "https://json-schema.org/draft-07/schema",
   "additionalProperties": false,
   "description": "A filter for user json file",
