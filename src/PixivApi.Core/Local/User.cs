@@ -16,6 +16,7 @@ public sealed class User
     [Key(0x0a), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public DetailWorkspace? Workspace;
     [Key(0x0b), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public string? ExtraMemo;
     [Key(0x0c), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public uint[]? ExtraTags;
+    [Key(0x0d)] public bool IsOfficiallyRemoved;
 
     [MessagePackObject]
     public sealed class DetailProfile
