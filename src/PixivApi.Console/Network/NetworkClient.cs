@@ -51,7 +51,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
             {
                 if (!System.Console.IsOutputRedirected)
                 {
-                    var text = isBadRequest ? "not found" : "a bad request";
+                    var text = isBadRequest ? "a bad request" : "not found";
                     logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is {text}. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
                 }
 
