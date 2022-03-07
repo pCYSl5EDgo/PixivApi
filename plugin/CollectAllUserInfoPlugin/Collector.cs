@@ -58,7 +58,7 @@ public sealed class Collector : ICommand
                     return;
                 }
 
-                await UpdateDetailAsync(holder, logger, user, token).ConfigureAwait(false);
+                await UpdateDetailAsync(holder, user, token).ConfigureAwait(false);
                 any = true;
                 if (token.IsCancellationRequested)
                 {
@@ -82,7 +82,7 @@ public sealed class Collector : ICommand
 
     private const string ApiHost = "app-api.pixiv.net";
 
-    private async ValueTask UpdateDetailAsync(AuthenticationHeaderValueHolder holder, Microsoft.Extensions.Logging.ILogger logger, User user, CancellationToken token)
+    private async ValueTask UpdateDetailAsync(AuthenticationHeaderValueHolder holder, User user, CancellationToken token)
     {
         if (token.IsCancellationRequested)
         {
