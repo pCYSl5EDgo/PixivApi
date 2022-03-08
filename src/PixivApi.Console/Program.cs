@@ -36,7 +36,7 @@ public sealed class Program
                         var token = provier.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
                         return ConverterFacade.CreateAsync(config, token).Result;
                     })
-                    .AddSingleton<HttpMessageHandler, SocketsHttpHandler>(static _ => new SocketsHttpHandler
+                    .AddTransient<HttpMessageHandler, SocketsHttpHandler>(static _ => new SocketsHttpHandler
                     {
                         AutomaticDecompression = DecompressionMethods.All,
                         MaxConnectionsPerServer = 2,
