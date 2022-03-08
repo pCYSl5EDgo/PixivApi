@@ -41,6 +41,7 @@ public partial class NetworkClient
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
         var database = default(DatabaseFile);
         var responseList = default(List<ArtworkResponseContent>);
+        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong add = 0UL, update = 0UL;
         bool RegisterNotShow(DatabaseFile database, ArtworkResponseContent item)
         {
@@ -88,7 +89,7 @@ public partial class NetworkClient
 
         try
         {
-            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, RetryAndReconnectGetAsync).WithCancellation(token))
+            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, requestSender.GetAsync).WithCancellation(token))
             {
                 token.ThrowIfCancellationRequested();
                 if (database is null)

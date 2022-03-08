@@ -44,6 +44,7 @@ public partial class NetworkClient
         var databaseTask = LoadDatabaseAsync(configSettings.DatabaseFilePath, addBehaviour, token);
         var database = default(DatabaseFile);
         var responseList = default(List<UserPreviewResponseContent>);
+        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         var url = $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}";
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
 
@@ -125,7 +126,7 @@ public partial class NetworkClient
 
         try
         {
-            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(url, RetryAndReconnectGetAsync).WithCancellation(token))
+            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync).WithCancellation(token))
             {
                 token.ThrowIfCancellationRequested();
                 if (database is null)

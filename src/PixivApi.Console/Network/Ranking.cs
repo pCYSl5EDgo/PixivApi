@@ -19,10 +19,11 @@ public partial class NetworkClient
         var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
         var add = 0UL;
         var rankingList = new List<ArtworkResponseContent>(300);
+        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         var url = GetRankingUrl(date, ranking);
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, RetryAndReconnectGetAsync).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {

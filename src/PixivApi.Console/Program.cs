@@ -40,7 +40,8 @@ public sealed class Program
                     {
                         AutomaticDecompression = DecompressionMethods.All,
                         MaxConnectionsPerServer = 2,
-                    });
+                    })
+                    .AddSingleton<RequestSender>();
 
                 _ = services.AddHttpClient(Options.DefaultName, static (provider, client) =>
                 {

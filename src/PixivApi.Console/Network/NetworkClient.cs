@@ -17,62 +17,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
     public void Dispose() => holder.Dispose();
 
-    private void AddToHeader(HttpRequestMessage request, AuthenticationHeaderValue authentication)
-    {
-        request.Headers.Authorization = authentication;
-        if (!request.TryAddToHeader(configSettings.HashSecret, ApiHost))
-        {
-            throw new InvalidOperationException();
-        }
-    }
-
-    private async ValueTask<HttpResponseMessage> RetryAndReconnectGetAsync(string url, CancellationToken token)
-    {
-        HttpResponseMessage responseMessage;
-        var logger = Context.Logger;
-        do
-        {
-            token.ThrowIfCancellationRequested();
-            using (HttpRequestMessage request = new(HttpMethod.Get, url))
-            {
-                var authentication = await holder.GetAsync(token).ConfigureAwait(false);
-                AddToHeader(request, authentication);
-                responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-            }
-
-            var statusCode = responseMessage.StatusCode;
-            var isBadRequest = statusCode == HttpStatusCode.BadRequest;
-            if (responseMessage.IsSuccessStatusCode || (statusCode != HttpStatusCode.Forbidden && !isBadRequest))
-            {
-                return responseMessage;
-            }
-
-            try
-            {
-                if (!System.Console.IsOutputRedirected)
-                {
-                    var text = isBadRequest ? "a bad request" : "not found";
-                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Downloading {url} is {text}. Retry {configSettings.RetrySeconds} seconds later. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
-                }
-
-                await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                if (isBadRequest)
-                {
-                    await holder.InvalidateAsync(token).ConfigureAwait(false);
-                }
-
-                if (!System.Console.IsOutputRedirected)
-                {
-                    logger.LogWarning($"{VirtualCodes.BrightYellowColor}Restart. Time: {DateTime.Now}{VirtualCodes.NormalizeColor}");
-                }
-            }
-            finally
-            {
-                responseMessage.Dispose();
-            }
-        } while (true);
-    }
-
     private async ValueTask DownloadArtworkResponses(string output, bool addBehaviour, string url, CancellationToken token)
     {
         var logger = Context.Logger;
@@ -127,7 +71,8 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, RetryAndReconnectGetAsync).WithCancellation(token))
+            var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync).WithCancellation(token))
             {
                 if (database is null)
                 {

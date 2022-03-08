@@ -7,6 +7,7 @@ public partial class NetworkClient
         public DownloadAsyncMachine(NetworkClient networkClient, DatabaseFile database, CancellationToken token)
         {
             var factory = networkClient.Context.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+            requestSender = networkClient.Context.ServiceProvider.GetRequiredService<RequestSender>();
             client = factory.CreateClient("download");
             logger = networkClient.Context.Logger;
             this.networkClient = networkClient;
@@ -14,6 +15,7 @@ public partial class NetworkClient
             this.token = token;
         }
 
+        private readonly RequestSender requestSender;
         private readonly HttpClient client;
         private readonly ILogger logger;
         private readonly NetworkClient networkClient;
@@ -137,11 +139,11 @@ public partial class NetworkClient
         RETRY:
             try
             {
-                var detailArtwork = await networkClient.GetArtworkDetailAsync(artwork.Id, token).ConfigureAwait(false);
+                var detailArtwork = await GetArtworkDetailAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
                 LocalNetworkConverter.Overwrite(artwork, detailArtwork, database.TagSet, database.ToolSet, database.UserDictionary);
                 if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
                 {
-                    artwork.UgoiraFrames = await networkClient.GetArtworkUgoiraMetadataAsync(artwork.Id, token).ConfigureAwait(false);
+                    artwork.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
                 }
 
                 success = !artwork.IsOfficiallyRemoved;

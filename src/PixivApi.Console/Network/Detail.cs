@@ -20,6 +20,7 @@ public partial class NetworkClient
         var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
         var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
         var logger = Context.Logger;
+        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong update = 0;
         try
         {
@@ -28,7 +29,7 @@ public partial class NetworkClient
             RETRY:
                 try
                 {
-                    var artwork = await GetArtworkDetailAsync(item.Id, token).ConfigureAwait(false);
+                    var artwork = await GetArtworkDetailAsync(requestSender, item.Id, token).ConfigureAwait(false);
                     if (artwork.User.Id == 0)
                     {
                         goto REMOVED;
@@ -37,7 +38,7 @@ public partial class NetworkClient
                     ++update;
                     if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                     {
-                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(artwork.Id, token).ConfigureAwait(false);
+                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
                     }
 
                     LocalNetworkConverter.Overwrite(item, artwork, database.TagSet, database.ToolSet, database.UserDictionary);
@@ -96,19 +97,19 @@ public partial class NetworkClient
         }
     }
 
-    private async ValueTask<ArtworkResponseContent> GetArtworkDetailAsync(ulong id, CancellationToken token)
+    private static async ValueTask<ArtworkResponseContent> GetArtworkDetailAsync(RequestSender requestSender, ulong id, CancellationToken token)
     {
         var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
-        using var responseMessage = await RetryAndReconnectGetAsync(url, token).ConfigureAwait(false);
+        using var responseMessage = await requestSender.GetAsync(url, token).ConfigureAwait(false);
         var content = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
         var response = IOUtility.JsonDeserialize<IllustDateilResponseData>(content.AsSpan());
         return response.Illust;
     }
 
-    private async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(ulong id, CancellationToken token)
+    private static async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(RequestSender requestSender, ulong id, CancellationToken token)
     {
         var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
-        using var responseMessage = await RetryAndReconnectGetAsync(ugoiraUrl, token).ConfigureAwait(false);
+        using var responseMessage = await requestSender.GetAsync(ugoiraUrl, token).ConfigureAwait(false);
         var content = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
         var ugoiraResponse = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>(content.AsSpan());
         var frames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
