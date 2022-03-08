@@ -42,7 +42,7 @@ public sealed class RequestSender
             {
                 if (!Console.IsOutputRedirected)
                 {
-                    var text = isBadRequest ? "a bad request" : "not found";
+                    var text = isBadRequest ? "a bad request" : "forbidden";
                     logger.LogWarning($"Downloading {url} is {text}. Retry {retryTimeSpan.TotalSeconds} seconds later. Time: {DateTime.Now} Restart: {DateTime.Now.Add(retryTimeSpan)}");
                 }
 
