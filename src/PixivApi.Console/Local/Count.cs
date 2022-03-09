@@ -8,10 +8,27 @@ public partial class LocalClient
         [Option("mask")] byte maskPowerOf2 = 10
     )
     {
+        var errorNotRedirected = !System.Console.IsErrorRedirected;
         var token = Context.CancellationToken;
         filter ??= configSettings.ArtworkFilterFilePath;
         var artworkFilter = string.IsNullOrWhiteSpace(filter) ? null : await filterFactory.CreateAsync(new FileInfo(filter), token).ConfigureAwait(false);
+        if (errorNotRedirected)
+        {
+            System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Load filter.");
+        }
+        
+        if (artworkFilter?.Count == 0)
+        {
+            logger.LogInformation("0");
+            return;
+        }
+
         var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
+        if (errorNotRedirected)
+        {
+            System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Load database.");
+        }
+
         var allCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
         if (artworkFilter is null)
         {
@@ -19,52 +36,27 @@ public partial class LocalClient
             return;
         }
 
-        if (allCount == 0 || (ulong)artworkFilter.Offset >= allCount || artworkFilter.Count == 0)
+        if (allCount == 0 || (ulong)artworkFilter.Offset >= allCount)
         {
             logger.LogInformation("0");
             return;
         }
 
         artworkFilter.Order = ArtworkOrderKind.None;
-        var errorNotRedirected = !System.Console.IsErrorRedirected;
         if (errorNotRedirected)
         {
-            System.Console.Error.Write("Start collecting.");
+            System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Start collecting.");
         }
 
-        long count = -artworkFilter.Offset;
-        var mask = (1L << maskPowerOf2) - 1;
-        if (artworkFilter.Count is { } maxCount)
+        var count = 0UL;
+        var mask = (1UL << maskPowerOf2) - 1UL;
+        await foreach (var artwork in database.FastArtworkFilterAsync(artworkFilter, token))
         {
-            await foreach (var artwork in database.FastArtworkFilterAsync(artworkFilter, token))
+            var c = ++count;
+            if (errorNotRedirected && (c & mask) == 0)
             {
-                var c = ++count;
-                if (c >= maxCount)
-                {
-                    break;
-                }
-
-                if (errorNotRedirected && (c & mask) == 0)
-                {
-                    System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Collecting Count: {c}");
-                }
+                System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Collecting Count: {c}");
             }
-        }
-        else
-        {
-            await foreach (var artwork in database.FastArtworkFilterAsync(artworkFilter, token))
-            {
-                var c = ++count;
-                if (errorNotRedirected && (c & mask) == 0)
-                {
-                    System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Collecting Count: {c}");
-                }
-            }
-        }
-
-        if (count < 0)
-        {
-            count = 0;
         }
 
         if (errorNotRedirected)
