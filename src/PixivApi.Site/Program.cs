@@ -73,12 +73,9 @@ public sealed class Program
             RequestPath = "/Ugoira",
         };
 
-        var contetTypeProvider = new FileExtensionContentTypeProvider(new Dictionary<string, string>()
-        {
-            { ".png", "image/png" },
-            { ".jpg", "image/jpeg" },
-            { ".jxl", "image/jxl" },
-        });
+        var mimeDictionary = new Dictionary<string, string>();
+        app.Configuration.Bind("MimeTypes", mimeDictionary);
+        var contetTypeProvider = new FileExtensionContentTypeProvider(mimeDictionary);
 
         app.UseStaticFiles(new StaticFileOptions(originalSharedProvider) { ContentTypeProvider = contetTypeProvider });
         app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider) { ContentTypeProvider = contetTypeProvider });
