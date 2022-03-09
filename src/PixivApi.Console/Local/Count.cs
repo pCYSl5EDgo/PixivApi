@@ -36,7 +36,7 @@ public partial class LocalClient
         var mask = (1L << maskPowerOf2) - 1;
         if (artworkFilter.Count is { } maxCount)
         {
-            await foreach (var artwork in database.FilterAsync(artworkFilter, token))
+            await foreach (var artwork in database.FastArtworkFilterAsync(artworkFilter, token))
             {
                 var c = ++count;
                 if (c >= maxCount)
@@ -52,7 +52,7 @@ public partial class LocalClient
         }
         else
         {
-            await foreach (var artwork in database.FilterAsync(artworkFilter, token))
+            await foreach (var artwork in database.FastArtworkFilterAsync(artworkFilter, token))
             {
                 var c = ++count;
                 if (errorNotRedirected && (c & mask) == 0)

@@ -169,11 +169,26 @@ internal sealed class DatabaseFile : IDatabase
 
     public async IAsyncEnumerable<Artwork> FilterAsync(IFilter<Artwork> filter, [EnumeratorCancellation] CancellationToken token)
     {
+        if (token.IsCancellationRequested)
+        {
+            yield break;
+        }
+
         var enumerable = await FastFilterAsync(filter, token).ConfigureAwait(false);
+        if (token.IsCancellationRequested)
+        {
+            yield break;
+        }
+
         if (filter.HasSlowFilter)
         {
             foreach (var item in enumerable)
             {
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
                 if (await filter.SlowFilter(this, item, token).ConfigureAwait(false))
                 {
                     yield return item;
@@ -184,6 +199,11 @@ internal sealed class DatabaseFile : IDatabase
         {
             foreach (var item in enumerable)
             {
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
                 yield return item;
             }
         }

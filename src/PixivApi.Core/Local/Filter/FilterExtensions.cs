@@ -77,7 +77,11 @@ public static class FilterExtensions
         {
             foreach (var artwork in collection)
             {
-                token.ThrowIfCancellationRequested();
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
                 if (await filter.SlowFilter(database, artwork, token).ConfigureAwait(false))
                 {
                     yield return artwork;
@@ -88,7 +92,11 @@ public static class FilterExtensions
         {
             foreach (var artwork in collection)
             {
-                token.ThrowIfCancellationRequested();
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
                 yield return artwork;
             }
         }
