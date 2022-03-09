@@ -135,44 +135,53 @@ public partial class NetworkClient
 
         private async ValueTask<bool> DownloadFilePrepareDetailAsync(Artwork artwork)
         {
-            bool success;
-        RETRY:
-            try
+            database.Update();
+            ArtworkResponseContent detailArtwork;
+            using (var response = await GetArtworkDetailAsync(requestSender, artwork.Id, token).ConfigureAwait(false))
             {
-                var detailArtwork = await GetArtworkDetailAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
-                await LocalNetworkConverter.OverwriteAsync(artwork, detailArtwork, database, database, database, token).ConfigureAwait(false);
-                if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
+                if (!response.IsSuccessStatusCode)
                 {
-                    artwork.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        artwork.IsOfficiallyRemoved = true;
+                    }
+
+                    return false;
                 }
 
-                success = !artwork.IsOfficiallyRemoved;
+                detailArtwork = IOUtility.JsonDeserialize<IllustDateilResponseData>(await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false)).Illust;
             }
-            catch (HttpRequestException e) when (e.StatusCode.HasValue)
-            {
-                if (e.StatusCode.Value == HttpStatusCode.NotFound)
-                {
-                    artwork.IsOfficiallyRemoved = true;
-                }
-                else if (e.StatusCode.Value == HttpStatusCode.BadRequest)
-                {
-                    await networkClient.holder.InvalidateAsync(token).ConfigureAwait(false);
-                    goto RETRY;
-                }
-                else if (!System.Console.IsOutputRedirected)
-                {
-                    logger.LogInformation(e, $"Other failure. {artwork.Id}");
-                }
 
-                success = false;
+            await LocalNetworkConverter.OverwriteAsync(artwork, detailArtwork, database, database, database, token).ConfigureAwait(false);
+            if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
+            {
+                using var response = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
+                if (response.IsSuccessStatusCode)
+                {
+                    var frames = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>(await response.Content.ReadAsByteArrayAsync(token)).Value.Frames;
+                    artwork.UgoiraFrames = frames.Length == 0 ? Array.Empty<ushort>() : new ushort[frames.Length];
+                    for (var i = 0; i < frames.Length; i++)
+                    {
+                        artwork.UgoiraFrames[i] = (ushort)frames[i].Delay;
+                    }
+                }
+                else
+                {
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        artwork.IsOfficiallyRemoved = true;
+                    }
+
+                    return false;
+                }
             }
 
             if (!System.Console.IsOutputRedirected)
             {
-                logger.LogInformation($"Detail success: {success} Id: {artwork.Id,20}");
+                logger.LogInformation($"Detail: {!artwork.IsOfficiallyRemoved} Id: {artwork.Id,20}");
             }
 
-            return success;
+            return !artwork.IsOfficiallyRemoved;
         }
     }
 }

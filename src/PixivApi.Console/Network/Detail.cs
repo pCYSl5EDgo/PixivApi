@@ -26,48 +26,57 @@ public partial class NetworkClient
             var collection = database.ArtworkFilterAsync(artworkFilter, token);
             await foreach (var item in collection)
             {
-            RETRY:
-                try
+                ArtworkResponseContent artwork;
+                do
                 {
-                    var artwork = await GetArtworkDetailAsync(requestSender, item.Id, token).ConfigureAwait(false);
-                    if (artwork.User.Id == 0)
+                    using var response = await GetArtworkDetailAsync(requestSender, item.Id, token).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var array = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
+                        artwork = IOUtility.JsonDeserialize<IllustDateilResponseData>(array).Illust;
+                        break;
+                    }
+
+                    if (response.StatusCode == HttpStatusCode.NotFound)
                     {
                         goto REMOVED;
                     }
 
-                    ++update;
-                    if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
-                    {
-                        item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
-                    }
-
-                    await LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token).ConfigureAwait(false);
-                    if (System.Console.IsOutputRedirected)
-                    {
-                        logger.LogInformation($"{item.Id}");
-                    }
-                    else
-                    {
-                        logger.LogInformation($"{update,4}: {item.Id,20}");
-                    }
-
+                    response.EnsureSuccessStatusCode();
                     continue;
-                }
-                catch (HttpRequestException e) when (e.StatusCode.HasValue)
+                } while (true);
+
+                if (artwork.User.Id == 0)
                 {
-                    if (e.StatusCode.Value == HttpStatusCode.NotFound)
-                    {
-                        goto REMOVED;
-                    }
-
-                    if (!System.Console.IsOutputRedirected)
-                    {
-                        logger.LogWarning($"{VirtualCodes.BrightYellowColor}Reconnect. Wait for {configSettings.RetryTimeSpan.TotalSeconds} seconds. Time: {DateTime.Now} Restart: {DateTime.Now.Add(configSettings.RetryTimeSpan)}{VirtualCodes.NormalizeColor}");
-                    }
-
-                    await Task.Delay(configSettings.RetryTimeSpan, token).ConfigureAwait(false);
-                    goto RETRY;
+                    goto REMOVED;
                 }
+
+                ++update;
+                if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
+                {
+                    using var response = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
+                    response.EnsureSuccessStatusCode();
+                    var ugoira = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>(await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false));
+                    var frames = ugoira.Value.Frames;
+                    item.UgoiraFrames = frames.Length == 0 ? Array.Empty<ushort>() : new ushort[frames.Length];
+                    for (var i = 0; i < frames.Length; i++)
+                    {
+                        item.UgoiraFrames[i] = (ushort)frames[i].Delay;
+                    }
+                }
+
+                await LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token).ConfigureAwait(false);
+                database.Update();
+                if (System.Console.IsOutputRedirected)
+                {
+                    logger.LogInformation($"{item.Id}");
+                }
+                else
+                {
+                    logger.LogInformation($"{update,4}: {item.Id,20}");
+                }
+
+                continue;
 
             REMOVED:
                 item.IsOfficiallyRemoved = true;
@@ -87,27 +96,7 @@ public partial class NetworkClient
         }
     }
 
-    private static async ValueTask<ArtworkResponseContent> GetArtworkDetailAsync(RequestSender requestSender, ulong id, CancellationToken token)
-    {
-        var url = $"https://{ApiHost}/v1/illust/detail?illust_id={id}";
-        using var responseMessage = await requestSender.GetAsync(url, token).ConfigureAwait(false);
-        var content = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
-        var response = IOUtility.JsonDeserialize<IllustDateilResponseData>(content.AsSpan());
-        return response.Illust;
-    }
+    private static async ValueTask<HttpResponseMessage> GetArtworkDetailAsync(RequestSender requestSender, ulong id, CancellationToken token) => await requestSender.GetAsync($"https://{ApiHost}/v1/illust/detail?illust_id={id}", token).ConfigureAwait(false);
 
-    private static async ValueTask<ushort[]> GetArtworkUgoiraMetadataAsync(RequestSender requestSender, ulong id, CancellationToken token)
-    {
-        var ugoiraUrl = $"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}";
-        using var responseMessage = await requestSender.GetAsync(ugoiraUrl, token).ConfigureAwait(false);
-        var content = await responseMessage.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
-        var ugoiraResponse = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>(content.AsSpan());
-        var frames = ugoiraResponse.Value.Frames.Length == 0 ? Array.Empty<ushort>() : new ushort[ugoiraResponse.Value.Frames.Length];
-        for (var frameIndex = 0; frameIndex < frames.Length; frameIndex++)
-        {
-            frames[frameIndex] = (ushort)ugoiraResponse.Value.Frames[frameIndex].Delay;
-        }
-
-        return frames;
-    }
+    private static async ValueTask<HttpResponseMessage> GetArtworkUgoiraMetadataAsync(RequestSender requestSender, ulong id, CancellationToken token) => await requestSender.GetAsync($"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}", token).ConfigureAwait(false);
 }
