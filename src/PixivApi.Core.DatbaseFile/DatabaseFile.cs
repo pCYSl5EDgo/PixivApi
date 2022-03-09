@@ -2,6 +2,8 @@
 using DatabaseAddUserFunc = System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<PixivApi.Core.Local.User>>;
 using DatabaseUpdateArtworkFunc = System.Func<PixivApi.Core.Local.Artwork, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>;
 using DatabaseUpdateUserFunc = System.Func<PixivApi.Core.Local.User, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>;
+using ArtworkDictionary = System.Collections.Concurrent.ConcurrentDictionary<ulong, PixivApi.Core.Local.Artwork>;
+using UserDictionary = System.Collections.Concurrent.ConcurrentDictionary<ulong, PixivApi.Core.Local.User>;
 using MessagePack;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
@@ -14,8 +16,8 @@ internal sealed class DatabaseFile : IDatabase
 {
     [Key(0x00)] private readonly uint MajorVersion;
     [Key(0x01)] private readonly uint MinorVersion;
-    [Key(0x02)] private readonly ConcurrentDictionary<ulong, Artwork> ArtworkDictionary;
-    [Key(0x03)] private readonly ConcurrentDictionary<ulong, User> UserDictionary;
+    [Key(0x02)] private readonly ArtworkDictionary ArtworkDictionary;
+    [Key(0x03)] private readonly UserDictionary UserDictionary;
     [Key(0x04)] private readonly StringSet TagSet;
     [Key(0x05)] private readonly StringSet ToolSet;
     [Key(0x06)] private readonly RankingSet RankingSet;
@@ -33,7 +35,7 @@ internal sealed class DatabaseFile : IDatabase
         RankingSet = new();
     }
 
-    public DatabaseFile(uint majorVersion, uint minorVersion, ConcurrentDictionary<ulong, Artwork> artworkDictionary, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet, RankingSet rankingSet)
+    public DatabaseFile(uint majorVersion, uint minorVersion, ArtworkDictionary artworkDictionary, UserDictionary userDictionary, StringSet tagSet, StringSet toolSet, RankingSet rankingSet)
     {
         MajorVersion = majorVersion;
         MinorVersion = minorVersion;
@@ -116,35 +118,9 @@ internal sealed class DatabaseFile : IDatabase
 
     public ValueTask<ulong> CountUserAsync(CancellationToken token) => ValueTask.FromResult((ulong)UserDictionary.Count);
 
-#pragma warning disable CS1998
-    public async IAsyncEnumerable<Artwork> EnumerableArtworkAsync([EnumeratorCancellation] CancellationToken token)
-#pragma warning restore CS1998
-    {
-        foreach (var item in ArtworkDictionary.Values)
-        {
-            if (token.IsCancellationRequested)
-            {
-                yield break;
-            }
+    public IAsyncEnumerable<Artwork> EnumerableArtworkAsync(CancellationToken token) => ArtworkDictionary.Values.ToAsyncEnumerable();
 
-            yield return item;
-        }
-    }
-
-#pragma warning disable CS1998
-    public async IAsyncEnumerable<User> EnumerableUserAsync([EnumeratorCancellation] CancellationToken token)
-#pragma warning restore CS1998
-    {
-        foreach (var item in UserDictionary.Values)
-        {
-            if (token.IsCancellationRequested)
-            {
-                yield break;
-            }
-
-            yield return item;
-        }
-    }
+    public IAsyncEnumerable<User> EnumerableUserAsync(CancellationToken token) => UserDictionary.Values.ToAsyncEnumerable();
 
     public async IAsyncEnumerable<uint> EnumeratePartialMatchAsync(string key, [EnumeratorCancellation] CancellationToken token)
     {
@@ -364,8 +340,8 @@ internal sealed class DatabaseFile : IDatabase
 
             var header = reader.ReadArrayHeader();
             uint major = 0, minor = 0;
-            ConcurrentDictionary<ulong, Artwork>? artworks = null;
-            ConcurrentDictionary<ulong, User>? users = null;
+            ArtworkDictionary? artworks = null;
+            UserDictionary? users = null;
             StringSet? tags = null;
             StringSet? tools = null;
             RankingSet? rankings = null;
