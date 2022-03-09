@@ -147,13 +147,8 @@ internal sealed class DatabaseFile : IDatabase
         }
     }
 
-    public async IAsyncEnumerable<Artwork> FilterAsync(IFilter<Artwork> filter, [EnumeratorCancellation] CancellationToken token)
+    public async ValueTask<IEnumerable<Artwork>> FastFilterAsync(IFilter<Artwork> filter, CancellationToken token)
     {
-        if (token.IsCancellationRequested)
-        {
-            yield break;
-        }
-
         var bag = new ConcurrentBag<Artwork>();
         await Parallel.ForEachAsync(ArtworkDictionary.Values, token, (item, token) =>
         {
@@ -169,15 +164,16 @@ internal sealed class DatabaseFile : IDatabase
 
             return ValueTask.CompletedTask;
         }).ConfigureAwait(false);
+        return bag;
+    }
+
+    public async IAsyncEnumerable<Artwork> FilterAsync(IFilter<Artwork> filter, [EnumeratorCancellation] CancellationToken token)
+    {
+        var enumerable = await FastFilterAsync(filter, token).ConfigureAwait(false);
         if (filter.HasSlowFilter)
         {
-            foreach (var item in bag)
+            foreach (var item in enumerable)
             {
-                if (token.IsCancellationRequested)
-                {
-                    yield break;
-                }
-
                 if (await filter.SlowFilter(this, item, token).ConfigureAwait(false))
                 {
                     yield return item;
@@ -186,13 +182,8 @@ internal sealed class DatabaseFile : IDatabase
         }
         else
         {
-            foreach (var item in bag)
+            foreach (var item in enumerable)
             {
-                if (token.IsCancellationRequested)
-                {
-                    yield break;
-                }
-
                 yield return item;
             }
         }

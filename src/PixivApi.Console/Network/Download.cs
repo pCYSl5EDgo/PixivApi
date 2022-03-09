@@ -30,7 +30,8 @@ public partial class NetworkClient
         }
 
         var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
-        var (database, artworks) = await PrepareDownloadFileAsync(configSettings.DatabaseFilePath, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
+        var artworks = PrepareDownloadFileAsync(database, artworkFilter, configSettings.OriginalFolder, gigaByteCount);
         if (artworks is null)
         {
             return;
@@ -46,7 +47,11 @@ public partial class NetworkClient
         {
             await foreach (var artwork in artworks)
             {
-                token.ThrowIfCancellationRequested();
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
                 {
                     return;
@@ -64,10 +69,6 @@ public partial class NetworkClient
                     Interlocked.Increment(ref alreadyCount);
                 }
             }
-        }
-        catch (TaskCanceledException)
-        {
-            logger.LogError("Accept cancel.");
         }
         finally
         {
@@ -231,8 +232,8 @@ public partial class NetworkClient
 
     private static DownloadResult CalculateDownloadResult(bool downloadAny, bool noDetailDownload) => (DownloadResult)((downloadAny ? 1 : 0) | (noDetailDownload ? 2 : 0));
 
-    private async ValueTask<(IDatabase, IAsyncEnumerable<Artwork>?)> PrepareDownloadFileAsync(
-        string path,
+    private IAsyncEnumerable<Artwork>? PrepareDownloadFileAsync(
+        IDatabase database,
         ArtworkFilter? filter,
         string destinationDirectory,
         ulong gigaByteCount
@@ -240,29 +241,20 @@ public partial class NetworkClient
     {
         if (filter is null || gigaByteCount == 0)
         {
-            return default;
+            return null;
         }
 
         var logger = Context.Logger;
-        if (string.IsNullOrWhiteSpace(path))
-        {
-            logger.LogError($"{VirtualCodes.BrightRedColor}file does not exist. Path: {path}{VirtualCodes.NormalizeColor}");
-            return default;
-        }
-
         if (!Directory.Exists(destinationDirectory))
         {
             logger.LogError($"{VirtualCodes.BrightRedColor}directory does not exist. Path: {destinationDirectory}{VirtualCodes.NormalizeColor}");
-            return default;
+            return null;
         }
 
         var token = Context.CancellationToken;
-        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
         filter.PageCount ??= new();
         filter.PageCount.Min ??= 1;
-
-        var artworkCollection = database.ArtworkFilterAsync(filter, token);
-        return (database, artworkCollection);
+        return database.FastArtworkFilterAsync(filter, token);
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");
