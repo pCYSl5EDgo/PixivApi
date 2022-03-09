@@ -7,7 +7,7 @@ public static class FileUriUtility
     public static void Convert(ref Utf8ValueStringBuilder builder, ReadOnlySpan<char> path)
     {
         builder.Clear();
-        builder.AppendLiteral(LiteralUtility.LiteralQuoteFile());
+        builder.AppendLiteral(LiteralUtility.LiteralQuote());
         var enumerator = path.EnumerateRunes();
         while (enumerator.MoveNext())
         {

@@ -14,9 +14,6 @@ internal static partial class LiteralUtility
     [StringLiteral.Utf8("original")]
     public static partial ReadOnlySpan<byte> LiteralOriginal();
 
-    [StringLiteral.Utf8("\"file:///")]
-    public static partial ReadOnlySpan<byte> LiteralQuoteFile();
-
     [StringLiteral.Utf8("\"")]
     public static partial ReadOnlySpan<byte> LiteralQuote();
 }
