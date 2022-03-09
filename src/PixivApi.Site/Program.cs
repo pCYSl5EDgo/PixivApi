@@ -19,37 +19,19 @@ public sealed class Program
         {
             var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
             var client = provider.GetRequiredService<HttpClient>();
-#pragma warning disable CA2012
-            return GetConfigSettingAsync(client, lifetime.ApplicationStopping).Result;
-#pragma warning restore CA2012
+            return GetConfigSettingAsync(client, lifetime.ApplicationStopping).AsTask().Result;
         })
         .AddSingleton(provider =>
         {
             var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
             var configSettings = provider.GetRequiredService<ConfigSettings>();
-            if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
-            {
-                return new();
-            }
-
-            using var stream = File.OpenRead(configSettings.DatabaseFilePath);
-            return MessagePack.MessagePackSerializer.Deserialize<DatabaseFile>(stream, null, lifetime.ApplicationStopping) ?? new();
-        })
-        .AddSingleton(provider =>
-        {
-            var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
-            var configSettings = provider.GetRequiredService<ConfigSettings>();
-#pragma warning disable CA2012
             return FinderFacade.CreateAsync(configSettings, lifetime.ApplicationStopping).Result;
-#pragma warning restore CA2012
         })
         .AddSingleton(provider =>
         {
             var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
             var configSettings = provider.GetRequiredService<ConfigSettings>();
-#pragma warning disable CA2012
             return ConverterFacade.CreateAsync(configSettings, lifetime.ApplicationStopping).Result;
-#pragma warning restore CA2012
         })
         .AddSingleton(provider =>
         {
@@ -57,7 +39,9 @@ public sealed class Program
             jsonSerializerOptions.Converters.Add(UgoiraArtworkUtilityStruct.Converter.Instance);
             jsonSerializerOptions.Converters.Add(NotUgoiraArtworkUtilityStruct.Converter.Instance);
             return jsonSerializerOptions;
-        });
+        })
+        .AddSingleton<IDatabaseFactory, DatabaseFileFactory>()
+        .AddSingleton<IArtworkFilterFactory<ReadOnlyMemory<char>>, ContentArtworkFilterFactory>();
 
         var app = builder.Build();
         var isDevelopment = builder.Environment.IsDevelopment();
@@ -111,15 +95,7 @@ public sealed class Program
         app.MapGet("/local/map", Api.MapAsync);
         app.Map("/local/hide/{id}", Api.HideAsync);
 
-        var database = app.Services.GetRequiredService<DatabaseFile>();
-        try
-        {
-            await app.RunAsync().ConfigureAwait(false);
-        }
-        finally
-        {
-            await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
-        }
+        await app.RunAsync().ConfigureAwait(false);
     }
 
     private static async ValueTask<ConfigSettings> GetConfigSettingAsync(HttpClient httpClient, CancellationToken token)

@@ -16,6 +16,7 @@ public partial class LocalClient
         }
 
         var token = Context.CancellationToken;
+        var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
         ulong originalCount = 0UL, thumbnailCount = 0UL, ugoiraCount = 0UL;
         if (original && converter.OriginalConverter is { } originalConverter)
         {

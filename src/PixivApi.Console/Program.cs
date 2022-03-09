@@ -41,7 +41,9 @@ public sealed class Program
                         AutomaticDecompression = DecompressionMethods.All,
                         MaxConnectionsPerServer = 2,
                     })
-                    .AddSingleton<RequestSender>();
+                    .AddSingleton<RequestSender>()
+                    .AddSingleton<IDatabaseFactory, DatabaseFileFactory>()
+                    .AddSingleton<IArtworkFilterFactory<FileInfo>, FileArtworkFilterFactory>();
 
                 _ = services.AddHttpClient(Options.DefaultName, static (provider, client) =>
                 {

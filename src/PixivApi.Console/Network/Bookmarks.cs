@@ -20,6 +20,6 @@ public partial class NetworkClient
         }
 
         var url = $"https://{ApiHost}/v1/user/bookmarks/illust?user_id={configSettings.UserId}&restrict=public";
-        return DownloadArtworkResponses(configSettings.DatabaseFilePath, addBehaviour, url, Context.CancellationToken);
+        return DownloadArtworkResponses(addBehaviour, url, Context.CancellationToken);
     }
 }

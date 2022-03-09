@@ -16,7 +16,7 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         System.Console.Error.WriteLine($"Start loading database. Time: {DateTime.Now}");
-        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
+        var databaseTask = databaseFactory.CreateAsync(token);
         var add = 0UL;
         var rankingList = new List<ArtworkResponseContent>(300);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
@@ -37,17 +37,16 @@ public partial class NetworkClient
         }
         finally
         {
-            var databaseCount = 0;
             if (rankingList.Count != 0)
             {
-                var database = (await databaseTask.ConfigureAwait(false)) ?? new();
+                var database = await databaseTask.ConfigureAwait(false);
                 var rankingArray = new ulong[rankingList.Count];
                 for (var i = 0; i < rankingArray.Length; i++)
                 {
                     var item = rankingList[i];
-                    _ = database.ArtworkDictionary.AddOrUpdate(
+                    await database.AddOrUpdateAsync(
                         item.Id,
-                        _ =>
+                        async token =>
                         {
                             ++add;
                             if (System.Console.IsOutputRedirected)
@@ -59,26 +58,22 @@ public partial class NetworkClient
                                 Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
                             }
 
-                            return LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary);
+                            return await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
                         },
-                        (_, v) =>
-                        {
-                            LocalNetworkConverter.Overwrite(v, item, database.TagSet, database.ToolSet, database.UserDictionary);
-                            return v;
-                        }
-                    );
+                        (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token),
+                        token
+                    ).ConfigureAwait(false);
 
                     rankingArray[i] = item.Id;
                 }
 
-                database.RankingSet.AddOrUpdate(new(date ?? DateOnly.FromDateTime(DateTime.Now), ranking), rankingArray, (_, _) => rankingArray);
-                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
-                databaseCount = database.ArtworkDictionary.Count;
-            }
-
-            if (!System.Console.IsOutputRedirected)
-            {
-                Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
+                await database.AddOrUpdateRankingAsync(date ?? DateOnly.FromDateTime(DateTime.Now), ranking, rankingArray, token).ConfigureAwait(false);
+                
+                if (!System.Console.IsOutputRedirected)
+                {
+                    var databaseCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                    Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
+                }
             }
         }
     }

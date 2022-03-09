@@ -11,12 +11,12 @@ public partial class LocalClient
             return;
         }
 
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false);
-        if (database is null)
-        {
-            return;
-        }
-
-        logger.LogInformation($"Version: {database.MajorVersion}.{database.MinorVersion} Artwork: {database.ArtworkDictionary.Count} User: {database.UserDictionary.Count}\nTag: {database.TagSet.Reverses.Count} Tool: {database.ToolSet.Reverses.Count} Ranking: {database.RankingSet.Count}");
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
+        var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+        var userCount = await database.CountUserAsync(token).ConfigureAwait(false);
+        var tagCount = await database.CountTagAsync(token).ConfigureAwait(false);
+        var toolCount = await database.CountToolAsync(token).ConfigureAwait(false);
+        var rankingCount = await database.CountRankingAsync(token).ConfigureAwait(false);
+        logger.LogInformation($"Version: {database.Version} Artwork: {artworkCount} User: {userCount}\nTag: {tagCount} Tool: {toolCount} Ranking: {rankingCount}");
     }
 }

@@ -9,31 +9,12 @@ public sealed class UserFilter
     [JsonPropertyName("show-hidden")] public bool ShowHiddenUsers = false;
     [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
 
-    [JsonIgnore] public ConcurrentDictionary<ulong, User>? Dictionary;
-
-    [MemberNotNull(nameof(Dictionary))]
-    public async ValueTask InitializeAsync(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken token)
+    public async ValueTask InitializeAsync(IDatabase database, CancellationToken token)
     {
-        Dictionary = userDictionary;
         if (TagFilter is not null)
         {
-            await TagFilter.InitializeAsync(tagSet, token).ConfigureAwait(false);
+            await TagFilter.InitializeAsync(database, token).ConfigureAwait(false);
         }
-    }
-
-    public bool Filter(ulong userId)
-    {
-        if (Dictionary is null)
-        {
-            return IdFilter is null || IdFilter.Filter(userId);
-        }
-
-        if (!Dictionary.TryGetValue(userId, out var user))
-        {
-            return !OnlyRegistered;
-        }
-
-        return Filter(user);
     }
 
     public bool Filter(User user)

@@ -7,46 +7,49 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
     private readonly ConfigSettings configSettings;
     private readonly HttpClient client;
     private readonly AuthenticationHeaderValueHolder holder;
+    private readonly IDatabaseFactory databaseFactory;
+    private readonly IArtworkFilterFactory<FileInfo> filterFactory;
 
-    public NetworkClient(ConfigSettings config, HttpClient client, AuthenticationHeaderValueHolder holder)
+    public NetworkClient(ConfigSettings config, HttpClient client, AuthenticationHeaderValueHolder holder, IDatabaseFactory databaseFactory, IArtworkFilterFactory<FileInfo> filterFactory)
     {
         configSettings = config;
         this.client = client;
         this.holder = holder;
+        this.databaseFactory = databaseFactory;
+        this.filterFactory = filterFactory;
     }
 
     public void Dispose() => holder.Dispose();
 
-    private async ValueTask DownloadArtworkResponses(string output, bool addBehaviour, string url, CancellationToken token)
+    private async ValueTask DownloadArtworkResponses(bool addBehaviour, string url, CancellationToken token)
     {
         var logger = Context.Logger;
-        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(output, token);
+        var databaseTask = databaseFactory.CreateAsync(token);
         // When addBehaviour is false, we should wait for the database initialization in order not to query unneccessarily.
         var database = addBehaviour ? null : await databaseTask.ConfigureAwait(false);
         var responseList = default(List<ArtworkResponseContent>);
         ulong add = 0UL, update = 0UL;
-        bool RegisterNotShow(DatabaseFile database, ArtworkResponseContent item)
+        async ValueTask<bool> RegisterNotShow(IDatabase database, ArtworkResponseContent item, CancellationToken token)
         {
             var isAdd = true;
-            _ = database.ArtworkDictionary.AddOrUpdate(
+            await database.AddOrUpdateAsync(
                 item.Id,
-                _ => LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary),
-                (_, artwork) =>
+                async token => await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false),
+                async (artwork, token) =>
                 {
                     isAdd = false;
-                    LocalNetworkConverter.Overwrite(artwork, item, database.TagSet, database.ToolSet, database.UserDictionary);
-                    return artwork;
-                }
-            );
-
+                    await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token).ConfigureAwait(false);
+                },
+                token
+            ).ConfigureAwait(false);
             return isAdd;
         }
 
-        void RegisterShow(DatabaseFile database, ArtworkResponseContent item)
+        async ValueTask RegisterShow(IDatabase database, ArtworkResponseContent item, CancellationToken token)
         {
-            _ = database.ArtworkDictionary.AddOrUpdate(
+            await database.AddOrUpdateAsync(
                 item.Id,
-                _ =>
+                async token =>
                 {
                     ++add;
                     if (System.Console.IsOutputRedirected)
@@ -58,15 +61,15 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         logger.LogInformation($"{add,4}: {item.Id,20}");
                     }
 
-                    return LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary);
+                    return await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
                 },
-                (_, artwork) =>
+                async (artwork, token) =>
                 {
                     ++update;
-                    LocalNetworkConverter.Overwrite(artwork, item, database.TagSet, database.ToolSet, database.UserDictionary);
-                    return artwork;
-                }
-            );
+                    await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token);
+                },
+                token
+            ).ConfigureAwait(false);
         }
 
         try
@@ -96,12 +99,12 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         continue;
                     }
 
-                    database = await databaseTask.ConfigureAwait(false) ?? new();
+                    database = await databaseTask.ConfigureAwait(false);
                     if (responseList is { Count: > 0 })
                     {
                         foreach (var item in responseList)
                         {
-                            (RegisterNotShow(database, item) ? ref add : ref update)++;
+                            (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
                         }
 
                         responseList = null;
@@ -111,7 +114,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
                 {
-                    RegisterShow(database, item);
+                    await RegisterShow(database, item, token).ConfigureAwait(false);
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -129,26 +132,22 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         {
             if (database is null)
             {
-                database = await databaseTask.ConfigureAwait(false) ?? new();
+                database = await databaseTask.ConfigureAwait(false);
                 if (responseList is { Count: > 0 })
                 {
                     foreach (var item in responseList)
                     {
-                        (RegisterNotShow(database, item) ? ref add : ref update)++;
+                        (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
                     }
 
                     responseList = null;
                 }
             }
 
-            if (add != 0 || update != 0)
-            {
-                await IOUtility.MessagePackSerializeAsync(output, database, FileMode.Create).ConfigureAwait(false);
-            }
-
             if (!System.Console.IsOutputRedirected)
             {
-                logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {update}");
+                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
             }
         }
     }

@@ -15,7 +15,7 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.ArtworkFilterFilePath, token).ConfigureAwait(false);
+        var artworkFilter = await filterFactory.CreateAsync(new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
         if (artworkFilter is not { FileExistanceFilter: { } fileFilter })
         {
             return;
@@ -30,7 +30,7 @@ public partial class NetworkClient
         }
 
         var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
-        var (database, artworks) = await PrepareDownloadFileAsync(configSettings.DatabaseFilePath, artworkFilter, configSettings.OriginalFolder, finder, gigaByteCount).ConfigureAwait(false);
+        var (database, artworks) = await PrepareDownloadFileAsync(configSettings.DatabaseFilePath, artworkFilter, configSettings.OriginalFolder, gigaByteCount).ConfigureAwait(false);
         if (artworks is null)
         {
             return;
@@ -42,7 +42,6 @@ public partial class NetworkClient
         var machine = new DownloadAsyncMachine(this, database, token);
         var logger = Context.Logger;
         logger.LogInformation("Start downloading.");
-        var detailUpdate = false;
         try
         {
             await foreach (var artwork in artworks)
@@ -64,11 +63,6 @@ public partial class NetworkClient
                 {
                     Interlocked.Increment(ref alreadyCount);
                 }
-
-                if ((downloadResult & DownloadResult.Update) != 0)
-                {
-                    detailUpdate = true;
-                }
             }
         }
         catch (TaskCanceledException)
@@ -80,16 +74,6 @@ public partial class NetworkClient
             if (!System.Console.IsOutputRedirected)
             {
                 logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ByteAmountUtility.ToDisplayable(machine.DownloadByteCount)}");
-            }
-
-            if (detailUpdate)
-            {
-                if (!System.Console.IsOutputRedirected)
-                {
-                    logger.LogInformation($"Save to the database file.");
-                }
-
-                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
             }
 
             if (alreadyCount != 0)
@@ -247,11 +231,10 @@ public partial class NetworkClient
 
     private static DownloadResult CalculateDownloadResult(bool downloadAny, bool noDetailDownload) => (DownloadResult)((downloadAny ? 1 : 0) | (noDetailDownload ? 2 : 0));
 
-    private async ValueTask<(DatabaseFile, IAsyncEnumerable<Artwork>?)> PrepareDownloadFileAsync(
+    private async ValueTask<(IDatabase, IAsyncEnumerable<Artwork>?)> PrepareDownloadFileAsync(
         string path,
         ArtworkFilter? filter,
         string destinationDirectory,
-        FinderFacade finder,
         ulong gigaByteCount
     )
     {
@@ -274,17 +257,11 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(path, token).ConfigureAwait(false);
-        if (database is not { ArtworkDictionary.IsEmpty: false })
-        {
-            logger.LogError($"{VirtualCodes.BrightRedColor}database is empty. Path: {path}{VirtualCodes.NormalizeColor}");
-            return default;
-        }
-
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
         filter.PageCount ??= new();
         filter.PageCount.Min ??= 1;
 
-        var artworkCollection = FilterExtensions.CreateAsyncEnumerable(finder, database, filter, token);
+        var artworkCollection = database.ArtworkFilterAsync(filter, token);
         return (database, artworkCollection);
     }
 

@@ -14,6 +14,6 @@ public partial class NetworkClient
         }
 
         var url = $"https://{ApiHost}/v2/illust/follow?restrict=public";
-        return DownloadArtworkResponses(configSettings.DatabaseFilePath, addBehaviour, url, Context.CancellationToken);
+        return DownloadArtworkResponses(addBehaviour, url, Context.CancellationToken);
     }
 }

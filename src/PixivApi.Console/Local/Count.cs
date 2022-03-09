@@ -10,121 +10,68 @@ public partial class LocalClient
     {
         var token = Context.CancellationToken;
         filter ??= configSettings.ArtworkFilterFilePath;
-        var artworkItemFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(filter, token).ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+        var artworkFilter = string.IsNullOrWhiteSpace(filter) ? null : await filterFactory.CreateAsync(new FileInfo(filter), token).ConfigureAwait(false);
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
+        var allCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+        if (artworkFilter is null)
         {
+            logger.LogInformation($"{allCount}");
             return;
         }
 
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false);
-        if (database is not { ArtworkDictionary.IsEmpty: false })
+        if (allCount == 0 || (ulong)artworkFilter.Offset >= allCount || artworkFilter.Count == 0)
         {
             logger.LogInformation("0");
             return;
         }
 
-        if (artworkItemFilter is null)
+        artworkFilter.Order = ArtworkOrderKind.None;
+        var errorNotRedirected = !System.Console.IsErrorRedirected;
+        if (errorNotRedirected)
         {
-            logger.LogInformation($"{database.ArtworkDictionary.Count}");
-            return;
+            System.Console.Error.Write("Start collecting.");
         }
 
-        await artworkItemFilter.InitializeAsync(finder, database.UserDictionary, database.TagSet, token);
-        var artworks = FilterExtensions.FilterBy(database.ArtworkDictionary, artworkItemFilter.IdFilter);
-        if (System.Console.IsOutputRedirected)
+        long count = -artworkFilter.Offset;
+        var mask = (1L << maskPowerOf2) - 1;
+        if (artworkFilter.Count is { } maxCount)
         {
-            logger.LogInformation($"{await CountPipeAsync(artworkItemFilter, artworks, token).ConfigureAwait(false)}");
-        }
-        else if (artworkItemFilter.FileExistanceFilter is null)
-        {
-            logger.LogInformation($"{await CountWithoutFileFilterAsync(artworkItemFilter, artworks, token).ConfigureAwait(false)}");
+            await foreach (var artwork in database.FilterAsync(artworkFilter, token))
+            {
+                var c = ++count;
+                if (c >= maxCount)
+                {
+                    break;
+                }
+
+                if (errorNotRedirected && (c & mask) == 0)
+                {
+                    System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Collecting Count: {c}");
+                }
+            }
         }
         else
         {
-            logger.LogInformation($"{await CountWithFileFilterAsync(maskPowerOf2, artworkItemFilter, artworks, artworkItemFilter.FileExistanceFilter, token).ConfigureAwait(false)}");
+            await foreach (var artwork in database.FilterAsync(artworkFilter, token))
+            {
+                var c = ++count;
+                if (errorNotRedirected && (c & mask) == 0)
+                {
+                    System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Collecting Count: {c}");
+                }
+            }
         }
-    }
 
-    private static async Task<ulong> CountWithFileFilterAsync(byte maskPowerOf2, ArtworkFilter artworkItemFilter, IEnumerable<Artwork> artworks, FileExistanceFilter fileFilter, CancellationToken token)
-    {
-        ConcurrentBag<Artwork> bag = new();
-        var count = 0UL;
-        await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
+        if (count < 0)
         {
-            if (token.IsCancellationRequested)
-            {
-                return ValueTask.FromCanceled(token);
-            }
+            count = 0;
+        }
 
-            if (artworkItemFilter.FilterWithoutFileExistance(artwork))
-            {
-                Interlocked.Increment(ref count);
-                bag.Add(artwork);
-            }
-
-            return ValueTask.CompletedTask;
-        }).ConfigureAwait(false);
-        var maxCount = count;
-        System.Console.Write($"{VirtualCodes.BrightYellowColor}Current: {count}    0% processed(0 items of total {count} items) {VirtualCodes.NormalizeColor}");
-        var processed = 0UL;
-        var mask = (1UL << maskPowerOf2) - 1UL;
-        await Parallel.ForEachAsync(bag, token, (artwork, token) =>
+        if (errorNotRedirected)
         {
-            if (token.IsCancellationRequested)
-            {
-                return ValueTask.FromCanceled(token);
-            }
+            System.Console.Error.Write(VirtualCodes.DeleteLine1);
+        }
 
-            if (!fileFilter.Filter(artwork))
-            {
-                Interlocked.Decrement(ref count);
-            }
-
-            var currentProcessed = Interlocked.Increment(ref processed);
-            if ((currentProcessed & mask) == 0UL)
-            {
-                var percentage = (int)(processed * 100d / maxCount);
-                System.Console.Write($"{VirtualCodes.DeleteLine1}{VirtualCodes.BrightYellowColor}Current: {count} {percentage,3}% processed({processed} items of total {maxCount} items){VirtualCodes.NormalizeColor}");
-            }
-
-            return ValueTask.CompletedTask;
-        }).ConfigureAwait(false);
-        System.Console.Write(VirtualCodes.DeleteLine1);
-        return count;
-    }
-
-    private static async Task<ulong> CountWithoutFileFilterAsync(ArtworkFilter artworkItemFilter, IEnumerable<Artwork> artworks, CancellationToken token)
-    {
-        var count = 0UL;
-        await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
-        {
-            if (token.IsCancellationRequested)
-            {
-                return ValueTask.FromCanceled(token);
-            }
-
-            if (artworkItemFilter.FilterWithoutFileExistance(artwork))
-            {
-                Interlocked.Increment(ref count);
-            }
-
-            return ValueTask.CompletedTask;
-        }).ConfigureAwait(false);
-        return count;
-    }
-
-    private static async Task<ulong> CountPipeAsync(ArtworkFilter artworkItemFilter, IEnumerable<Artwork> artworks, CancellationToken token)
-    {
-        var count = 0UL;
-        await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
-        {
-            if (artworkItemFilter.Filter(artwork))
-            {
-                Interlocked.Increment(ref count);
-            }
-
-            return ValueTask.CompletedTask;
-        }).ConfigureAwait(false);
-        return count;
+        logger.LogInformation($"{count}");
     }
 }

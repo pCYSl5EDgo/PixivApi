@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace PixivApi.Site;
 
-public sealed record class ArtworkAsyncResponses(IAsyncEnumerable<Artwork> Artworks, DatabaseFile? DatabaseFileToStringify, JsonSerializerOptions JsonSerializerOptions) : IResult
+public sealed record class ArtworkAsyncResponses(IAsyncEnumerable<Artwork> Artworks, IDatabase? DatabaseToStringify, JsonSerializerOptions JsonSerializerOptions) : IResult
 {
     public async Task ExecuteAsync(HttpContext httpContext)
     {
@@ -22,13 +22,13 @@ public sealed record class ArtworkAsyncResponses(IAsyncEnumerable<Artwork> Artwo
             var notFirst = false;
             await foreach (var artwork in Artworks.WithCancellation(token))
             {
-                if (DatabaseFileToStringify is not { } database)
+                if (DatabaseToStringify is not { } database)
                 {
                     artwork.IsStringified = false;
                 }
                 else if (!artwork.IsStringified)
                 {
-                    artwork.Stringify(database.UserDictionary, database.TagSet, database.ToolSet);
+                    await artwork.StringifyAsync(database, database, database, token).ConfigureAwait(false);
                 }
 
                 if (notFirst)

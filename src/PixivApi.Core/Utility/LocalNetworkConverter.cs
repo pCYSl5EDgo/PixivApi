@@ -5,7 +5,7 @@ namespace PixivApi.Core;
 
 public static class LocalNetworkConverter
 {
-    public static Artwork Convert(in ArtworkResponseContent source, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
+    public static async ValueTask<Artwork> ConvertAsync(ArtworkResponseContent source, ITagDatabase tagDatabase, IToolDatabase toolDatabase, IUserDatabase userDatabase, CancellationToken token)
     {
         Artwork answer = new()
         {
@@ -26,15 +26,15 @@ public static class LocalNetworkConverter
             IsBookmarked = source.IsBookmarked,
             IsMuted = source.IsMuted,
             IsVisible = source.Visible,
-            Tags = tagSet.Calculate(source.Tags),
-            Tools = toolSet.Calculate(source.Tools),
+            Tags = await tagDatabase.CalculateTagsAsync(source.Tags, token).ConfigureAwait(false),
+            Tools = await toolDatabase.CalculateToolsAsync(source.Tools, token).ConfigureAwait(false),
         };
 
-        _ = userDictionary.GetOrAdd(source.User.Id, static (_, user) => user.Convert(), source.User);
+        _ = await userDatabase.GetOrAddAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), token).ConfigureAwait(false);
         return answer;
     }
 
-    public static void Overwrite(Artwork destination, in ArtworkResponseContent source, StringSet tagSet, StringSet toolSet, ConcurrentDictionary<ulong, User> userDictionary)
+    public static async ValueTask OverwriteAsync(Artwork destination, ArtworkResponseContent source, ITagDatabase tagDatabase, IToolDatabase toolDatabase, IUserDatabase userDatabase, CancellationToken token)
     {
         if (destination.Id != source.Id)
         {
@@ -63,15 +63,15 @@ public static class LocalNetworkConverter
         destination.IsMuted = source.IsMuted;
         destination.CreateDate = source.CreateDate;
         destination.FileDate = ParseFileDate(source);
-        destination.Tags = tagSet.Calculate(source.Tags);
-        destination.Tools = toolSet.Calculate(source.Tools);
+        destination.Tags = await tagDatabase.CalculateTagsAsync(source.Tags, token).ConfigureAwait(false);
+        destination.Tools = await toolDatabase.CalculateToolsAsync(source.Tools, token).ConfigureAwait(false);
         destination.Title = source.Title ?? string.Empty;
         destination.Caption = source.Caption ?? string.Empty;
 
-        _ = userDictionary.GetOrAdd(source.User.Id, static (_, user) => user.Convert(), source.User);
+        _ = await userDatabase.GetOrAddAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), token).ConfigureAwait(false);
     }
 
-    public static User Convert(this in UserPreviewResponseContent user)
+    public static User Convert(this UserPreviewResponseContent user)
     {
         var answer = user.User.Convert();
         answer.IsMuted = user.IsMuted;
@@ -143,7 +143,7 @@ public static class LocalNetworkConverter
         }
     }
 
-    public static User Convert(this in UserResponse user) => new()
+    public static User Convert(this UserResponse user) => new()
     {
         Id = user.Id,
         Name = user.Name,
@@ -153,7 +153,7 @@ public static class LocalNetworkConverter
         Comment = user.Comment,
     };
 
-    public static User.DetailProfile Convert(this in UserDetailProfile source) => new()
+    public static User.DetailProfile Convert(this UserDetailProfile source) => new()
     {
         Webpage = source.Webpage,
         Gender = source.Gender,
@@ -181,7 +181,7 @@ public static class LocalNetworkConverter
         IsUsingCustomProfileImage = source.IsUsingCustomProfileImage,
     };
 
-    public static void Overwrite(User.DetailProfile destination, in UserDetailProfile source)
+    public static void Overwrite(User.DetailProfile destination, UserDetailProfile source)
     {
         OverwriteExtensions.Overwrite(ref destination.Webpage, source.Webpage);
         OverwriteExtensions.Overwrite(ref destination.Gender, source.Gender);
@@ -209,7 +209,7 @@ public static class LocalNetworkConverter
         destination.IsUsingCustomProfileImage = source.IsUsingCustomProfileImage;
     }
 
-    public static User.DetailProfilePublicity Convert(in UserDetailProfilePublicity source) => new()
+    public static User.DetailProfilePublicity Convert(UserDetailProfilePublicity source) => new()
     {
         Gender = source.Gender,
         Region = source.Region,
@@ -219,7 +219,7 @@ public static class LocalNetworkConverter
         Pawoo = source.Pawoo,
     };
 
-    public static void Overwrite(User.DetailProfilePublicity destination, in UserDetailProfilePublicity source)
+    public static void Overwrite(User.DetailProfilePublicity destination, UserDetailProfilePublicity source)
     {
         OverwriteExtensions.Overwrite(ref destination.Gender, source.Gender);
         OverwriteExtensions.Overwrite(ref destination.Region, source.Region);
@@ -229,7 +229,7 @@ public static class LocalNetworkConverter
         destination.Pawoo = source.Pawoo;
     }
 
-    public static User.DetailWorkspace Convert(in UserDetailWorkspace source) => new()
+    public static User.DetailWorkspace Convert(UserDetailWorkspace source) => new()
     {
         Pc = source.Pc,
         Monitor = source.Monitor,
@@ -246,7 +246,7 @@ public static class LocalNetworkConverter
         WorkspaceImageUrl = source.WorkspaceImageUrl,
     };
 
-    public static void Overwrite(User.DetailWorkspace destination, in UserDetailWorkspace source)
+    public static void Overwrite(User.DetailWorkspace destination, UserDetailWorkspace source)
     {
         OverwriteExtensions.Overwrite(ref destination.Pc, source.Pc);
         OverwriteExtensions.Overwrite(ref destination.Monitor, source.Monitor);
@@ -261,40 +261,6 @@ public static class LocalNetworkConverter
         OverwriteExtensions.Overwrite(ref destination.Chair, source.Chair);
         OverwriteExtensions.Overwrite(ref destination.Comment, source.Comment);
         OverwriteExtensions.Overwrite(ref destination.WorkspaceImageUrl, source.WorkspaceImageUrl);
-    }
-
-    private static uint[] Calculate(this StringSet set, Tag[]? array)
-    {
-        if (array is not { Length: > 0 })
-        {
-            return Array.Empty<uint>();
-        }
-
-        var answer = new uint[array.Length];
-        for (var i = 0; i < answer.Length; i++)
-        {
-            answer[i] = set.Register(array[i].Name);
-        }
-
-        Array.Sort(answer);
-        return answer;
-    }
-
-    private static uint[] Calculate(this StringSet set, string[]? array)
-    {
-        if (array is not { Length: > 0 })
-        {
-            return Array.Empty<uint>();
-        }
-
-        var answer = new uint[array.Length];
-        for (var i = 0; i < answer.Length; i++)
-        {
-            answer[i] = set.Register(array[i]);
-        }
-
-        Array.Sort(answer);
-        return answer;
     }
 
     private static FileExtensionKind ConvertToFileExtensionKind(this in ArtworkResponseContent source)

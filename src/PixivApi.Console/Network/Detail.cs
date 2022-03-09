@@ -17,14 +17,14 @@ public partial class NetworkClient
             return;
         }
 
-        var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false) ?? new();
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
         var logger = Context.Logger;
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong update = 0;
         try
         {
-            await foreach (var item in FilterExtensions.CreateAsyncEnumerable(finder, database, artworkFilter, token))
+            var collection = database.ArtworkFilterAsync(artworkFilter, token);
+            await foreach (var item in collection)
             {
             RETRY:
                 try
@@ -41,7 +41,7 @@ public partial class NetworkClient
                         item.UgoiraFrames = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
                     }
 
-                    LocalNetworkConverter.Overwrite(item, artwork, database.TagSet, database.ToolSet, database.UserDictionary);
+                    await LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token).ConfigureAwait(false);
                     if (System.Console.IsOutputRedirected)
                     {
                         logger.LogInformation($"{item.Id}");
@@ -58,12 +58,6 @@ public partial class NetworkClient
                     if (e.StatusCode.Value == HttpStatusCode.NotFound)
                     {
                         goto REMOVED;
-                    }
-
-                    if (e.StatusCode.Value != HttpStatusCode.BadRequest)
-                    {
-                        logger.LogError(e, "");
-                        continue;
                     }
 
                     if (!System.Console.IsOutputRedirected)
@@ -85,14 +79,10 @@ public partial class NetworkClient
         }
         finally
         {
-            if (update != 0)
-            {
-                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
-            }
-
             if (!System.Console.IsOutputRedirected)
             {
-                logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Update: {update}");
+                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                logger.LogInformation($"Total: {artworkCount} Update: {update}");
             }
         }
     }

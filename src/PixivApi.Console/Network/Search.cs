@@ -38,54 +38,51 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var databaseTask = IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token);
-        var database = default(DatabaseFile);
+        var databaseTask = databaseFactory.CreateAsync(token);
+        var database = default(IDatabase);
         var responseList = default(List<ArtworkResponseContent>);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong add = 0UL, update = 0UL;
-        bool RegisterNotShow(DatabaseFile database, ArtworkResponseContent item)
+        async ValueTask<bool> RegisterNotShow(IDatabase database, ArtworkResponseContent item, CancellationToken token)
         {
             var isAdd = true;
-            _ = database.ArtworkDictionary.AddOrUpdate(
+            await database.AddOrUpdateAsync(
                 item.Id,
-                _ => LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary),
-                (_, artwork) =>
+                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                (artwork, token) =>
                 {
                     isAdd = false;
-                    LocalNetworkConverter.Overwrite(artwork, item, database.TagSet, database.ToolSet, database.UserDictionary);
-                    return artwork;
-                }
-            );
+                    return LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token);
+                },
+                token
+            ).ConfigureAwait(false);
 
             return isAdd;
         }
 
-        void RegisterShow(DatabaseFile database, ArtworkResponseContent item)
-        {
-            _ = database.ArtworkDictionary.AddOrUpdate(
-                item.Id,
-                _ =>
+        ValueTask RegisterShow(IDatabase database, ArtworkResponseContent item, CancellationToken token) => database.AddOrUpdateAsync(
+            item.Id,
+            token =>
+            {
+                ++add;
+                if (System.Console.IsOutputRedirected)
                 {
-                    ++add;
-                    if (System.Console.IsOutputRedirected)
-                    {
-                        Context.Logger.LogInformation($"{item.Id}");
-                    }
-                    else
-                    {
-                        Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
-                    }
-
-                    return LocalNetworkConverter.Convert(item, database.TagSet, database.ToolSet, database.UserDictionary);
-                },
-                (_, artwork) =>
-                {
-                    ++update;
-                    LocalNetworkConverter.Overwrite(artwork, item, database.TagSet, database.ToolSet, database.UserDictionary);
-                    return artwork;
+                    Context.Logger.LogInformation($"{item.Id}");
                 }
-            );
-        }
+                else
+                {
+                    Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
+                }
+
+                return LocalNetworkConverter.ConvertAsync(item, database, database, database, token);
+            },
+            (artwork, token) =>
+            {
+                ++update;
+                return LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token);
+            },
+            token
+        );
 
         try
         {
@@ -114,12 +111,12 @@ public partial class NetworkClient
                         continue;
                     }
 
-                    database = await databaseTask.ConfigureAwait(false) ?? new();
+                    database = await databaseTask.ConfigureAwait(false);
                     if (responseList is { Count: > 0 })
                     {
                         foreach (var item in responseList)
                         {
-                            (RegisterNotShow(database, item) ? ref add : ref update)++;
+                            (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
                         }
 
                         responseList = null;
@@ -129,7 +126,7 @@ public partial class NetworkClient
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
                 {
-                    RegisterShow(database, item);
+                    await RegisterShow(database, item, token).ConfigureAwait(false);
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -147,26 +144,22 @@ public partial class NetworkClient
         {
             if (database is null)
             {
-                database = await databaseTask.ConfigureAwait(false) ?? new();
+                database = await databaseTask.ConfigureAwait(false);
                 if (responseList is { Count: > 0 })
                 {
                     foreach (var item in responseList)
                     {
-                        (RegisterNotShow(database, item) ? ref add : ref update)++;
+                        (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
                     }
 
                     responseList = null;
                 }
             }
 
-            if (add != 0 || update != 0)
-            {
-                await IOUtility.MessagePackSerializeAsync(configSettings.DatabaseFilePath, database, FileMode.Create).ConfigureAwait(false);
-            }
-
             if (!System.Console.IsOutputRedirected)
             {
-                logger.LogInformation($"Total: {database.ArtworkDictionary.Count} Add: {add} Update: {update}");
+                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
             }
         }
     }

@@ -13,7 +13,7 @@ public partial class LocalClient
         }
 
         var token = Context.CancellationToken;
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(configSettings.DatabaseFilePath, token).ConfigureAwait(false);
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
         if (database is null)
         {
             if (!System.Console.IsOutputRedirected)
@@ -24,127 +24,35 @@ public partial class LocalClient
             return;
         }
 
-        var itemFilter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.ArtworkFilterFilePath, token).ConfigureAwait(false);
-        var artworks = itemFilter is null
-            ? database.ArtworkDictionary.Values
-            : await FilterExtensions.CreateEnumerableAsync(finder, database, itemFilter, token).ConfigureAwait(false);
-
-        if (toString)
+        var artworkFilter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await filterFactory.CreateAsync(new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
+        if (token.IsCancellationRequested)
         {
-            switch (artworks)
-            {
-                case Artwork[]:
-                case List<Artwork>:
-                    break;
-                default:
-                    artworks = artworks.ToList();
-                    break;
-            }
-
-            await Parallel.ForEachAsync(artworks, token, (artwork, token) =>
-            {
-                if (token.IsCancellationRequested)
-                {
-                    return ValueTask.FromCanceled(token);
-                }
-
-                artwork.Stringify(database.UserDictionary, database.TagSet, database.ToolSet);
-                return ValueTask.CompletedTask;
-            }).ConfigureAwait(false);
+            return;
         }
 
-        token.ThrowIfCancellationRequested();
         var first = true;
         if (!System.Console.IsOutputRedirected)
         {
             logger.LogInformation("[");
         }
 
-        foreach (var item in artworks)
+        var collection = artworkFilter is null ? database.EnumerableArtworkAsync(token) : database.ArtworkFilterAsync(artworkFilter, token);
+        await foreach (var item in collection)
         {
-            token.ThrowIfCancellationRequested();
-            if (System.Console.IsOutputRedirected)
+            if (token.IsCancellationRequested)
             {
-                logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
+                return;
             }
-            else if (first)
+
+            if (toString)
+            {
+                await item.StringifyAsync(database, database, database, token).ConfigureAwait(false);
+            }
+
+            if (first)
             {
                 first = false;
-                logger.LogInformation($"{IOUtility.JsonStringSerialize(item, true)}");
-            }
-            else
-            {
-                logger.LogInformation($", {IOUtility.JsonStringSerialize(item, true)}");
-            }
-        }
-
-        if (!System.Console.IsOutputRedirected)
-        {
-            logger.LogInformation("]");
-        }
-    }
-
-    [Command("map-user")]
-    public async ValueTask MapUserAsync(
-        [Option(0, $"input {ArgumentDescriptions.DatabaseDescription}")] string input,
-        [Option(1, ArgumentDescriptions.FilterDescription)] string? filter = null,
-        uint count = uint.MaxValue,
-        uint offset = 0
-    )
-    {
-        if (string.IsNullOrWhiteSpace(input))
-        {
-            return;
-        }
-
-        var token = Context.CancellationToken;
-        var database = await IOUtility.MessagePackDeserializeAsync<DatabaseFile>(input, token).ConfigureAwait(false);
-        if (database is null)
-        {
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogInformation("null");
-            }
-
-            return;
-        }
-
-        IEnumerable<User> users = database.UserDictionary.Values;
-        var userFilter = string.IsNullOrWhiteSpace(filter) ? null : await IOUtility.JsonDeserializeAsync<UserFilter>(filter, token).ConfigureAwait(false);
-        if (userFilter is not null)
-        {
-            await userFilter.InitializeAsync(database.UserDictionary, database.TagSet, token).ConfigureAwait(false);
-            users = users.Where(userFilter.Filter);
-        }
-
-        if (offset > 0)
-        {
-            users = users.Skip((int)offset);
-        }
-
-        if (count < int.MaxValue)
-        {
-            users = users.Take((int)count);
-        }
-
-        token.ThrowIfCancellationRequested();
-        var first = true;
-        if (!System.Console.IsOutputRedirected)
-        {
-            logger.LogInformation("[");
-        }
-
-        foreach (var item in users)
-        {
-            token.ThrowIfCancellationRequested();
-            if (System.Console.IsOutputRedirected)
-            {
-                logger.LogInformation(IOUtility.JsonStringSerialize(item, false));
-            }
-            else if (first)
-            {
-                first = false;
-                logger.LogInformation($"{IOUtility.JsonStringSerialize(item, true)}");
+                logger.LogInformation(IOUtility.JsonStringSerialize(item, true));
             }
             else
             {

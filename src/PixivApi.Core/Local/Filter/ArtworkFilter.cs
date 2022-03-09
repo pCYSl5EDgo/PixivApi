@@ -2,7 +2,7 @@
 
 namespace PixivApi.Core.Local;
 
-public sealed class ArtworkFilter
+public sealed class ArtworkFilter : IFilter<Artwork>
 {
     [JsonPropertyName("bookmark")] public bool? IsBookmark = null;
     [JsonPropertyName("count")] public int? Count = null;
@@ -26,22 +26,9 @@ public sealed class ArtworkFilter
     [JsonPropertyName("width")] public MinMaxFilter? Width = null;
     [JsonPropertyName("hide-filter")] public HideFilter? HideFilter = null;
 
-    public bool Filter(Artwork artwork)
-    {
-        if (!FilterWithoutFileExistance(artwork))
-        {
-            return false;
-        }
+    public bool HasSlowFilter => FileExistanceFilter is not null || UserFilter is not null;
 
-        if (FileExistanceFilter is not null && !FileExistanceFilter.Filter(artwork))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    public bool FilterWithoutFileExistance(Artwork artwork)
+    public bool FastFilter(IDatabase database, Artwork artwork)
     {
         if (HideFilter is null)
         {
@@ -54,7 +41,7 @@ public sealed class ArtworkFilter
         {
             return false;
         }
-        
+
 
         if (IsOfficiallyRemoved.HasValue && IsOfficiallyRemoved.Value != artwork.IsOfficiallyRemoved)
         {
@@ -124,7 +111,7 @@ public sealed class ArtworkFilter
             return false;
         }
 
-        if (UserFilter is not null && !UserFilter.Filter(artwork.UserId))
+        if (TagFilter is not null && !TagFilter.Filter(artwork.Tags, artwork.ExtraTags, artwork.ExtraFakeTags))
         {
             return false;
         }
@@ -136,11 +123,6 @@ public sealed class ArtworkFilter
             {
                 return false;
             }
-        }
-
-        if (TagFilter is not null && !TagFilter.Filter(artwork.Tags, artwork.ExtraTags, artwork.ExtraFakeTags))
-        {
-            return false;
         }
 
         return true;
@@ -158,19 +140,37 @@ public sealed class ArtworkFilter
         _ => artwork.Id,
     };
 
-    public async ValueTask InitializeAsync(FinderFacade? finderFacade, ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, CancellationToken cancellationToken)
+    public async ValueTask InitializeAsync(IDatabase database, Func<FinderFacade> finderFacadeFunc, CancellationToken cancellationToken)
     {
-        if (finderFacade is not null)
-        {
-            FileExistanceFilter?.Initialize(finderFacade);
-        }
-
-        UserFilter ??= new();
-        await UserFilter.InitializeAsync(userDictionary, tagSet, cancellationToken).ConfigureAwait(false);
+        FileExistanceFilter?.Initialize(finderFacadeFunc());
 
         if (TagFilter is not null)
         {
-            await TagFilter.InitializeAsync(tagSet, cancellationToken).ConfigureAwait(false);
+            await TagFilter.InitializeAsync(database, cancellationToken).ConfigureAwait(false);
         }
+
+        if (UserFilter is not null)
+        {
+            await UserFilter.InitializeAsync(database, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    public async ValueTask<bool> SlowFilter(IDatabase database, Artwork artwork, CancellationToken token)
+    {
+        if (UserFilter is not null)
+        {
+            var user = await database.GetUserAsync(artwork.UserId, token).ConfigureAwait(false);
+            if (user is null || !UserFilter.Filter(user))
+            {
+                return false;
+            }
+        }
+
+        if (FileExistanceFilter is not null && !FileExistanceFilter.Filter(artwork))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

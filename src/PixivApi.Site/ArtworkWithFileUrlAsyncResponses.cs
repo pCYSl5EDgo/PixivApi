@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace PixivApi.Site;
 
-public sealed record class ArtworkWithFileUrlAsyncResponses(IAsyncEnumerable<Artwork> Artworks, DatabaseFile? DatabaseFileToStringify, IFinder? UgoiraZipFinder, IFinder? UgoiraThumbnailFinder, IFinder? UgoiraOriginalFinder, IFinderWithIndex? ThumbnailFinder, IFinderWithIndex? OriginalFinder, JsonSerializerOptions JsonSerializerOptions) : IResult
+public sealed record class ArtworkWithFileUrlAsyncResponses(IAsyncEnumerable<Artwork> Artworks, IDatabase? DatabaseToStringify, IFinder? UgoiraZipFinder, IFinder? UgoiraThumbnailFinder, IFinder? UgoiraOriginalFinder, IFinderWithIndex? ThumbnailFinder, IFinderWithIndex? OriginalFinder, JsonSerializerOptions JsonSerializerOptions) : IResult
 {
     public async Task ExecuteAsync(HttpContext httpContext)
     {
@@ -22,13 +22,13 @@ public sealed record class ArtworkWithFileUrlAsyncResponses(IAsyncEnumerable<Art
             var notFirst = false;
             await foreach (var artwork in Artworks.WithCancellation(token))
             {
-                if (DatabaseFileToStringify is not { } database)
+                if (DatabaseToStringify is not { } database)
                 {
                     artwork.IsStringified = false;
                 }
                 else if (!artwork.IsStringified)
                 {
-                    artwork.Stringify(database.UserDictionary, database.TagSet, database.ToolSet);
+                    await artwork.StringifyAsync(database, database, database, token).ConfigureAwait(false);
                 }
 
                 if (notFirst)

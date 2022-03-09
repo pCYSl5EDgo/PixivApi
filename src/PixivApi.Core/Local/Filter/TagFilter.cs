@@ -12,228 +12,226 @@ public sealed class TagFilter
     [JsonPropertyName("ignore-exact-or")] public bool IgnoreExactOr = true;
     [JsonPropertyName("ignore-partial-or")] public bool IgnorePartialOr = true;
 
-    private StringSet? tagSet;
-    [JsonIgnore] public HashSet<uint>? PartialSet;
-    [JsonIgnore] public HashSet<uint>? IgnorePartialSet;
+    [JsonIgnore] private HashSet<uint>? setExact;
+    [JsonIgnore] private HashSet<uint>? setIgnoreExact;
+    [JsonIgnore] private HashSet<uint>? setPartial;
+    [JsonIgnore] private HashSet<uint>? setIgnorePartial;
 
-    public async ValueTask InitializeAsync(StringSet? set, CancellationToken cancellationToken)
+    public async ValueTask InitializeAsync(ITagDatabase database, CancellationToken token)
     {
-        if (ReferenceEquals(tagSet, set))
+        setExact = await CreateExactAsync(database, Exacts, token).ConfigureAwait(false);
+        setIgnoreExact = await CreateExactAsync(database, IgnoreExacts, token).ConfigureAwait(false);
+        setPartial = await CreatePartialAsync(database, Partials, token).ConfigureAwait(false);
+        setIgnorePartial = await CreatePartialAsync(database, IgnorePartials, token).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<HashSet<uint>?> CreateExactAsync(ITagDatabase database, string[]? array, CancellationToken token)
+    {
+        if (array is not { Length: > 0 })
         {
-            return;
+            return null;
         }
 
-        tagSet = set;
-        if (set is not { Reverses.IsEmpty: false })
+        var answer = new HashSet<uint>(array.Length);
+        foreach (var item in array)
         {
-            return;
-        }
-
-        ConcurrentBag<uint>? bag = null;
-        if (Partials is { Length: > 0 })
-        {
-            if (bag is null)
+            token.ThrowIfCancellationRequested();
+            var tag = await database.FindTagAsync(item, token).ConfigureAwait(false);
+            if (tag.HasValue)
             {
-                bag = new();
+                answer.Add(tag.Value);
+            }
+        }
+
+        return answer.Count == 0 ? null : answer;
+    }
+
+    private static async ValueTask<HashSet<uint>?> CreatePartialAsync(ITagDatabase database, string[]? array, CancellationToken token)
+    {
+        if (array is not { Length: > 0 })
+        {
+            return null;
+        }
+
+        var answer = new HashSet<uint>(array.Length);
+        foreach (var item in array)
+        {
+            token.ThrowIfCancellationRequested();
+            await foreach (var tag in database.EnumeratePartialMatchAsync(item, token))
+            {
+                answer.Add(tag);
+            }
+        }
+
+        return answer.Count == 0 ? null : answer;
+    }
+
+    private static (bool, IEnumerable<uint>) CalculateHash(uint[] tags, uint[]? adds, uint[]? removes)
+    {
+        if (removes is { Length: > 0 })
+        {
+            if (adds is { Length: > 0 })
+            {
+                Array.Sort(removes);
+                Array.Sort(adds);
+                if (adds.SequenceEqual(removes))
+                {
+                    return (tags.Length != 0, tags);
+                }
+                else
+                {
+                    var set = new HashSet<uint>(tags);
+                    foreach (var item in adds)
+                    {
+                        set.Add(item);
+                    }
+
+                    foreach (var item in removes)
+                    {
+                        set.Remove(item);
+                    }
+
+                    return (set.Count != 0, set);
+                }
             }
             else
             {
-                bag.Clear();
-            }
-
-            await Parallel.ForEachAsync(set.Values, cancellationToken, (pair, token) =>
-            {
-                var (key, value) = pair;
-                if (value is { Length: > 0 })
+                var set = new HashSet<uint>(tags);
+                foreach (var item in removes)
                 {
-                    foreach (var text in Partials)
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            return ValueTask.FromCanceled(token);
-                        }
-
-                        if (value.Contains(text))
-                        {
-                            bag.Add(key);
-                        }
-                    }
+                    set.Remove(item);
                 }
 
-                return ValueTask.CompletedTask;
-            });
-            PartialSet = new(bag);
+                return (set.Count != 0, set);
+            }
         }
-
-        if (IgnorePartials is { Length: > 0 })
+        else
         {
-            if (bag is null)
+            if (adds is { Length: > 0 })
             {
-                bag = new();
+                var set = new HashSet<uint>(tags);
+                foreach (var item in adds)
+                {
+                    set.Add(item);
+                }
+
+                return (set.Count != 0, set);
             }
             else
             {
-                bag.Clear();
+                return (tags.Length != 0, tags);
             }
-
-            await Parallel.ForEachAsync(set.Values, cancellationToken, (pair, token) =>
-            {
-                var (key, value) = pair;
-                if (value is { Length: > 0 })
-                {
-                    foreach (var text in IgnorePartials)
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            return ValueTask.FromCanceled(token);
-                        }
-
-                        if (value.Contains(text))
-                        {
-                            bag.Add(key);
-                        }
-                    }
-                }
-
-                return ValueTask.CompletedTask;
-            });
-            IgnorePartialSet = new(bag);
         }
     }
 
-    public bool Filter(uint[] tags, uint[]? extraTags, uint[]? extraFakeTags)
+    private static bool ContainsAll(HashSet<uint> set, IEnumerable<uint> tags)
     {
-        var set = new HashSet<uint>(tags);
-        if (extraTags is { Length: > 0 })
+        foreach (var tag in tags)
         {
-            foreach (var tag in tags)
+            if (!set.Contains(tag))
             {
-                set.Add(tag);
+                return false;
             }
         }
 
-        if (extraFakeTags is { Length: > 0 })
-        {
+        return true;
+    }
 
-            foreach (var tag in extraFakeTags)
+    private static bool ContainsAny(HashSet<uint> set, IEnumerable<uint> tags)
+    {
+        foreach (var tag in tags)
+        {
+            if (set.Contains(tag))
             {
-                set.Remove(tag);
+                return true;
             }
         }
 
-        if (Exacts is { Length: > 0 })
+        return false;
+    }
+
+    public bool Filter(uint[] tags, uint[]? adds, uint[]? removes)
+    {
+        var (notEmpty, enumerable) = CalculateHash(tags, adds, removes);
+        if (setExact is not null)
         {
-            if (tagSet is not { Reverses: { Count: > 0 } dictionary })
+            if (!notEmpty)
             {
                 return false;
             }
 
             if (ExactOr)
             {
-                foreach (var item in Exacts)
+                if (!ContainsAny(setExact, enumerable))
                 {
-                    if (dictionary.TryGetValue(item, out var tag) && set.Contains(tag))
-                    {
-                        goto OK;
-                    }
+                    return false;
                 }
-
-                return false;
-            OK:;
             }
             else
             {
-                foreach (var item in Exacts)
+                if (!ContainsAll(setExact, enumerable))
                 {
-                    if (!dictionary.TryGetValue(item, out var tag) || !set.Contains(tag))
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        if (IgnoreExacts is { Length: > 0 })
-        {
-            if (tagSet is { Reverses: { Count: > 0 } dictionary })
-            {
-                if (IgnoreExactOr)
-                {
-                    foreach (var item in IgnoreExacts)
-                    {
-                        if (dictionary.TryGetValue(item, out var key) && set.Contains(key))
-                        {
-                            return false;
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var item in IgnoreExacts)
-                    {
-                        if (!dictionary.TryGetValue(item, out var key) || !set.Contains(key))
-                        {
-                            goto OK;
-                        }
-                    }
-
                     return false;
-                OK:;
                 }
             }
         }
 
-        if (PartialSet is not null)
+        if (setIgnoreExact is not null && notEmpty)
         {
+            if (IgnoreExactOr)
+            {
+                if (ContainsAny(setIgnoreExact, enumerable))
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                if (ContainsAll(setIgnoreExact, enumerable))
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (setPartial is not null)
+        {
+            if (!notEmpty)
+            {
+                return false;
+            }
+
             if (PartialOr)
             {
-                foreach (var item in set)
+                if (!ContainsAny(setPartial, enumerable))
                 {
-                    if (PartialSet.Contains(item))
-                    {
-                        goto OK;
-                    }
+                    return false;
                 }
-
-                return false;
-            OK:;
             }
             else
             {
-                foreach (var item in set)
+                if (!ContainsAll(setPartial, enumerable))
                 {
-                    if (!PartialSet.Contains(item))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
         }
 
-        if (IgnorePartialSet is not null)
+        if (setIgnorePartial is not null && notEmpty)
         {
             if (IgnorePartialOr)
             {
-                foreach (var item in set)
+                if (ContainsAny(setIgnorePartial, enumerable))
                 {
-                    if (IgnorePartialSet.Contains(item))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
             else
             {
-                foreach (var item in set)
+                if (ContainsAll(setIgnorePartial, enumerable))
                 {
-                    if (!IgnorePartialSet.Contains(item))
-                    {
-                        goto OK;
-                    }
+                    return false;
                 }
-
-                return false;
-            OK:;
             }
         }
 

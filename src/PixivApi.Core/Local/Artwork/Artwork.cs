@@ -190,7 +190,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
     public string? UserName { get; private set; }
 
-    public void Stringify(ConcurrentDictionary<ulong, User> userDictionary, StringSet tagSet, StringSet toolSet)
+    public async ValueTask StringifyAsync(IUserDatabase userDatabase, ITagDatabase tagDatabase, IToolDatabase toolDatabase, CancellationToken token)
     {
         HashSet<uint> set = new(Tags);
         if (ExtraTags is { Length: > 0 })
@@ -209,9 +209,49 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
             }
         }
 
-        StringifiedTags = set.Count == 0 ? Array.Empty<string>() : set.Select(x => tagSet.Values[x]);
-        StringifiedTools = Tools.Select(x => toolSet.Values[x]);
-        UserName = userDictionary[UserId].Name;
+        if (set.Count == 0)
+        {
+            StringifiedTags = Array.Empty<string>();
+        }
+        else
+        {
+            var tagSet = new HashSet<string>(set.Count);
+            foreach (var item in set)
+            {
+                var tag = await tagDatabase.GetTagAsync(item, token).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(tag))
+                {
+                    continue;
+                }
+
+                tagSet.Add(tag);
+            }
+
+            StringifiedTags = tagSet;
+        }
+
+        if (Tools.Length == 0)
+        {
+            StringifiedTools = Array.Empty<string>();
+        }
+        else
+        {
+            var toolSet = new HashSet<string>(Tools.Length);
+            foreach (var item in Tools)
+            {
+                var tool = await toolDatabase.GetToolAsync(item, token).ConfigureAwait(false);
+                if (string.IsNullOrEmpty(tool))
+                {
+                    continue;
+                }
+
+                toolSet.Add(tool);
+            }
+
+            StringifiedTools = toolSet;
+        }
+
+        UserName = (await userDatabase.GetUserAsync(UserId, token).ConfigureAwait(false))?.Name;
         stringify = true;
     }
 

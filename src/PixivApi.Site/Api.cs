@@ -5,61 +5,30 @@ namespace PixivApi.Site;
 
 public static class Api
 {
-    private static ArtworkFilter? ParseFilter(string? filter)
+    public static async Task<IResult> CountAsync([FromQuery] string? filter, [FromServices] IDatabaseFactory databaseFactory, [FromServices] FinderFacade finderFacade, [FromServices] IArtworkFilterFactory<ReadOnlyMemory<char>> filterFactory, CancellationToken token)
     {
-        ArtworkFilter? artworkFilter = null;
-        if (!string.IsNullOrWhiteSpace(filter))
-        {
-            try
-            {
-                artworkFilter = IOUtility.JsonDeserialize<ArtworkFilter>(filter);
-            }
-            catch
-            {
-            }
-        }
-
-        return artworkFilter;
-    }
-
-    public static async Task<IResult> CountAsync([FromQuery] string? filter, [FromServices] DatabaseFile database, [FromServices] FinderFacade finderFacade, CancellationToken token)
-    {
-        var artworkFilter = ParseFilter(filter);
+        var artworkFilter = string.IsNullOrWhiteSpace(filter) ? null : await filterFactory.CreateAsync(filter.AsMemory(), token).ConfigureAwait(false);
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
 
         if (artworkFilter is null)
         {
-            return Results.Ok((ulong)database.ArtworkDictionary.Count);
+            return Results.Ok(await database.CountArtworkAsync(token).ConfigureAwait(false));
         }
 
-        await artworkFilter.InitializeAsync(finderFacade, database.UserDictionary, database.TagSet, token).ConfigureAwait(false);
-
-        var count = 0UL;
-        await Parallel.ForEachAsync(database.ArtworkDictionary.Values, token, (artwork, token) =>
-        {
-            if (token.IsCancellationRequested)
-            {
-                return ValueTask.FromCanceled(token);
-            }
-
-            if (artworkFilter.Filter(artwork))
-            {
-                _ = Interlocked.Increment(ref count);
-            }
-
-            return ValueTask.CompletedTask;
-        }).ConfigureAwait(false);
+        var count = await database.CountArtworkAsync(artworkFilter, token).ConfigureAwait(false);
         return Results.Ok(count);
     }
 
-    public static Task<IResult> MapAsync([FromQuery] string? filter, [FromQuery(Name = "to-string")] bool? toString, bool? ugoira, bool? thumbnail, bool? original, [FromServices] DatabaseFile database, [FromServices] FinderFacade finderFacade, [FromServices] JsonSerializerOptions jsonSerializerOptions, CancellationToken token)
+    public static async Task<IResult> MapAsync([FromQuery] string? filter, [FromQuery(Name = "to-string")] bool? toString, bool? ugoira, bool? thumbnail, bool? original, [FromServices] IDatabaseFactory databaseFactory, [FromServices] FinderFacade finderFacade, [FromServices] JsonSerializerOptions jsonSerializerOptions, [FromServices] IArtworkFilterFactory<ReadOnlyMemory<char>> filterFactory, CancellationToken token)
     {
-        var artworkFilter = ParseFilter(filter);
+        var artworkFilter = await filterFactory.CreateAsync(filter.AsMemory(), token).ConfigureAwait(false);
         if (artworkFilter is null)
         {
-            return Task.FromResult(Results.BadRequest("empty filter error"));
+            return Results.BadRequest("empty filter error");
         }
 
-        var enumerable = FilterExtensions.CreateAsyncEnumerable(finderFacade, database, artworkFilter, token);
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
+        var enumerable = database.ArtworkFilterAsync(artworkFilter, token);
         var shouldStringify = (!toString.HasValue || toString.Value) ? database : null;
         var ugoiraZipFinder = ugoira == true ? finderFacade.UgoiraZipFinder : null;
         var ugoiraThumbnailFinder = thumbnail == true ? finderFacade.UgoiraThumbnailFinder : null;
@@ -67,33 +36,31 @@ public static class Api
         var thumbnailFinder = thumbnail == true ? finderFacade.IllustThumbnailFinder : null;
         var originalFinder = original == true ? finderFacade.IllustOriginalFinder : null;
         var response = new ArtworkWithFileUrlAsyncResponses(enumerable, shouldStringify, ugoiraZipFinder, ugoiraThumbnailFinder, ugoiraOriginalFinder, thumbnailFinder, originalFinder, jsonSerializerOptions);
-        return Task.FromResult<IResult>(response);
+        return response;
     }
 
-    public static Task<IResult> HideAsync([FromRoute] ulong id, [FromQuery(Name = "reason")] string reasonText, HttpContext context, [FromServices] DatabaseFile database)
+    public static async Task<IResult> HideAsync([FromRoute] ulong id, [FromQuery(Name = "reason")] string reasonText, HttpContext context, [FromServices] IDatabaseFactory databaseFactory)
     {
         var token = context.RequestAborted;
-        if (token.IsCancellationRequested)
-        {
-            return Task.FromCanceled<IResult>(token);
-        }
-
+        token.ThrowIfCancellationRequested();
         if (context.Request.Method != HttpMethod.Patch.Method)
         {
-            return Task.FromResult(Results.BadRequest("Http method must be PATCH."));
+            return Results.BadRequest("Http method must be PATCH.");
         }
 
-        if (!database.ArtworkDictionary.TryGetValue(id, out var artwork))
+        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
+        var artwork = await database.GetArtworkAsync(id, token).ConfigureAwait(false);
+        if (artwork is null)
         {
-            return Task.FromResult(Results.NotFound());
+            return Results.NotFound();
         }
 
         if (!HideReasonConverter.TryParse(reasonText, out var reason))
         {
-            return Task.FromResult(Results.BadRequest(reasonText + " is not supported reason."));
+            return Results.BadRequest(reasonText + " is not supported reason.");
         }
 
         artwork.ExtraHideReason = reason;
-        return Task.FromResult(Results.Ok());
+        return Results.Ok();
     }
 }

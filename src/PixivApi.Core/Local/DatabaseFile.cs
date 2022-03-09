@@ -1,15 +1,17 @@
 ﻿namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
-public sealed class DatabaseFile : IDatabase<Artwork>
+public sealed class DatabaseFile : IDatabase
 {
-    [Key(0x00)] public uint MajorVersion;
-    [Key(0x01)] public uint MinorVersion;
-    [Key(0x02)] public ConcurrentDictionary<ulong, Artwork> ArtworkDictionary;
-    [Key(0x03)] public ConcurrentDictionary<ulong, User> UserDictionary;
-    [Key(0x04)] public StringSet TagSet;
-    [Key(0x05)] public StringSet ToolSet;
-    [Key(0x06)] public RankingSet RankingSet;
+    [Key(0x00)] private readonly uint MajorVersion;
+    [Key(0x01)] private readonly uint MinorVersion;
+    [Key(0x02)] private readonly ConcurrentDictionary<ulong, Artwork> ArtworkDictionary;
+    [Key(0x03)] private readonly ConcurrentDictionary<ulong, User> UserDictionary;
+    [Key(0x04)] private readonly StringSet TagSet;
+    [Key(0x05)] private readonly StringSet ToolSet;
+    [Key(0x06)] private readonly RankingSet RankingSet;
+
+    internal int IsChanged = 0;
 
     public DatabaseFile()
     {
@@ -33,62 +35,276 @@ public sealed class DatabaseFile : IDatabase<Artwork>
         RankingSet = rankingSet;
     }
 
-    ValueTask<bool> IDatabase<Artwork>.AddOrUpdateAsync<TArg>(ulong id, Func<TArg, Artwork> addFunc, Action<Artwork, TArg> updateFunc, TArg arg, CancellationToken token)
-    {
-        if (token.IsCancellationRequested)
-        {
-            return ValueTask.FromCanceled<bool>(token);
-        }
+    public Version Version => new((int)MajorVersion, (int)MinorVersion);
 
-        var add = true;
-        ArtworkDictionary.AddOrUpdate(id, (_, arg) => addFunc(arg), (_, artwork, arg) =>
+    public ValueTask AddOrUpdateAsync(ulong id, DatabaseAddArtworkFunc add, DatabaseUpdateArtworkFunc update, CancellationToken token)
+    {
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        ArtworkDictionary.AddOrUpdate(id, (_, pair) =>
         {
-            add = false;
-            updateFunc(artwork, arg);
-            return artwork;
-        }, arg);
-        return ValueTask.FromResult(add);
+            var (add, _, token) = pair;
+            return add(token).AsTask().Result;
+        }, (_, value, pair) =>
+        {
+            var (_, update, token) = pair;
+            update(value, token).AsTask().Wait();
+            return value;
+        }, (add, update, token));
+        return ValueTask.CompletedTask;
     }
 
-    async ValueTask<IEnumerable<Artwork>> IDatabase<Artwork>.EnumerateAsync(IFilter<Artwork> filter, CancellationToken token)
+    public ValueTask AddOrUpdateAsync(ulong id, DatabaseAddUserFunc add, DatabaseUpdateUserFunc update, CancellationToken token)
     {
-        var bag = new ConcurrentBag<Artwork>();
-        await Parallel.ForEachAsync(ArtworkDictionary.Values, token, (artwork, token) =>
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        UserDictionary.AddOrUpdate(id, (_, pair) =>
+        {
+            var (add, _, token) = pair;
+            return add(token).AsTask().Result;
+        }, (_, value, pair) =>
+        {
+            var (_, update, token) = pair;
+            update(value, token).AsTask().Wait();
+            return value;
+        }, (add, update, token));
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask AddOrUpdateRankingAsync(DateOnly date, RankingKind kind, ulong[] values, CancellationToken token)
+    {
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        RankingSet.AddOrUpdate(new RankingSet.Pair(date, kind), values, (_, _) => values);
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask<ulong> CountArtworkAsync(CancellationToken token) => ValueTask.FromResult((ulong)ArtworkDictionary.Count);
+
+    public async ValueTask<ulong> CountArtworkAsync(IFilter<Artwork> filter, CancellationToken token)
+    {
+        var answer = 0UL;
+        var hasSlower = filter.HasSlowFilter;
+        await Parallel.ForEachAsync(ArtworkDictionary.Values, token, async (item, token) =>
+        {
+            if (!filter.FastFilter(this, item))
+            {
+                return;
+            }
+
+            if (hasSlower && !await filter.SlowFilter(this, item, token).ConfigureAwait(false))
+            {
+                return;
+            }
+
+            _ = Interlocked.Increment(ref answer);
+        }).ConfigureAwait(false);
+        return answer;
+    }
+
+    public ValueTask<ulong> CountRankingAsync(CancellationToken token) => ValueTask.FromResult((ulong)RankingSet.Count);
+
+    public ValueTask<ulong> CountTagAsync(CancellationToken token) => ValueTask.FromResult((ulong)TagSet.Reverses.Count);
+
+    public ValueTask<ulong> CountToolAsync(CancellationToken token) => ValueTask.FromResult((ulong)ToolSet.Reverses.Count);
+
+    public ValueTask<ulong> CountUserAsync(CancellationToken token) => ValueTask.FromResult((ulong)UserDictionary.Count);
+
+#pragma warning disable CS1998
+    public async IAsyncEnumerable<Artwork> EnumerableArtworkAsync([EnumeratorCancellation] CancellationToken token)
+#pragma warning restore CS1998
+    {
+        foreach (var item in ArtworkDictionary.Values)
+        {
+            if (token.IsCancellationRequested)
+            {
+                yield break;
+            }
+
+            yield return item;
+        }
+    }
+
+#pragma warning disable CS1998
+    public async IAsyncEnumerable<User> EnumerableUserAsync([EnumeratorCancellation] CancellationToken token)
+#pragma warning restore CS1998
+    {
+        foreach (var item in UserDictionary.Values)
+        {
+            if (token.IsCancellationRequested)
+            {
+                yield break;
+            }
+
+            yield return item;
+        }
+    }
+
+    public async IAsyncEnumerable<uint> EnumeratePartialMatchAsync(string key, [EnumeratorCancellation] CancellationToken token)
+    {
+        ConcurrentBag<uint> bag = new();
+        await Parallel.ForEachAsync(TagSet.Reverses, token, (pair, token) =>
         {
             if (token.IsCancellationRequested)
             {
                 return ValueTask.FromCanceled(token);
             }
 
-            if (filter.FastFilter(artwork))
+            var (text, number) = pair;
+            if (text.Contains(key))
             {
-                bag.Add(artwork);
+                bag.Add(number);
             }
 
             return ValueTask.CompletedTask;
         }).ConfigureAwait(false);
 
-        return filter.HasSlowFilter ? bag.Where(filter.SlowFilter) : (IEnumerable<Artwork>)bag;
+        foreach (var item in bag)
+        {
+            yield return item;
+        }
     }
 
-    ValueTask<Artwork?> IDatabase<Artwork>.GetAsync(ulong id, CancellationToken token) => token.IsCancellationRequested
-        ? ValueTask.FromCanceled<Artwork?>(token)
-        : ValueTask.FromResult(ArtworkDictionary.TryGetValue(id, out var artwork) ? artwork : null);
-
-    ValueTask<bool> IDatabase<Artwork>.GetOrAddAsync<TArg>(ulong id, Func<TArg, Artwork> addFunc, TArg arg, CancellationToken token)
+    public async IAsyncEnumerable<Artwork> FilterAsync(IFilter<Artwork> filter, [EnumeratorCancellation] CancellationToken token)
     {
         if (token.IsCancellationRequested)
         {
-            return ValueTask.FromCanceled<bool>(token);
+            yield break;
         }
 
-        var get = true;
-        _ = ArtworkDictionary.GetOrAdd(id, (_, arg) =>
+        var bag = new ConcurrentBag<Artwork>();
+        await Parallel.ForEachAsync(ArtworkDictionary.Values, token, (item, token) =>
         {
-            get = false;
-            return addFunc(arg);
-        }, arg);
-        return ValueTask.FromResult(get);
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
+            if (filter.FastFilter(this, item))
+            {
+                bag.Add(item);
+            }
+
+            return ValueTask.CompletedTask;
+        }).ConfigureAwait(false);
+        if (filter.HasSlowFilter)
+        {
+            foreach (var item in bag)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
+                if (await filter.SlowFilter(this, item, token).ConfigureAwait(false))
+                {
+                    yield return item;
+                }
+            }
+        }
+        else
+        {
+            foreach (var item in bag)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
+                yield return item;
+            }
+        }
+    }
+
+    public async IAsyncEnumerable<User> FilterAsync(IFilter<User> filter, [EnumeratorCancellation] CancellationToken token)
+    {
+        if (token.IsCancellationRequested)
+        {
+            yield break;
+        }
+
+        var bag = new ConcurrentBag<User>();
+        await Parallel.ForEachAsync(UserDictionary.Values, token, (item, token) =>
+        {
+            if (token.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled(token);
+            }
+
+            if (filter.FastFilter(this, item))
+            {
+                bag.Add(item);
+            }
+
+            return ValueTask.CompletedTask;
+        }).ConfigureAwait(false);
+
+        if (filter.HasSlowFilter)
+        {
+            foreach (var item in bag)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
+                if (await filter.SlowFilter(this, item, token).ConfigureAwait(false))
+                {
+                    yield return item;
+                }
+            }
+        }
+        else
+        {
+            foreach (var item in bag)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    yield break;
+                }
+
+                yield return item;
+            }
+        }
+    }
+
+    public ValueTask<uint?> FindTagAsync(string key, CancellationToken token) => throw new NotImplementedException();
+
+    public ValueTask<Artwork?> GetArtworkAsync(ulong id, CancellationToken token) => ValueTask.FromResult(ArtworkDictionary.TryGetValue(id, out var answer) ? answer : null);
+
+    public ValueTask<Artwork> GetOrAddAsync(ulong id, DatabaseAddArtworkFunc add, CancellationToken token)
+    {
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        return ValueTask.FromResult(ArtworkDictionary.GetOrAdd(id, (_, token) =>
+        {
+            return add(token).AsTask().Result;
+        }, token));
+    }
+
+    public ValueTask<User> GetOrAddAsync(ulong id, DatabaseAddUserFunc add, CancellationToken token)
+    {
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        return ValueTask.FromResult(UserDictionary.GetOrAdd(id, (_, token) =>
+        {
+            return add(token).AsTask().Result;
+        }, token));
+    }
+
+    public ValueTask<ulong[]?> GetRankingAsync(DateOnly date, RankingKind kind, CancellationToken token) => ValueTask.FromResult(RankingSet.TryGetValue(new(date, kind), out var answer) ? answer : null);
+
+    public ValueTask<string?> GetTagAsync(uint id, CancellationToken token) => ValueTask.FromResult(TagSet.Values.TryGetValue(id, out var answer) ? answer : null);
+
+    public ValueTask<string?> GetToolAsync(uint id, CancellationToken token) => ValueTask.FromResult(ToolSet.Values.TryGetValue(id, out var answer) ? answer : null);
+
+    public ValueTask<User?> GetUserAsync(ulong id, CancellationToken token) => ValueTask.FromResult(UserDictionary.TryGetValue(id, out var answer) ? answer : null);
+
+    public ValueTask<uint> RegisterTagAsync(string value, CancellationToken token)
+    {
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        return ValueTask.FromResult(TagSet.Register(value));
+    }
+
+    public ValueTask<uint> RegisterToolAsync(string value, CancellationToken token)
+    {
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        return ValueTask.FromResult(ToolSet.Register(value));
     }
 
     public sealed class Formatter : IMessagePackFormatter<DatabaseFile?>
