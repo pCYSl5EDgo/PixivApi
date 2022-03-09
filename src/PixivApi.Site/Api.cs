@@ -28,7 +28,7 @@ public static class Api
         }
 
         var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
-        var enumerable = database.ArtworkFilterAsync(artworkFilter, token);
+        var enumerable = database.FastArtworkFilterAsync(artworkFilter, token);
         var shouldStringify = (!toString.HasValue || toString.Value) ? database : null;
         var ugoiraZipFinder = ugoira == true ? finderFacade.UgoiraZipFinder : null;
         var ugoiraThumbnailFinder = thumbnail == true ? finderFacade.UgoiraThumbnailFinder : null;
