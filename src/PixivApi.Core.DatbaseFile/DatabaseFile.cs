@@ -10,7 +10,7 @@ using MessagePack.Formatters;
 namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
-public sealed class DatabaseFile : IDatabase
+internal sealed class DatabaseFile : IDatabase
 {
     [Key(0x00)] private readonly uint MajorVersion;
     [Key(0x01)] private readonly uint MinorVersion;
