@@ -22,9 +22,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.UgoiraConve
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.JpegXl", "plugin\PixivApi.Plugin.JpegXl\PixivApi.Plugin.JpegXl.csproj", "{2FE42246-504C-49D6-AB3C-A55734651AB5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.Console.Utility", "src\PixivApi.Console.Utility\PixivApi.Console.Utility.csproj", "{31346F46-A479-4E77-927C-D05627B8CC51}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Console.Utility", "src\PixivApi.Console.Utility\PixivApi.Console.Utility.csproj", "{31346F46-A479-4E77-927C-D05627B8CC51}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CollectAllUserInfoPlugin", "plugin\CollectAllUserInfoPlugin\CollectAllUserInfoPlugin.csproj", "{305C05F3-8ADA-448D-B844-A69B89DD74E7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CollectAllUserInfoPlugin", "plugin\CollectAllUserInfoPlugin\CollectAllUserInfoPlugin.csproj", "{305C05F3-8ADA-448D-B844-A69B89DD74E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PixivApi.Core.DatbaseFile", "src\PixivApi.Core.DatbaseFile\PixivApi.Core.DatbaseFile.csproj", "{7E155E3F-0411-4B16-A11E-275985FC6942}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -68,6 +70,10 @@ Global
 		{305C05F3-8ADA-448D-B844-A69B89DD74E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{305C05F3-8ADA-448D-B844-A69B89DD74E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{305C05F3-8ADA-448D-B844-A69B89DD74E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7E155E3F-0411-4B16-A11E-275985FC6942}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7E155E3F-0411-4B16-A11E-275985FC6942}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7E155E3F-0411-4B16-A11E-275985FC6942}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7E155E3F-0411-4B16-A11E-275985FC6942}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

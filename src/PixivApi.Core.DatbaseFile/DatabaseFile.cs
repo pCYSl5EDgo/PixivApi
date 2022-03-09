@@ -1,4 +1,13 @@
-﻿namespace PixivApi.Core.Local;
+﻿using DatabaseAddArtworkFunc = System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<PixivApi.Core.Local.Artwork>>;
+using DatabaseAddUserFunc = System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<PixivApi.Core.Local.User>>;
+using DatabaseUpdateArtworkFunc = System.Func<PixivApi.Core.Local.Artwork, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>;
+using DatabaseUpdateUserFunc = System.Func<PixivApi.Core.Local.User, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask>;
+using MessagePack;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
+using MessagePack.Formatters;
+
+namespace PixivApi.Core.Local;
 
 [MessagePackFormatter(typeof(Formatter))]
 public sealed class DatabaseFile : IDatabase
