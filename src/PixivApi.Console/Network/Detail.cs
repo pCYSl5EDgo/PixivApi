@@ -17,10 +17,10 @@ public partial class NetworkClient
             return;
         }
 
-        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
         var logger = Context.Logger;
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong update = 0;
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
             var collection = database.ArtworkFilterAsync(artworkFilter, token);
@@ -93,6 +93,8 @@ public partial class NetworkClient
                 var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
                 logger.LogInformation($"Total: {artworkCount} Update: {update}");
             }
+
+            databaseFactory.Return(ref database);
         }
     }
 

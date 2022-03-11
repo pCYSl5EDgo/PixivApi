@@ -5,16 +5,14 @@ namespace PixivApi.Core.Local;
 
 public sealed class FileArtworkFilterFactory : IArtworkFilterFactory<FileInfo>
 {
-    private readonly IDatabaseFactory factory;
     private readonly IServiceProvider provider;
 
-    public FileArtworkFilterFactory(IDatabaseFactory factory, IServiceProvider provider)
+    public FileArtworkFilterFactory(IServiceProvider provider)
     {
-        this.factory = factory;
         this.provider = provider;
     }
 
-    public async ValueTask<ArtworkFilter?> CreateAsync(FileInfo source, CancellationToken token)
+    public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, FileInfo source, CancellationToken token)
     {
         if (!source.Exists || source.Length == 0)
         {
@@ -27,7 +25,6 @@ public sealed class FileArtworkFilterFactory : IArtworkFilterFactory<FileInfo>
             return null;
         }
 
-        var database = await factory.CreateAsync(token).ConfigureAwait(false);
         await filter.InitializeAsync(database, provider.GetRequiredService<FinderFacade>, token).ConfigureAwait(false);
         return filter;
     }

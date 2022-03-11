@@ -5,16 +5,14 @@ namespace PixivApi.Core.Local;
 
 public sealed class ContentArtworkFilterFactory : IArtworkFilterFactory<ReadOnlyMemory<byte>>, IArtworkFilterFactory<ReadOnlyMemory<char>>
 {
-    private readonly IDatabaseFactory factory;
     private readonly IServiceProvider provider;
 
-    public ContentArtworkFilterFactory(IDatabaseFactory factory, IServiceProvider provider)
+    public ContentArtworkFilterFactory(IServiceProvider provider)
     {
-        this.factory = factory;
         this.provider = provider;
     }
 
-    public async ValueTask<ArtworkFilter?> CreateAsync(ReadOnlyMemory<byte> source, CancellationToken token)
+    public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, ReadOnlyMemory<byte> source, CancellationToken token)
     {
         if (source.Length == 0)
         {
@@ -27,12 +25,11 @@ public sealed class ContentArtworkFilterFactory : IArtworkFilterFactory<ReadOnly
             return null;
         }
 
-        var database = await factory.CreateAsync(token).ConfigureAwait(false);
         await filter.InitializeAsync(database, provider.GetRequiredService<FinderFacade>, token).ConfigureAwait(false);
         return filter;
     }
 
-    public async ValueTask<ArtworkFilter?> CreateAsync(ReadOnlyMemory<char> source, CancellationToken token)
+    public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, ReadOnlyMemory<char> source, CancellationToken token)
     {
         if (source.Length == 0)
         {
@@ -45,7 +42,6 @@ public sealed class ContentArtworkFilterFactory : IArtworkFilterFactory<ReadOnly
             return null;
         }
 
-        var database = await factory.CreateAsync(token).ConfigureAwait(false);
         await filter.InitializeAsync(database, provider.GetRequiredService<FinderFacade>, token).ConfigureAwait(false);
         return filter;
     }

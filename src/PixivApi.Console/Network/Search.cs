@@ -38,7 +38,7 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var databaseTask = databaseFactory.CreateAsync(token);
+        var databaseTask = databaseFactory.RentAsync(token);
         var database = default(IDatabase);
         var responseList = default(List<ArtworkResponseContent>);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
@@ -161,6 +161,8 @@ public partial class NetworkClient
                 var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
                 logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
             }
+
+            databaseFactory.Return(ref database);
         }
     }
 

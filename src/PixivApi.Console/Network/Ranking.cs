@@ -16,7 +16,7 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         System.Console.Error.WriteLine($"Start loading database. Time: {DateTime.Now}");
-        var databaseTask = databaseFactory.CreateAsync(token);
+        var databaseTask = databaseFactory.RentAsync(token);
         var add = 0UL;
         var rankingList = new List<ArtworkResponseContent>(300);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
@@ -37,9 +37,9 @@ public partial class NetworkClient
         }
         finally
         {
+            var database = await databaseTask.ConfigureAwait(false);
             if (rankingList.Count != 0)
             {
-                var database = await databaseTask.ConfigureAwait(false);
                 var rankingArray = new ulong[rankingList.Count];
                 for (var i = 0; i < rankingArray.Length; i++)
                 {
@@ -68,13 +68,15 @@ public partial class NetworkClient
                 }
 
                 await database.AddOrUpdateRankingAsync(date ?? DateOnly.FromDateTime(DateTime.Now), ranking, rankingArray, token).ConfigureAwait(false);
-                
+
                 if (!System.Console.IsOutputRedirected)
                 {
                     var databaseCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
                     Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
                 }
             }
+            
+            databaseFactory.Return(ref database);
         }
     }
 

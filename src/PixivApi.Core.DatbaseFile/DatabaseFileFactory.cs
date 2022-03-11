@@ -10,7 +10,7 @@ public sealed class DatabaseFileFactory : IDatabaseFactory
         path = configSettings.DatabaseFilePath ?? throw new NullReferenceException();
     }
 
-    public async ValueTask<IDatabase> CreateAsync(CancellationToken token)
+    public async ValueTask<IDatabase> RentAsync(CancellationToken token)
     {
         if (databaseFile is not null)
         {
@@ -21,6 +21,8 @@ public sealed class DatabaseFileFactory : IDatabaseFactory
         var answer = Interlocked.CompareExchange(ref databaseFile, value, null);
         return answer ?? value;
     }
+
+    public void Return(ref IDatabase database) => database = null;
 
     public async ValueTask DisposeAsync()
     {

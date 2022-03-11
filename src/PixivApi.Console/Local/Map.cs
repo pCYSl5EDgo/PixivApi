@@ -13,56 +13,53 @@ public partial class LocalClient
         }
 
         var token = Context.CancellationToken;
-        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
-        if (database is null)
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        try
         {
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogInformation("null");
-            }
-
-            return;
-        }
-
-        var artworkFilter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await filterFactory.CreateAsync(new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
-        if (token.IsCancellationRequested)
-        {
-            return;
-        }
-
-        var first = true;
-        if (!System.Console.IsOutputRedirected)
-        {
-            logger.LogInformation("[");
-        }
-
-        var collection = artworkFilter is null ? database.EnumerableArtworkAsync(token) : database.ArtworkFilterAsync(artworkFilter, token);
-        await foreach (var item in collection)
-        {
+            var artworkFilter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
             if (token.IsCancellationRequested)
             {
                 return;
             }
 
-            if (toString)
+            var first = true;
+            if (!System.Console.IsOutputRedirected)
             {
-                await item.StringifyAsync(database, database, database, token).ConfigureAwait(false);
+                logger.LogInformation("[");
             }
 
-            if (first)
+            var collection = artworkFilter is null ? database.EnumerableArtworkAsync(token) : database.ArtworkFilterAsync(artworkFilter, token);
+            await foreach (var item in collection)
             {
-                first = false;
-                logger.LogInformation(IOUtility.JsonStringSerialize(item, true));
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                if (toString)
+                {
+                    await item.StringifyAsync(database, database, database, token).ConfigureAwait(false);
+                }
+
+                if (first)
+                {
+                    first = false;
+                    logger.LogInformation(IOUtility.JsonStringSerialize(item, true));
+                }
+                else
+                {
+                    logger.LogInformation($", {IOUtility.JsonStringSerialize(item, true)}");
+                }
             }
-            else
+
+            if (!System.Console.IsOutputRedirected)
             {
-                logger.LogInformation($", {IOUtility.JsonStringSerialize(item, true)}");
+                logger.LogInformation("]");
             }
         }
-
-        if (!System.Console.IsOutputRedirected)
+        finally
         {
-            logger.LogInformation("]");
+            databaseFactory.Return(ref database);
         }
     }
 }

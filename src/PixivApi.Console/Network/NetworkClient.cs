@@ -24,7 +24,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
     private async ValueTask DownloadArtworkResponses(bool addBehaviour, string url, CancellationToken token)
     {
         var logger = Context.Logger;
-        var databaseTask = databaseFactory.CreateAsync(token);
+        var databaseTask = databaseFactory.RentAsync(token);
         // When addBehaviour is false, we should wait for the database initialization in order not to query unneccessarily.
         var database = addBehaviour ? null : await databaseTask.ConfigureAwait(false);
         var responseList = default(List<ArtworkResponseContent>);
@@ -149,6 +149,8 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
                 logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
             }
+
+            databaseFactory.Return(ref database);
         }
     }
 }

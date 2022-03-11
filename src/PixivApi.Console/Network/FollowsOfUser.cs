@@ -22,7 +22,7 @@ public partial class NetworkClient
 
         async ValueTask<IDatabase> LoadDatabaseAsync(string output, bool addBehaviour, CancellationToken token)
         {
-            var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
+            var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
             if (addBehaviour)
             {
                 await Parallel.ForEachAsync(database.EnumerableUserAsync(token), token, (user, token) =>
@@ -42,7 +42,6 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var databaseTask = LoadDatabaseAsync(configSettings.DatabaseFilePath, addBehaviour, token);
-        var database = default(IDatabase);
         var responseList = default(List<UserPreviewResponseContent>);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         var url = $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}";
@@ -52,11 +51,11 @@ public partial class NetworkClient
         {
             var isAdd = true;
             await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(item.Convert()), (v, _) =>
-                {
-                    isAdd = false;
-                    LocalNetworkConverter.Overwrite(v, item);
-                    return ValueTask.CompletedTask;
-                }, token).ConfigureAwait(false);
+            {
+                isAdd = false;
+                LocalNetworkConverter.Overwrite(v, item);
+                return ValueTask.CompletedTask;
+            }, token).ConfigureAwait(false);
 
             if (item.Illusts is { Length: > 0 } artworks)
             {
@@ -122,6 +121,7 @@ public partial class NetworkClient
             }
         }
 
+        var database = default(IDatabase);
         try
         {
             await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync).WithCancellation(token))
@@ -199,6 +199,8 @@ public partial class NetworkClient
                 var userCount = await database.CountUserAsync(token).ConfigureAwait(false);
                 logger.LogInformation($"User Total: {userCount} Add: {add} Update: {update}    Artwork Total: {artworkCount} Add: {addArtwork} Update: {updateArtwork}");
             }
+
+            databaseFactory.Return(ref database);
         }
     }
 }

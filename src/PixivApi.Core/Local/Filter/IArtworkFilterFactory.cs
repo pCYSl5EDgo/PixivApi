@@ -2,5 +2,5 @@
 
 public interface IArtworkFilterFactory<T>
 {
-    ValueTask<ArtworkFilter?> CreateAsync(T source, CancellationToken token);
+    ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, T source, CancellationToken token);
 }

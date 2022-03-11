@@ -15,72 +15,79 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var artworkFilter = await filterFactory.CreateAsync(new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
-        if (artworkFilter is not { FileExistanceFilter: { } fileFilter })
-        {
-            return;
-        }
-
-        var shouldDownloadOriginal = fileFilter.Original is not null;
-        var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
-        var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
-        if (!shouldDownloadOriginal && !shouldDownloadThumbnail && !shouldDownloadUgoira)
-        {
-            return;
-        }
-
         var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
-        var database = await databaseFactory.CreateAsync(token).ConfigureAwait(false);
-        var artworks = PrepareDownloadFileAsync(database, artworkFilter, configSettings.OriginalFolder, gigaByteCount);
-        if (artworks is null)
-        {
-            return;
-        }
-
-        var converter = encode ? Context.ServiceProvider.GetRequiredService<ConverterFacade>() : null;
-        var downloadItemCount = 0;
-        var alreadyCount = 0;
-        var machine = new DownloadAsyncMachine(this, database, token);
-        var logger = Context.Logger;
-        logger.LogInformation("Start downloading.");
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
-            await foreach (var artwork in artworks)
+            var artworkFilter = await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
+            if (artworkFilter is not { FileExistanceFilter: { } fileFilter })
             {
-                if (token.IsCancellationRequested)
+                return;
+            }
+
+            var artworks = PrepareDownloadFileAsync(database, artworkFilter, configSettings.OriginalFolder, gigaByteCount);
+            if (artworks is null)
+            {
+                return;
+            }
+
+            var shouldDownloadOriginal = fileFilter.Original is not null;
+            var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
+            var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
+            if (!shouldDownloadOriginal && !shouldDownloadThumbnail && !shouldDownloadUgoira)
+            {
+                return;
+            }
+
+            var converter = encode ? Context.ServiceProvider.GetRequiredService<ConverterFacade>() : null;
+            var downloadItemCount = 0;
+            var alreadyCount = 0;
+            var machine = new DownloadAsyncMachine(this, database, token);
+            var logger = Context.Logger;
+            logger.LogInformation("Start downloading.");
+            try
+            {
+                await foreach (var artwork in artworks)
                 {
-                    return;
+                    if (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+
+                    if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
+                    {
+                        return;
+                    }
+
+                    var downloadResult = artwork.Type == ArtworkType.Ugoira ?
+                        await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                        await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                    if ((downloadResult & DownloadResult.Success) != 0)
+                    {
+                        Interlocked.Increment(ref downloadItemCount);
+                    }
+                    else
+                    {
+                        Interlocked.Increment(ref alreadyCount);
+                    }
+                }
+            }
+            finally
+            {
+                if (!System.Console.IsOutputRedirected)
+                {
+                    logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ByteAmountUtility.ToDisplayable(machine.DownloadByteCount)}");
                 }
 
-                if ((machine.DownloadByteCount >> 30) >= gigaByteCount)
+                if (alreadyCount != 0)
                 {
-                    return;
-                }
-
-                var downloadResult = artwork.Type == ArtworkType.Ugoira ?
-                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
-                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
-                if ((downloadResult & DownloadResult.Success) != 0)
-                {
-                    Interlocked.Increment(ref downloadItemCount);
-                }
-                else
-                {
-                    Interlocked.Increment(ref alreadyCount);
+                    await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
                 }
             }
         }
         finally
         {
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ByteAmountUtility.ToDisplayable(machine.DownloadByteCount)}");
-            }
-
-            if (alreadyCount != 0)
-            {
-                await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
-            }
+            databaseFactory.Return(ref database);
         }
     }
 
