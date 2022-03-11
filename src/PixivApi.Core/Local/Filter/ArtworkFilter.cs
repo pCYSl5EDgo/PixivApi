@@ -26,9 +26,11 @@ public sealed class ArtworkFilter : IFilter<Artwork>
     [JsonPropertyName("width")] public MinMaxFilter? Width = null;
     [JsonPropertyName("hide-filter")] public HideFilter? HideFilter = null;
 
+    private IDatabase database = null!;
+
     public bool HasSlowFilter => FileExistanceFilter is not null || UserFilter is not null;
 
-    public bool FastFilter(IDatabase database, Artwork artwork)
+    public bool FastFilter(Artwork artwork)
     {
         if (HideFilter is null)
         {
@@ -142,6 +144,7 @@ public sealed class ArtworkFilter : IFilter<Artwork>
 
     public async ValueTask InitializeAsync(IDatabase database, Func<FinderFacade> finderFacadeFunc, CancellationToken cancellationToken)
     {
+        this.database = database;
         FileExistanceFilter?.Initialize(finderFacadeFunc());
 
         if (TagFilter is not null)
@@ -155,7 +158,7 @@ public sealed class ArtworkFilter : IFilter<Artwork>
         }
     }
 
-    public async ValueTask<bool> SlowFilter(IDatabase database, Artwork artwork, CancellationToken token)
+    public async ValueTask<bool> SlowFilter(Artwork artwork, CancellationToken token)
     {
         if (UserFilter is not null)
         {
