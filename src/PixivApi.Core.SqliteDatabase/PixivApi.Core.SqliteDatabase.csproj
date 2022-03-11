@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.0-pre20220207221914" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
+  </ItemGroup>
+</Project>
