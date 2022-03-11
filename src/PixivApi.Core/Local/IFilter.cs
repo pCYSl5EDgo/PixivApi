@@ -4,7 +4,7 @@ public interface IFilter<T>
 {
     bool HasSlowFilter { get; }
 
-    bool FastFilter(IDatabase database, T value);
+    bool FastFilter(T value);
 
-    ValueTask<bool> SlowFilter(IDatabase database, T value, CancellationToken token);
+    ValueTask<bool> SlowFilter(T value, CancellationToken token);
 }
