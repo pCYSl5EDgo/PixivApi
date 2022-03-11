@@ -52,7 +52,7 @@ public partial class LocalClient
 
             var count = 0UL;
             var mask = (1UL << maskPowerOf2) - 1UL;
-            await foreach (var artwork in database.FastArtworkFilterAsync(artworkFilter, token))
+            await foreach (var artwork in database.FilterAsync(artworkFilter, token))
             {
                 var c = ++count;
                 if (errorNotRedirected && (c & mask) == 0)
