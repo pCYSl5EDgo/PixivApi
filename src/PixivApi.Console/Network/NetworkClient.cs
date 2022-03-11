@@ -29,49 +29,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         var database = addBehaviour ? null : await databaseTask.ConfigureAwait(false);
         var responseList = default(List<ArtworkResponseContent>);
         ulong add = 0UL, update = 0UL;
-        async ValueTask<bool> RegisterNotShow(IDatabase database, ArtworkResponseContent item, CancellationToken token)
-        {
-            var isAdd = true;
-            await database.AddOrUpdateAsync(
-                item.Id,
-                async token => await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false),
-                async (artwork, token) =>
-                {
-                    isAdd = false;
-                    await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token).ConfigureAwait(false);
-                },
-                token
-            ).ConfigureAwait(false);
-            return isAdd;
-        }
-
-        async ValueTask RegisterShow(IDatabase database, ArtworkResponseContent item, CancellationToken token)
-        {
-            await database.AddOrUpdateAsync(
-                item.Id,
-                async token =>
-                {
-                    ++add;
-                    if (System.Console.IsOutputRedirected)
-                    {
-                        logger.LogInformation($"{item.Id}");
-                    }
-                    else
-                    {
-                        logger.LogInformation($"{add,4}: {item.Id,20}");
-                    }
-
-                    return await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
-                },
-                async (artwork, token) =>
-                {
-                    ++update;
-                    await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token);
-                },
-                token
-            ).ConfigureAwait(false);
-        }
-
         try
         {
             var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
@@ -104,7 +61,19 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     {
                         foreach (var item in responseList)
                         {
-                            (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
+                            if (await database.AddOrUpdateAsync(
+                                item.Id,
+                                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                                (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                                token
+                            ).ConfigureAwait(false))
+                            {
+                                ++add;
+                            }
+                            else
+                            {
+                                ++update;
+                            }
                         }
 
                         responseList = null;
@@ -114,7 +83,27 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
                 {
-                    await RegisterShow(database, item, token).ConfigureAwait(false);
+                    if (await database.AddOrUpdateAsync(
+                        item.Id,
+                        token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                        (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                        token
+                    ).ConfigureAwait(false))
+                    {
+                        ++add;
+                        if (System.Console.IsOutputRedirected)
+                        {
+                            logger.LogInformation($"{item.Id}");
+                        }
+                        else
+                        {
+                            logger.LogInformation($"{add,4}: {item.Id,20}");
+                        }
+                    }
+                    else
+                    {
+                        ++update;
+                    }
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -137,7 +126,19 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 {
                     foreach (var item in responseList)
                     {
-                        (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
+                        if (await database.AddOrUpdateAsync(
+                                item.Id,
+                                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                                (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                                token
+                            ).ConfigureAwait(false))
+                        {
+                            ++add;
+                        }
+                        else
+                        {
+                            ++update;
+                        }
                     }
 
                     responseList = null;

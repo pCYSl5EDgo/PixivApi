@@ -61,64 +61,22 @@ public partial class NetworkClient
             {
                 foreach (var artwork in artworks)
                 {
-                    await database.AddOrUpdateAsync(artwork.Id,
-                        async token =>
-                        {
-                            ++addArtwork;
-                            return await LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token).ConfigureAwait(false);
-                        },
-                        async (v, token) =>
-                        {
-                            ++updateArtwork;
-                            await LocalNetworkConverter.OverwriteAsync(v, artwork, database, database, database, token).ConfigureAwait(false);
-                        }, token).ConfigureAwait(false);
+                    if (await database.AddOrUpdateAsync(artwork.Id,
+                        token => LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token),
+                        (v, token) => LocalNetworkConverter.OverwriteAsync(v, artwork, database, database, database, token),
+                        token
+                    ).ConfigureAwait(false))
+                    {
+                        ++add;
+                    }
+                    else
+                    {
+                        ++update;
+                    }
                 }
             }
 
             return isAdd;
-        }
-
-        async ValueTask RegisterShow(IDatabase database, UserPreviewResponseContent item)
-        {
-            await database.AddOrUpdateAsync(item.User.Id,
-                _ =>
-                {
-                    ++add;
-                    if (System.Console.IsOutputRedirected)
-                    {
-                        logger.LogInformation($"{item.User.Id}");
-                    }
-                    else
-                    {
-                        logger.LogInformation($"{add,4}: {item.User.Id,20}");
-                    }
-
-                    return ValueTask.FromResult(item.Convert());
-                },
-                (v, _) =>
-                {
-                    ++update;
-                    LocalNetworkConverter.Overwrite(v, item);
-                    return ValueTask.CompletedTask;
-                }, token).ConfigureAwait(false);
-
-            if (item.Illusts is { Length: > 0 } artworks)
-            {
-                foreach (var artwork in artworks)
-                {
-                    await database.AddOrUpdateAsync(artwork.Id,
-                        async token =>
-                        {
-                            ++addArtwork;
-                            return await LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token).ConfigureAwait(false);
-                        },
-                        async (v, token) =>
-                        {
-                            ++updateArtwork;
-                            await LocalNetworkConverter.OverwriteAsync(v, artwork, database, database, database, token).ConfigureAwait(false);
-                        }, token).ConfigureAwait(false);
-                }
-            }
         }
 
         var database = default(IDatabase);
@@ -154,7 +112,14 @@ public partial class NetworkClient
                     {
                         foreach (var item in responseList)
                         {
-                            (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
+                            if (await RegisterNotShow(database, item, token).ConfigureAwait(false))
+                            {
+                                ++add;
+                            }
+                            else
+                            {
+                                ++update;
+                            }
                         }
 
                         responseList = null;
@@ -164,7 +129,46 @@ public partial class NetworkClient
                 var oldAdd = add;
                 foreach (var item in userPreviewCollection)
                 {
-                    await RegisterShow(database, item).ConfigureAwait(false);
+                    if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(item.Convert()), (v, _) =>
+                    {
+                        LocalNetworkConverter.Overwrite(v, item);
+                        return ValueTask.CompletedTask;
+                    }, token))
+                    {
+                        ++add;
+                        if (System.Console.IsOutputRedirected)
+                        {
+                            logger.LogInformation($"{item.User.Id}");
+                        }
+                        else
+                        {
+                            logger.LogInformation($"{add,4}: {item.User.Id,20}");
+                        }
+                    }
+                    else
+                    {
+                        ++update;
+                    }
+
+                    if (item.Illusts is { Length: > 0 } artworks)
+                    {
+                        foreach (var artwork in artworks)
+                        {
+                            if (await database.AddOrUpdateAsync(
+                                artwork.Id,
+                                token => LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token),
+                                (v, token) => LocalNetworkConverter.OverwriteAsync(v, artwork, database, database, database, token),
+                                token
+                            ).ConfigureAwait(false))
+                            {
+                                ++add;
+                            }
+                            else
+                            {
+                                ++update;
+                            }
+                        }
+                    }
                 }
 
                 if (!addBehaviour && add == oldAdd)
@@ -186,7 +190,14 @@ public partial class NetworkClient
                 {
                     foreach (var item in responseList)
                     {
-                        (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
+                        if (await RegisterNotShow(database, item, token).ConfigureAwait(false))
+                        {
+                            ++add;
+                        }
+                        else
+                        {
+                            ++update;
+                        }
                     }
 
                     responseList = null;

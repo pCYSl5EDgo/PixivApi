@@ -43,47 +43,6 @@ public partial class NetworkClient
         var responseList = default(List<ArtworkResponseContent>);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong add = 0UL, update = 0UL;
-        async ValueTask<bool> RegisterNotShow(IDatabase database, ArtworkResponseContent item, CancellationToken token)
-        {
-            var isAdd = true;
-            await database.AddOrUpdateAsync(
-                item.Id,
-                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                (artwork, token) =>
-                {
-                    isAdd = false;
-                    return LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token);
-                },
-                token
-            ).ConfigureAwait(false);
-
-            return isAdd;
-        }
-
-        ValueTask RegisterShow(IDatabase database, ArtworkResponseContent item, CancellationToken token) => database.AddOrUpdateAsync(
-            item.Id,
-            token =>
-            {
-                ++add;
-                if (System.Console.IsOutputRedirected)
-                {
-                    Context.Logger.LogInformation($"{item.Id}");
-                }
-                else
-                {
-                    Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
-                }
-
-                return LocalNetworkConverter.ConvertAsync(item, database, database, database, token);
-            },
-            (artwork, token) =>
-            {
-                ++update;
-                return LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token);
-            },
-            token
-        );
-
         try
         {
             await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, requestSender.GetAsync).WithCancellation(token))
@@ -116,7 +75,19 @@ public partial class NetworkClient
                     {
                         foreach (var item in responseList)
                         {
-                            (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
+                            if (await database.AddOrUpdateAsync(
+                                item.Id,
+                                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                                (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                                token
+                            ).ConfigureAwait(false))
+                            {
+                                ++add;
+                            }
+                            else
+                            {
+                                ++update;
+                            }
                         }
 
                         responseList = null;
@@ -126,7 +97,27 @@ public partial class NetworkClient
                 var oldAdd = add;
                 foreach (var item in artworkCollection)
                 {
-                    await RegisterShow(database, item, token).ConfigureAwait(false);
+                    if (await database.AddOrUpdateAsync(
+                        item.Id,
+                        token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                        (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                        token
+                    ).ConfigureAwait(false))
+                    {
+                        ++add;
+                        if (System.Console.IsOutputRedirected)
+                        {
+                            Context.Logger.LogInformation($"{item.Id}");
+                        }
+                        else
+                        {
+                            Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
+                        }
+                    }
+                    else
+                    {
+                        ++update;
+                    }
                 }
 
                 token.ThrowIfCancellationRequested();
@@ -149,7 +140,19 @@ public partial class NetworkClient
                 {
                     foreach (var item in responseList)
                     {
-                        (await RegisterNotShow(database, item, token).ConfigureAwait(false) ? ref add : ref update)++;
+                        if (await database.AddOrUpdateAsync(
+                            item.Id,
+                            token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                            (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                            token
+                        ).ConfigureAwait(false))
+                        {
+                            ++add;
+                        }
+                        else
+                        {
+                            ++update;
+                        }
                     }
 
                     responseList = null;

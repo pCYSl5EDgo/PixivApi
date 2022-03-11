@@ -48,12 +48,14 @@ internal sealed class DatabaseFile : IDatabase
 
     public Version Version => new((int)MajorVersion, (int)MinorVersion);
 
-    public ValueTask AddOrUpdateAsync(ulong id, DatabaseAddArtworkFunc add, DatabaseUpdateArtworkFunc update, CancellationToken token)
+    public ValueTask<bool> AddOrUpdateAsync(ulong id, DatabaseAddArtworkFunc add, DatabaseUpdateArtworkFunc update, CancellationToken token)
     {
         _ = Interlocked.Exchange(ref IsChanged, 1);
+        var isAdd = false;
         ArtworkDictionary.AddOrUpdate(id, (_, pair) =>
         {
             var (add, _, token) = pair;
+            isAdd = true;
             return add(token).AsTask().Result;
         }, (_, value, pair) =>
         {
@@ -61,15 +63,17 @@ internal sealed class DatabaseFile : IDatabase
             update(value, token).AsTask().Wait();
             return value;
         }, (add, update, token));
-        return ValueTask.CompletedTask;
+        return ValueTask.FromResult(isAdd);
     }
 
-    public ValueTask AddOrUpdateAsync(ulong id, DatabaseAddUserFunc add, DatabaseUpdateUserFunc update, CancellationToken token)
+    public ValueTask<bool> AddOrUpdateAsync(ulong id, DatabaseAddUserFunc add, DatabaseUpdateUserFunc update, CancellationToken token)
     {
         _ = Interlocked.Exchange(ref IsChanged, 1);
+        var isAdd = false;
         UserDictionary.AddOrUpdate(id, (_, pair) =>
         {
             var (add, _, token) = pair;
+            isAdd = true;
             return add(token).AsTask().Result;
         }, (_, value, pair) =>
         {
@@ -77,7 +81,7 @@ internal sealed class DatabaseFile : IDatabase
             update(value, token).AsTask().Wait();
             return value;
         }, (add, update, token));
-        return ValueTask.CompletedTask;
+        return ValueTask.FromResult(isAdd);
     }
 
     public ValueTask AddOrUpdateRankingAsync(DateOnly date, RankingKind kind, ulong[] values, CancellationToken token)

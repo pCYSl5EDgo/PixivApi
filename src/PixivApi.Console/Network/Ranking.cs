@@ -44,25 +44,23 @@ public partial class NetworkClient
                 for (var i = 0; i < rankingArray.Length; i++)
                 {
                     var item = rankingList[i];
-                    await database.AddOrUpdateAsync(
+                    if (await database.AddOrUpdateAsync(
                         item.Id,
-                        async token =>
-                        {
-                            ++add;
-                            if (System.Console.IsOutputRedirected)
-                            {
-                                Context.Logger.LogInformation($"{item.Id}");
-                            }
-                            else
-                            {
-                                Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
-                            }
-
-                            return await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
-                        },
+                        token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
                         (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token),
                         token
-                    ).ConfigureAwait(false);
+                    ).ConfigureAwait(false))
+                    {
+                        ++add;
+                        if (System.Console.IsOutputRedirected)
+                        {
+                            Context.Logger.LogInformation($"{item.Id}");
+                        }
+                        else
+                        {
+                            Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
+                        }
+                    }
 
                     rankingArray[i] = item.Id;
                 }
@@ -75,7 +73,7 @@ public partial class NetworkClient
                     Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
                 }
             }
-            
+
             databaseFactory.Return(ref database);
         }
     }
