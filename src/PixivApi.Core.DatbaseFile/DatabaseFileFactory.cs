@@ -22,15 +22,13 @@ public sealed class DatabaseFileFactory : IDatabaseFactory
         return answer ?? value;
     }
 
-    public void Return(ref IDatabase database) => database = null;
-
     public async ValueTask DisposeAsync()
     {
         if (!(databaseFile is { IsChanged: not 0 } local))
         {
             return;
         }
-        
+
         if (!Console.IsErrorRedirected)
         {
             Console.Error.WriteLine("Start saving to the database file.");

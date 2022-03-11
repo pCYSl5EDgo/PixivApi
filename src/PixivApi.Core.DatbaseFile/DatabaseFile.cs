@@ -89,24 +89,49 @@ internal sealed class DatabaseFile : IDatabase
 
     public ValueTask<ulong> CountArtworkAsync(CancellationToken token) => ValueTask.FromResult((ulong)ArtworkDictionary.Count);
 
-    public async ValueTask<ulong> CountArtworkAsync(IFilter<Artwork> filter, CancellationToken token)
+    public async ValueTask<ulong> CountArtworkAsync(ArtworkFilter filter, CancellationToken token)
     {
-        var answer = 0UL;
-        var hasSlower = filter.HasSlowFilter;
-        await Parallel.ForEachAsync(ArtworkDictionary.Values, token, async (item, token) =>
+        if (filter.Count == 0)
         {
-            if (!filter.FastFilter(this, item))
+            return 0;
+        }
+
+        var answer = 0UL;
+        async ValueTask CountAsync(Artwork item, CancellationToken token)
+        {
+            if (!filter.FastFilter(item))
             {
                 return;
             }
 
-            if (hasSlower && !await filter.SlowFilter(this, item, token).ConfigureAwait(false))
+            if (filter.HasSlowFilter && !await filter.SlowFilter(item, token).ConfigureAwait(false))
             {
                 return;
             }
 
             _ = Interlocked.Increment(ref answer);
-        }).ConfigureAwait(false);
+        }
+
+        if (filter.IdFilter is { Ids: { Length: > 0 } ids })
+        {
+            await Parallel.ForEachAsync(ids.ToAsyncEnumerable().SelectAwaitWithCancellation(GetArtworkAsync).Where(x => x is not null), token, CountAsync!).ConfigureAwait(false);
+        }
+        else
+        {
+            await Parallel.ForEachAsync(ArtworkDictionary.Values, token, CountAsync).ConfigureAwait(false);
+        }
+
+        if (answer <= (ulong)filter.Offset)
+        {
+            return 0;
+        }
+
+        answer -= (ulong)filter.Offset;
+        if (filter.Count.HasValue && (ulong)filter.Count.Value < answer)
+        {
+            answer = (ulong)filter.Count.Value;
+        }
+
         return answer;
     }
 
@@ -147,65 +172,62 @@ internal sealed class DatabaseFile : IDatabase
         }
     }
 
-    public async ValueTask<IEnumerable<Artwork>> FastFilterAsync(IFilter<Artwork> filter, CancellationToken token)
+    public async IAsyncEnumerable<Artwork> FilterAsync(ArtworkFilter filter, [EnumeratorCancellation] CancellationToken token)
     {
         var bag = new ConcurrentBag<Artwork>();
-        await Parallel.ForEachAsync(ArtworkDictionary.Values, token, (item, token) =>
+        ValueTask AddToBag(Artwork item, CancellationToken token)
         {
             if (token.IsCancellationRequested)
             {
                 return ValueTask.FromCanceled(token);
             }
 
-            if (filter.FastFilter(this, item))
+            if (filter.FastFilter(item))
             {
                 bag.Add(item);
             }
 
             return ValueTask.CompletedTask;
-        }).ConfigureAwait(false);
-        return bag;
-    }
-
-    public async IAsyncEnumerable<Artwork> FilterAsync(IFilter<Artwork> filter, [EnumeratorCancellation] CancellationToken token)
-    {
-        if (token.IsCancellationRequested)
-        {
-            yield break;
         }
 
-        var enumerable = await FastFilterAsync(filter, token).ConfigureAwait(false);
-        if (token.IsCancellationRequested)
+        if (filter.IdFilter is { Ids: { Length: > 0 } ids })
         {
-            yield break;
+            await Parallel.ForEachAsync(ids.ToAsyncEnumerable().SelectAwaitWithCancellation(GetArtworkAsync).Where(x => x is not null), AddToBag!).ConfigureAwait(false);
+        }
+        else
+        {
+            await Parallel.ForEachAsync(ArtworkDictionary.Values, token, AddToBag).ConfigureAwait(false);
+        }
+
+        var artworks = bag.ToAsyncEnumerable();
+        if (filter.Order != ArtworkOrderKind.None)
+        {
+            artworks = artworks.OrderBy(filter.GetKey);
         }
 
         if (filter.HasSlowFilter)
         {
-            foreach (var item in enumerable)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    yield break;
-                }
-
-                if (await filter.SlowFilter(this, item, token).ConfigureAwait(false))
-                {
-                    yield return item;
-                }
-            }
+            artworks = artworks.WhereAwaitWithCancellation(filter.SlowFilter);
         }
-        else
-        {
-            foreach (var item in enumerable)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    yield break;
-                }
 
-                yield return item;
+        if (filter.Offset > 0)
+        {
+            artworks = artworks.Skip(filter.Offset);
+        }
+
+        if (filter.Count.HasValue)
+        {
+            artworks = artworks.Take(filter.Count.Value);
+        }
+
+        await foreach (var artwork in artworks)
+        {
+            if (token.IsCancellationRequested)
+            {
+                yield break;
             }
+
+            yield return artwork;
         }
     }
 
@@ -224,7 +246,7 @@ internal sealed class DatabaseFile : IDatabase
                 return ValueTask.FromCanceled(token);
             }
 
-            if (filter.FastFilter(this, item))
+            if (filter.FastFilter(item))
             {
                 bag.Add(item);
             }
@@ -241,7 +263,7 @@ internal sealed class DatabaseFile : IDatabase
                     yield break;
                 }
 
-                if (await filter.SlowFilter(this, item, token).ConfigureAwait(false))
+                if (await filter.SlowFilter(item, token).ConfigureAwait(false))
                 {
                     yield return item;
                 }

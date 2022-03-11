@@ -5,7 +5,7 @@ namespace PixivApi.Site;
 
 public static class Api
 {
-    public static async Task<IResult> CountAsync([FromQuery] string? filter, [FromServices] IDatabaseFactory databaseFactory, [FromServices] FinderFacade finderFacade, [FromServices] IArtworkFilterFactory<ReadOnlyMemory<char>> filterFactory, CancellationToken token)
+    public static async Task<IResult> CountAsync([FromQuery] string? filter, [FromServices] IDatabaseFactory databaseFactory, [FromServices] IArtworkFilterFactory<ReadOnlyMemory<char>> filterFactory, CancellationToken token)
     {
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
@@ -36,7 +36,7 @@ public static class Api
                 return Results.BadRequest("empty filter error");
             }
 
-            var enumerable = database.FastArtworkFilterAsync(artworkFilter, token);
+            var enumerable = database.FilterAsync(artworkFilter, token);
             var shouldStringify = (!toString.HasValue || toString.Value) ? database : null;
             var ugoiraZipFinder = ugoira == true ? finderFacade.UgoiraZipFinder : null;
             var ugoiraThumbnailFinder = thumbnail == true ? finderFacade.UgoiraThumbnailFinder : null;
