@@ -287,24 +287,6 @@ internal sealed class DatabaseFile : IDatabase
 
     public ValueTask<Artwork?> GetArtworkAsync(ulong id, CancellationToken token) => ValueTask.FromResult(ArtworkDictionary.TryGetValue(id, out var answer) ? answer : null);
 
-    public ValueTask<Artwork> GetOrAddAsync(ulong id, DatabaseAddArtworkFunc add, CancellationToken token)
-    {
-        _ = Interlocked.Exchange(ref IsChanged, 1);
-        return ValueTask.FromResult(ArtworkDictionary.GetOrAdd(id, (_, token) =>
-        {
-            return add(token).AsTask().Result;
-        }, token));
-    }
-
-    public ValueTask<User> GetOrAddAsync(ulong id, DatabaseAddUserFunc add, CancellationToken token)
-    {
-        _ = Interlocked.Exchange(ref IsChanged, 1);
-        return ValueTask.FromResult(UserDictionary.GetOrAdd(id, (_, token) =>
-        {
-            return add(token).AsTask().Result;
-        }, token));
-    }
-
     public ValueTask<ulong[]?> GetRankingAsync(DateOnly date, RankingKind kind, CancellationToken token) => ValueTask.FromResult(RankingSet.TryGetValue(new(date, kind), out var answer) ? answer : null);
 
     public ValueTask<string?> GetTagAsync(uint id, CancellationToken token) => ValueTask.FromResult(TagSet.Values.TryGetValue(id, out var answer) ? answer : null);

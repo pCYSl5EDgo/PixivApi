@@ -6,8 +6,6 @@ public interface IUserDatabase
 
     ValueTask<User?> GetUserAsync(ulong id, CancellationToken token);
 
-    ValueTask<User> GetOrAddAsync(ulong id, DatabaseAddUserFunc add, CancellationToken token);
-
     ValueTask AddOrUpdateAsync(ulong id, DatabaseAddUserFunc add, DatabaseUpdateUserFunc update, CancellationToken token);
 
     IAsyncEnumerable<User> FilterAsync(IFilter<User> filter, CancellationToken token);

@@ -8,8 +8,6 @@ public interface IArtworkDatabase
 
     ValueTask<Artwork?> GetArtworkAsync(ulong id, CancellationToken token);
 
-    ValueTask<Artwork> GetOrAddAsync(ulong id, DatabaseAddArtworkFunc add, CancellationToken token);
-
     ValueTask AddOrUpdateAsync(ulong id, DatabaseAddArtworkFunc add, DatabaseUpdateArtworkFunc update, CancellationToken token);
 
     IAsyncEnumerable<Artwork> FilterAsync(ArtworkFilter filter, CancellationToken token);

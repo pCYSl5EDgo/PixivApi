@@ -30,7 +30,11 @@ public static class LocalNetworkConverter
             Tools = await toolDatabase.CalculateToolsAsync(source.Tools, token).ConfigureAwait(false),
         };
 
-        _ = await userDatabase.GetOrAddAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), token).ConfigureAwait(false);
+        await userDatabase.AddOrUpdateAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), (user, token) =>
+        {
+            Overwrite(user, source.User);
+            return ValueTask.CompletedTask;
+        }, token).ConfigureAwait(false);
         return answer;
     }
 
@@ -68,7 +72,11 @@ public static class LocalNetworkConverter
         destination.Title = source.Title ?? string.Empty;
         destination.Caption = source.Caption ?? string.Empty;
 
-        _ = await userDatabase.GetOrAddAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), token).ConfigureAwait(false);
+        await userDatabase.AddOrUpdateAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), (user, token) =>
+        {
+            Overwrite(user, source.User);
+            return ValueTask.CompletedTask;
+        }, token).ConfigureAwait(false);
     }
 
     public static User Convert(this UserPreviewResponseContent user)
