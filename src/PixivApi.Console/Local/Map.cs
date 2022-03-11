@@ -4,6 +4,7 @@ public partial class LocalClient
 {
     [Command("map")]
     public async ValueTask MapAsync(
+        string filter = null,
         bool toString = false
     )
     {
@@ -13,10 +14,11 @@ public partial class LocalClient
         }
 
         var token = Context.CancellationToken;
+        filter ??= configSettings.DatabaseFilePath;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
-            var artworkFilter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
+            var artworkFilter = await filterFactory.CreateAsync(database, new(filter), token).ConfigureAwait(false);
             if (token.IsCancellationRequested)
             {
                 return;
@@ -28,7 +30,7 @@ public partial class LocalClient
                 logger.LogInformation("[");
             }
 
-            var collection = artworkFilter is null ? database.EnumerableArtworkAsync(token) : database.ArtworkFilterAsync(artworkFilter, token);
+            var collection = artworkFilter is null ? database.EnumerableArtworkAsync(token) : database.FilterAsync(artworkFilter, token);
             await foreach (var item in collection)
             {
                 if (token.IsCancellationRequested)
