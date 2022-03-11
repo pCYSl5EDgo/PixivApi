@@ -7,7 +7,7 @@ public interface IExtenededDatabase : IDatabase
     /// <returns>True: Add, False: Update</returns>
     ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent source, CancellationToken token);
 
-    async ValueTask<(ulong, ulong)> ArtworkAddOrUpdateAsync(IEnumerable<ArtworkResponseContent> sources, CancellationToken token)
+    async ValueTask<(ulong Add, ulong Update)> ArtworkAddOrUpdateAsync(IEnumerable<ArtworkResponseContent> sources, CancellationToken token)
     {
         var pair = (0UL, 0UL);
         foreach (var source in sources)
@@ -36,7 +36,7 @@ public interface IExtenededDatabase : IDatabase
     /// <returns>True: Add, False: Update</returns>
     ValueTask<bool> UserAddOrUpdateAsync(UserPreviewResponseContent source, CancellationToken token);
 
-    async ValueTask<(ulong, ulong)> UserPreviewAddOrUpdateAsync(IEnumerable<UserPreviewResponseContent> sources, CancellationToken token)
+    async ValueTask<(ulong Add, ulong Update)> UserPreviewAddOrUpdateAsync(IEnumerable<UserPreviewResponseContent> sources, CancellationToken token)
     {
         var pair = (0UL, 0UL);
         foreach (var source in sources)
