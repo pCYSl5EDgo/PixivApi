@@ -99,7 +99,7 @@ public partial class NetworkClient
         Update = 2,
     }
 
-    private async ValueTask<DownloadResult> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
+    private static async ValueTask<DownloadResult> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
     {
         IFinderWithIndex finderWithIndexOriginal, finderWithIndexOriginalDefault, finderWithIndexThumbnail, finderWithIndexThumbnailDefault;
         switch (artwork.Type)
@@ -178,7 +178,7 @@ public partial class NetworkClient
         return CalculateDownloadResult(downloadAny, noDetailDownload);
     }
 
-    private async ValueTask<DownloadResult> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
+    private static async ValueTask<DownloadResult> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
     {
         var downloadAny = false;
         var noDetailDownload = true;
@@ -261,7 +261,7 @@ public partial class NetworkClient
         var token = Context.CancellationToken;
         filter.PageCount ??= new();
         filter.PageCount.Min ??= 1;
-        return database.FastArtworkFilterAsync(filter, token);
+        return database.FilterAsync(filter, token);
     }
 
     private static readonly Uri referer = new("https://app-api.pixiv.net/");
