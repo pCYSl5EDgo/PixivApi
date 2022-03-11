@@ -5,9 +5,9 @@ namespace PixivApi.Core.Network;
 public interface IExtenededDatabase : IDatabase
 {
     /// <returns>True: Add, False: Update</returns>
-    ValueTask<bool> AddOrUpdateAsync(ArtworkResponseContent source, CancellationToken token);
+    ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent source, CancellationToken token);
 
-    async ValueTask<(ulong, ulong)> AddOrUpdateAsync(IEnumerable<ArtworkResponseContent> sources, CancellationToken token)
+    async ValueTask<(ulong, ulong)> ArtworkAddOrUpdateAsync(IEnumerable<ArtworkResponseContent> sources, CancellationToken token)
     {
         var pair = (0UL, 0UL);
         foreach (var source in sources)
@@ -17,7 +17,7 @@ public interface IExtenededDatabase : IDatabase
                 break;
             }
 
-            if (await AddOrUpdateAsync(source, token).ConfigureAwait(false))
+            if (await ArtworkAddOrUpdateAsync(source, token).ConfigureAwait(false))
             {
                 pair.Item1++;
             }
@@ -31,12 +31,12 @@ public interface IExtenededDatabase : IDatabase
     }
 
     /// <returns>True: Add, False: Update</returns>
-    ValueTask<bool> AddOrUpdateAsync(UserDetailResponseData source, CancellationToken token);
+    ValueTask<bool> UserAddOrUpdateAsync(UserDetailResponseData source, CancellationToken token);
 
     /// <returns>True: Add, False: Update</returns>
-    ValueTask<bool> AddOrUpdateAsync(UserPreviewResponseContent source, CancellationToken token);
+    ValueTask<bool> UserAddOrUpdateAsync(UserPreviewResponseContent source, CancellationToken token);
 
-    async ValueTask<(ulong, ulong)> AddOrUpdateAsync(IEnumerable<UserPreviewResponseContent> sources, CancellationToken token)
+    async ValueTask<(ulong, ulong)> UserPreviewAddOrUpdateAsync(IEnumerable<UserPreviewResponseContent> sources, CancellationToken token)
     {
         var pair = (0UL, 0UL);
         foreach (var source in sources)
@@ -46,7 +46,7 @@ public interface IExtenededDatabase : IDatabase
                 break;
             }
 
-            if (await AddOrUpdateAsync(source, token).ConfigureAwait(false))
+            if (await UserAddOrUpdateAsync(source, token).ConfigureAwait(false))
             {
                 pair.Item1++;
             }
