@@ -4,7 +4,7 @@ public partial class LocalClient
 {
     [Command("map")]
     public async ValueTask MapAsync(
-        string filter = null,
+        string? filter = null,
         bool toString = false
     )
     {
