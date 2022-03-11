@@ -23,7 +23,7 @@ public partial class NetworkClient
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
-            var collection = database.ArtworkFilterAsync(artworkFilter, token);
+            var collection = database.FilterAsync(artworkFilter, token);
             await foreach (var item in collection)
             {
                 ArtworkResponseContent artwork;
