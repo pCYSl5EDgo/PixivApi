@@ -83,7 +83,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         ++add;
                         if (logInfo)
                         {
-                            logger.LogInformation($"A {add,10}: {item.Id,16}");
+                            logger.LogInformation($"Art-A {add,10}: {item.Id,16}");
                         }
                     }
                     else
@@ -91,7 +91,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         ++update;
                         if (logTrace)
                         {
-                            logger.LogTrace($"U {update,10}: {item.Id,16}");
+                            logger.LogTrace($"Art-U {update,10}: {item.Id,16}");
                         }
                     }
                 }
@@ -140,7 +140,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         ++add;
                         if (logInfo)
                         {
-                            logger.LogInformation($"A {add,10}: {item.Id,16}");
+                            logger.LogInformation($"Art-A {add,10}: {item.Id,16}");
                         }
                     }
                     else
@@ -148,7 +148,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         ++update;
                         if (logTrace)
                         {
-                            logger.LogTrace($"U {update,10}: {item.Id,16}");
+                            logger.LogTrace($"Art-U {update,10}: {item.Id,16}");
                         }
                     }
                 }
@@ -233,7 +233,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     ++add;
                     if (logInfo)
                     {
-                        logger.LogInformation($"A {add,10}: {item.Id,16}");
+                        logger.LogInformation($"Art-A {add,10}: {item.Id,16}");
                     }
                 }
                 else
@@ -241,7 +241,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     ++update;
                     if (logTrace)
                     {
-                        logger.LogTrace($"U {update,10}: {item.Id,16}");
+                        logger.LogTrace($"Art-U {update,10}: {item.Id,16}");
                     }
 
                     continue;
@@ -321,7 +321,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     ++add;
                     if (logInfo)
                     {
-                        logger.LogInformation($"A {add,10}: {item.Id,16}");
+                        logger.LogInformation($"Art-A {add,10}: {item.Id,16}");
                     }
                 }
                 else
@@ -329,7 +329,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     ++update;
                     if (logTrace)
                     {
-                        logger.LogTrace($"U {update,10}: {item.Id,16}");
+                        logger.LogTrace($"Art-U {update,10}: {item.Id,16}");
                     }
 
                     continue;

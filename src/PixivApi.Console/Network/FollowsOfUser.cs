@@ -22,198 +22,420 @@ public partial class NetworkClient
             return;
         }
 
-        async ValueTask<IDatabase> LoadDatabaseAsync(string output, bool addBehaviour, CancellationToken token)
-        {
-            var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
-            if (addBehaviour)
-            {
-                await Parallel.ForEachAsync(database.EnumerableUserAsync(token), token, (user, token) =>
-                {
-                    if (token.IsCancellationRequested)
-                    {
-                        return ValueTask.FromCanceled(token);
-                    }
-
-                    user.IsFollowed = false;
-                    return ValueTask.CompletedTask;
-                }).ConfigureAwait(false);
-            }
-
-            return database;
-        }
-
         var token = Context.CancellationToken;
-        var databaseTask = LoadDatabaseAsync(configSettings.DatabaseFilePath, addBehaviour, token);
-        var responseList = default(List<UserPreviewResponseContent>);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         var url = $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}";
-        ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL;
-
-        async ValueTask<bool> RegisterNotShow(IDatabase database, UserPreviewResponseContent item, CancellationToken token)
-        {
-            var isAdd = true;
-            await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(item.Convert()), (v, _) =>
-            {
-                isAdd = false;
-                LocalNetworkConverter.Overwrite(v, item);
-                return ValueTask.CompletedTask;
-            }, token).ConfigureAwait(false);
-
-            if (item.Illusts is { Length: > 0 } artworks)
-            {
-                foreach (var artwork in artworks)
-                {
-                    if (await database.AddOrUpdateAsync(artwork.Id,
-                        token => LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token),
-                        (v, token) => LocalNetworkConverter.OverwriteAsync(v, artwork, database, database, database, token),
-                        token
-                    ).ConfigureAwait(false))
-                    {
-                        ++add;
-                    }
-                    else
-                    {
-                        ++update;
-                    }
-                }
-            }
-
-            return isAdd;
-        }
-
-        var database = default(IDatabase);
+        ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL, downloadCount = 0UL, transferByteCount = 0UL;
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
-            await foreach (var userPreviewCollection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync).WithCancellation(token))
+            if (download)
             {
-                token.ThrowIfCancellationRequested();
-                if (database is null)
+                if (addBehaviour)
                 {
-                    if (!databaseTask.IsCompleted)
+                    await Parallel.ForEachAsync(database.EnumerableUserAsync(token), token, (user, token) =>
                     {
-                        responseList ??= new List<UserPreviewResponseContent>(5010);
-                        foreach (var item in userPreviewCollection)
+                        if (token.IsCancellationRequested)
                         {
-                            responseList.Add(item);
-                            if (System.Console.IsOutputRedirected)
-                            {
-                                logger.LogInformation($"{item.User.Id}");
-                            }
-                            else
-                            {
-                                logger.LogInformation($"{responseList.Count,4}: {item.User.Id}");
-                            }
+                            return ValueTask.FromCanceled(token);
                         }
 
-                        token.ThrowIfCancellationRequested();
-                        continue;
-                    }
-
-                    database = await databaseTask.ConfigureAwait(false);
-                    if (responseList is { Count: > 0 })
-                    {
-                        foreach (var item in responseList)
-                        {
-                            if (await RegisterNotShow(database, item, token).ConfigureAwait(false))
-                            {
-                                ++add;
-                            }
-                            else
-                            {
-                                ++update;
-                            }
-                        }
-
-                        responseList = null;
-                    }
-                }
-
-                var oldAdd = add;
-                foreach (var item in userPreviewCollection)
-                {
-                    if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(item.Convert()), (v, _) =>
-                    {
-                        LocalNetworkConverter.Overwrite(v, item);
+                        user.IsFollowed = false;
                         return ValueTask.CompletedTask;
-                    }, token))
+                    }).ConfigureAwait(false);
+
+                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, url, token).ConfigureAwait(false);
+                }
+                else
+                {
+                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_New_All_Async(database, requestSender, url, token).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                if (addBehaviour)
+                {
+                    await Parallel.ForEachAsync(database.EnumerableUserAsync(token), token, (user, token) =>
                     {
-                        ++add;
-                        if (System.Console.IsOutputRedirected)
+                        if (token.IsCancellationRequested)
                         {
-                            logger.LogInformation($"{item.User.Id}");
+                            return ValueTask.FromCanceled(token);
                         }
-                        else
-                        {
-                            logger.LogInformation($"{add,4}: {item.User.Id,20}");
-                        }
+
+                        user.IsFollowed = false;
+                        return ValueTask.CompletedTask;
+                    }).ConfigureAwait(false);
+
+                    if (allWork)
+                    {
+                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_All_All_Async(database, requestSender, url, token).ConfigureAwait(false);
                     }
                     else
                     {
-                        ++update;
-                    }
-
-                    if (item.Illusts is { Length: > 0 } artworks)
-                    {
-                        foreach (var artwork in artworks)
-                        {
-                            if (await database.AddOrUpdateAsync(
-                                artwork.Id,
-                                token => LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token),
-                                (v, token) => LocalNetworkConverter.OverwriteAsync(v, artwork, database, database, database, token),
-                                token
-                            ).ConfigureAwait(false))
-                            {
-                                ++add;
-                            }
-                            else
-                            {
-                                ++update;
-                            }
-                        }
+                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_All_OnlyPreview_Async(database, requestSender, url, token).ConfigureAwait(false);
                     }
                 }
-
-                if (!addBehaviour && add == oldAdd)
+                else
                 {
-                    break;
+                    if (allWork)
+                    {
+                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_New_All_Async(database, requestSender, url, token).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_New_OnlyPreview_Async(database, requestSender, url, token).ConfigureAwait(false);
+                    }
                 }
             }
-        }
-        catch (TaskCanceledException)
-        {
-            logger.LogError("Accept cancel. Please wait for writing to the database file.");
         }
         finally
         {
-            if (database is null)
-            {
-                database = await databaseTask.ConfigureAwait(false);
-                if (responseList is { Count: > 0 })
-                {
-                    foreach (var item in responseList)
-                    {
-                        if (await RegisterNotShow(database, item, token).ConfigureAwait(false))
-                        {
-                            ++add;
-                        }
-                        else
-                        {
-                            ++update;
-                        }
-                    }
-
-                    responseList = null;
-                }
-            }
-
             if (!System.Console.IsOutputRedirected)
             {
                 var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
                 var userCount = await database.CountUserAsync(token).ConfigureAwait(false);
-                logger.LogInformation($"User Total: {userCount} Add: {add} Update: {update}    Artwork Total: {artworkCount} Add: {addArtwork} Update: {updateArtwork}");
+                logger.LogInformation($"User Total: {userCount} Add: {add} Update: {update}    Artwork Total: {artworkCount} Add: {addArtwork} Update: {updateArtwork} Download: {downloadCount} Transfer: {ByteAmountUtility.ToDisplayable(transferByteCount)}");
             }
 
             databaseFactory.Return(ref database);
         }
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_New_OnlyPreview_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    {
+        var logger = Context.Logger;
+        var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
+        var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        var logTrace = logger.IsEnabled(LogLevel.Trace) ? logger : null;
+        ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
+        await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                goto RETURN;
+            }
+
+            var oldAdd = add;
+            foreach (var item in collection)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    goto RETURN;
+                }
+
+                if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(LocalNetworkConverter.Convert(item)), (v, _) =>
+                {
+                    LocalNetworkConverter.Overwrite(v, item);
+                    return ValueTask.CompletedTask;
+                }, token).ConfigureAwait(false))
+                {
+                    ++add;
+                    logInfo?.LogInformation($"User-A {add,10}: {item.User.Id,20}");
+                }
+                else
+                {
+                    ++update;
+                    logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                }
+
+                if (item.Illusts is not { Length: > 0 } illusts)
+                {
+                    continue;
+                }
+
+                foreach (var illust in illusts)
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        goto RETURN;
+                    }
+
+                    if (await database.AddOrUpdateAsync(illust.Id, token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token), token).ConfigureAwait(false))
+                    {
+                        ++addArtwork;
+                        logTrace?.LogTrace($"Art-A {addArtwork,10}: {illust.Id,20}");
+                    }
+                    else
+                    {
+                        ++updateArtwork;
+                        logTrace?.LogTrace($"Art-U {updateArtwork,10}: {illust.Id,20}");
+                    }
+                }
+            }
+
+            if (add == oldAdd)
+            {
+                goto RETURN;
+            }
+        }
+
+    RETURN:
+        return (add, update, addArtwork, updateArtwork);
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_New_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    {
+        var logger = Context.Logger;
+        var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
+        var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
+        await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                goto RETURN;
+            }
+
+            var oldAdd = add;
+            foreach (var item in collection)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    goto RETURN;
+                }
+
+                if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(LocalNetworkConverter.Convert(item)), (v, _) =>
+                {
+                    LocalNetworkConverter.Overwrite(v, item);
+                    return ValueTask.CompletedTask;
+                }, token).ConfigureAwait(false))
+                {
+                    ++add;
+                    logInfo?.LogInformation($"User-A {add,10}: {item.User.Id,20}");
+                }
+                else
+                {
+                    ++update;
+                    logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                }
+
+                var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
+                var (_addArtwork, _updateArtwork) = await PrivateDownloadAllArtworkResponses(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
+                addArtwork += _addArtwork;
+                updateArtwork += _updateArtwork;
+            }
+
+            if (add == oldAdd)
+            {
+                goto RETURN;
+            }
+        }
+
+    RETURN:
+        return (add, update, addArtwork, updateArtwork);
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_All_OnlyPreview_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    {
+        var logger = Context.Logger;
+        var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
+        var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        var logTrace = logger.IsEnabled(LogLevel.Trace) ? logger : null;
+        ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
+        await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                goto RETURN;
+            }
+
+            foreach (var item in collection)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    goto RETURN;
+                }
+
+                if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(LocalNetworkConverter.Convert(item)), (v, _) =>
+                {
+                    LocalNetworkConverter.Overwrite(v, item);
+                    return ValueTask.CompletedTask;
+                }, token).ConfigureAwait(false))
+                {
+                    ++add;
+                    logInfo?.LogInformation($"User-A {add,10}: {item.User.Id,20}");
+                }
+                else
+                {
+                    ++update;
+                    logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                }
+
+                if (item.Illusts is not { Length: > 0 } illusts)
+                {
+                    continue;
+                }
+
+                foreach (var illust in illusts)
+                {
+                    if (token.IsCancellationRequested)
+                    {
+                        goto RETURN;
+                    }
+
+                    if (await database.AddOrUpdateAsync(illust.Id, token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token), token).ConfigureAwait(false))
+                    {
+                        ++addArtwork;
+                        logTrace?.LogTrace($"Art-A {addArtwork,10}: {illust.Id,20}");
+                    }
+                    else
+                    {
+                        ++updateArtwork;
+                        logTrace?.LogTrace($"Art-U {updateArtwork,10}: {illust.Id,20}");
+                    }
+                }
+            }
+        }
+
+    RETURN:
+        return (add, update, addArtwork, updateArtwork);
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_All_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    {
+        var logger = Context.Logger;
+        var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
+        var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
+        await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                goto RETURN;
+            }
+
+            foreach (var item in collection)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    goto RETURN;
+                }
+
+                if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(LocalNetworkConverter.Convert(item)), (v, _) =>
+                {
+                    LocalNetworkConverter.Overwrite(v, item);
+                    return ValueTask.CompletedTask;
+                }, token).ConfigureAwait(false))
+                {
+                    ++add;
+                    logInfo?.LogInformation($"User-A {add,10}: {item.User.Id,20}");
+                }
+                else
+                {
+                    ++update;
+                    logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                }
+
+                var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
+                var (_addArtwork, _updateArtwork) = await PrivateDownloadAllArtworkResponses(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
+                addArtwork += _addArtwork;
+                updateArtwork += _updateArtwork;
+            }
+        }
+
+    RETURN:
+        return (add, update, addArtwork, updateArtwork);
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_New_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    {
+        var logger = Context.Logger;
+        var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
+        var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0, download = 0, transfer = 0;
+        await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                goto RETURN;
+            }
+
+            var oldAdd = add;
+            foreach (var item in collection)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    goto RETURN;
+                }
+
+                if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(LocalNetworkConverter.Convert(item)), (v, _) =>
+                {
+                    LocalNetworkConverter.Overwrite(v, item);
+                    return ValueTask.CompletedTask;
+                }, token).ConfigureAwait(false))
+                {
+                    ++add;
+                    logInfo?.LogInformation($"User-A {add,10}: {item.User.Id,20}");
+                }
+                else
+                {
+                    ++update;
+                    logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                }
+
+                var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
+                var (_addArtwork, _updateArtwork, _download, _transfer) = await PrivateDownloadAllArtworkResponsesAndFiles(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
+                addArtwork += _addArtwork;
+                updateArtwork += _updateArtwork;
+                download += _download;
+                transfer += _transfer;
+            }
+
+            if (add == oldAdd)
+            {
+                goto RETURN;
+            }
+        }
+
+    RETURN:
+        return (add, update, addArtwork, updateArtwork, download, transfer);
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_All_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    {
+        var logger = Context.Logger;
+        var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
+        var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0, download = 0, transfer = 0;
+        await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                goto RETURN;
+            }
+
+            foreach (var item in collection)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    goto RETURN;
+                }
+
+                if (await database.AddOrUpdateAsync(item.User.Id, _ => ValueTask.FromResult(LocalNetworkConverter.Convert(item)), (v, _) =>
+                {
+                    LocalNetworkConverter.Overwrite(v, item);
+                    return ValueTask.CompletedTask;
+                }, token).ConfigureAwait(false))
+                {
+                    ++add;
+                    logInfo?.LogInformation($"User-A {add,10}: {item.User.Id,20}");
+                }
+                else
+                {
+                    ++update;
+                    logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                }
+
+                var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
+                var (_addArtwork, _updateArtwork, _download, _transfer) = await PrivateDownloadAllArtworkResponsesAndFiles(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
+                addArtwork += _addArtwork;
+                updateArtwork += _updateArtwork;
+                download += _download;
+                transfer += _transfer;
+            }
+        }
+
+    RETURN:
+        return (add, update, addArtwork, updateArtwork, download, transfer);
     }
 }
