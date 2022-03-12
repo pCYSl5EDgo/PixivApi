@@ -185,49 +185,13 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
-        var queue = new ConcurrentQueue<Artwork>();
-        object done = false;
-        var dequeDownloadTask = Task.Run(async () =>
-        {
-            var machine = new DownloadAsyncMachine(this, database, token);
-            var timeSpan = TimeSpan.FromSeconds(30d);
+        var machine = new DownloadAsyncMachine(this, database, token);
+        var shouldDownloadOriginal = fileFilter.Original is not null;
+        var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
+        var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
+        var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
+        var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
 
-            var shouldDownloadOriginal = fileFilter.Original is not null;
-            var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
-            var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
-            var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
-            var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
-
-            while (!Unsafe.Unbox<bool>(done))
-            {
-                if (token.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                if (!queue.TryDequeue(out var artwork))
-                {
-                    await Task.Delay(timeSpan, token).ConfigureAwait(false);
-                    continue;
-                }
-
-                if (!filter.FastFilter(artwork) || !await filter.SlowFilter(artwork, token).ConfigureAwait(false))
-                {
-                    continue;
-                }
-
-                if (token.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                var downloadResult = artwork.Type == ArtworkType.Ugoira ?
-                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
-                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
-            }
-
-            return (ulong)machine.DownloadFileCount;
-        });
         await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
         {
             if (token.IsCancellationRequested)
@@ -246,9 +210,25 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 if (await database.AddOrUpdateAsync(item.Id, async token =>
                 {
                     var artwork = await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
-                    queue.Enqueue(artwork);
+                    if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                    {
+                        _ = artwork.Type == ArtworkType.Ugoira ?
+                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                    }
+
                     return artwork;
-                }, (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
+                }, async (artwork, token) =>
+                {
+                    await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token).ConfigureAwait(false);
+                    if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                    {
+                        _ = artwork.Type == ArtworkType.Ugoira ?
+                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                    }
+
+                }, token).ConfigureAwait(false))
                 {
                     ++add;
                     if (logInfo)
@@ -274,8 +254,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
             }
         }
 
-        Unsafe.Unbox<bool>(done) = true;
-        return (add, update, await dequeDownloadTask.ConfigureAwait(false));
+        return (add, update, (ulong)machine.DownloadFileCount);
     }
 
     private async ValueTask<(ulong add, ulong update, ulong download)> PrivateDownloadAllArtworkResponsesAndFiles(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
@@ -294,49 +273,13 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
-        var queue = new ConcurrentQueue<Artwork>();
-        object done = false;
-        var dequeDownloadTask = Task.Run(async () =>
-        {
-            var machine = new DownloadAsyncMachine(this, database, token);
-            var timeSpan = TimeSpan.FromSeconds(30d);
+        var machine = new DownloadAsyncMachine(this, database, token);
+        var shouldDownloadOriginal = fileFilter.Original is not null;
+        var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
+        var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
+        var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
+        var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
 
-            var shouldDownloadOriginal = fileFilter.Original is not null;
-            var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
-            var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
-            var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
-            var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
-
-            while (!Unsafe.Unbox<bool>(done))
-            {
-                if (token.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                if (!queue.TryDequeue(out var artwork))
-                {
-                    await Task.Delay(timeSpan, token).ConfigureAwait(false);
-                    continue;
-                }
-
-                if (!filter.FastFilter(artwork) || !await filter.SlowFilter(artwork, token).ConfigureAwait(false))
-                {
-                    continue;
-                }
-
-                if (token.IsCancellationRequested)
-                {
-                    break;
-                }
-
-                var downloadResult = artwork.Type == ArtworkType.Ugoira ?
-                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
-                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
-            }
-
-            return (ulong)machine.DownloadFileCount;
-        });
         await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
         {
             if (token.IsCancellationRequested)
@@ -344,14 +287,36 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 break;
             }
 
+            var oldAdd = add;
             foreach (var item in collection)
             {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 if (await database.AddOrUpdateAsync(item.Id, async token =>
                 {
                     var artwork = await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
-                    queue.Enqueue(artwork);
+                    if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                    {
+                        _ = artwork.Type == ArtworkType.Ugoira ?
+                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                    }
+
                     return artwork;
-                }, (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
+                }, async (artwork, token) =>
+                {
+                    await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token).ConfigureAwait(false);
+                    if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                    {
+                        _ = artwork.Type == ArtworkType.Ugoira ?
+                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                    }
+
+                }, token).ConfigureAwait(false))
                 {
                     ++add;
                     if (logInfo)
@@ -372,7 +337,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
             }
         }
 
-        Unsafe.Unbox<bool>(done) = true;
-        return (add, update, await dequeDownloadTask.ConfigureAwait(false));
+        return (add, update, (ulong)machine.DownloadFileCount);
     }
 }
