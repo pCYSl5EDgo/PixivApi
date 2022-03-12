@@ -54,7 +54,7 @@ public sealed class Program
                     client.AddToDefaultHeader(config);
                 })
                     .ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>)
-                    .SetHandlerLifetime(configSettings.RetryTimeSpan * 2);
+                    .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
 
                 _ = services.AddHttpClient("download", static (provider, client) =>
                 {
