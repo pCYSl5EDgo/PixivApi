@@ -5,7 +5,8 @@ public partial class NetworkClient
     [Command("follows-new-work")]
     public ValueTask DownloadNewIllustsOfFollowersAsync
     (
-        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
+        [Option("d")] bool download = false
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -14,6 +15,6 @@ public partial class NetworkClient
         }
 
         var url = $"https://{ApiHost}/v2/illust/follow?restrict=public";
-        return DownloadArtworkResponses(addBehaviour, url, Context.CancellationToken);
+        return DownloadArtworkResponses(addBehaviour, download, url, Context.CancellationToken);
     }
 }

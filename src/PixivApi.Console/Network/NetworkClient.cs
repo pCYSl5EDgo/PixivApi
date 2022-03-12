@@ -21,137 +21,358 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
     public void Dispose() => holder.Dispose();
 
-    private async ValueTask DownloadArtworkResponses(bool addBehaviour, string url, CancellationToken token)
+    private async ValueTask DownloadArtworkResponses(bool addBehaviour, bool download, string url, CancellationToken token)
     {
         var logger = Context.Logger;
-        var databaseTask = databaseFactory.RentAsync(token);
-        // When addBehaviour is false, we should wait for the database initialization in order not to query unneccessarily.
-        var database = addBehaviour ? null : await databaseTask.ConfigureAwait(false);
-        var responseList = default(List<ArtworkResponseContent>);
-        ulong add = 0UL, update = 0UL;
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
+        ulong addCount = 0UL, updateCount = 0UL, downloadCount = 0UL;
         try
         {
-            var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync).WithCancellation(token))
+            if (download)
             {
-                if (database is null)
+                if (addBehaviour)
                 {
-                    if (!databaseTask.IsCompleted)
-                    {
-                        responseList ??= new List<ArtworkResponseContent>(5010);
-                        foreach (var item in artworkCollection)
-                        {
-                            responseList.Add(item);
-                            if (System.Console.IsOutputRedirected)
-                            {
-                                logger.LogInformation($"{item.Id}");
-                            }
-                            else
-                            {
-                                logger.LogInformation($"{responseList.Count,4}: {item.Id}");
-                            }
-                        }
-
-                        token.ThrowIfCancellationRequested();
-                        continue;
-                    }
-
-                    database = await databaseTask.ConfigureAwait(false);
-                    if (responseList is { Count: > 0 })
-                    {
-                        foreach (var item in responseList)
-                        {
-                            if (await database.AddOrUpdateAsync(
-                                item.Id,
-                                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                                (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
-                                token
-                            ).ConfigureAwait(false))
-                            {
-                                ++add;
-                            }
-                            else
-                            {
-                                ++update;
-                            }
-                        }
-
-                        responseList = null;
-                    }
+                    (addCount, updateCount, downloadCount) = await PrivateDownloadAllArtworkResponsesAndFiles(url, logger, database, requestSender, token).ConfigureAwait(false);
                 }
-
-                var oldAdd = add;
-                foreach (var item in artworkCollection)
+                else
                 {
-                    if (await database.AddOrUpdateAsync(
-                        item.Id,
-                        token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                        (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
-                        token
-                    ).ConfigureAwait(false))
+                    (addCount, updateCount, downloadCount) = await PrivateDownloadNewArtworkResponsesAndFiles(url, logger, database, requestSender, token).ConfigureAwait(false);
+                }
+            }
+            else
+            {
+                if (addBehaviour)
+                {
+                    (addCount, updateCount) = await PrivateDownloadAllArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
+                }
+                else
+                {
+                    (addCount, updateCount) = await PrivateDownloadNewArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
+                }
+            }
+        }
+        finally
+        {
+            if (!System.Console.IsOutputRedirected)
+            {
+                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                logger.LogInformation($"Total: {artworkCount} Add: {addCount} Update: {updateCount} Download: {downloadCount}");
+            }
+
+            databaseFactory.Return(ref database);
+        }
+    }
+
+    private static async ValueTask<(ulong add, ulong update)> PrivateDownloadNewArtworkResponses(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
+    {
+        ulong add = 0UL, update = 0UL;
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
+#pragma warning disable IDE0019
+        var extended = database as IExtenededDatabase;
+#pragma warning restore IDE0019
+        await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (extended is null)
+            {
+                var oldAdd = add;
+                foreach (var item in collection)
+                {
+                    if (await database.AddOrUpdateAsync(item.Id, token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
                     {
                         ++add;
-                        if (System.Console.IsOutputRedirected)
+                        if (logInfo)
                         {
-                            logger.LogInformation($"{item.Id}");
-                        }
-                        else
-                        {
-                            logger.LogInformation($"{add,4}: {item.Id,20}");
+                            logger.LogInformation($"A {add,10}: {item.Id,16}");
                         }
                     }
                     else
                     {
                         ++update;
+                        if (logTrace)
+                        {
+                            logger.LogTrace($"U {update,10}: {item.Id,16}");
+                        }
                     }
                 }
 
-                token.ThrowIfCancellationRequested();
-                if (!addBehaviour && add == oldAdd)
+                if (add == oldAdd)
                 {
                     break;
                 }
             }
-        }
-        catch (TaskCanceledException)
-        {
-            logger.LogError("Accept cancel. Please wait for writing to the database file.");
-        }
-        finally
-        {
-            if (database is null)
+            else
             {
-                database = await databaseTask.ConfigureAwait(false);
-                if (responseList is { Count: > 0 })
+                var (_add, _update) = await extended.ArtworkAddOrUpdateAsync(collection, token).ConfigureAwait(false);
+                if (logInfo)
                 {
-                    foreach (var item in responseList)
+                    logger.LogInformation($"Add: {_add} Update: {_update}");
+                }
+
+                update += _update;
+                if (_add == 0)
+                {
+                    break;
+                }
+
+                add += _add;
+            }
+        }
+
+        return (add, update);
+    }
+
+    private static async ValueTask<(ulong add, ulong update)> PrivateDownloadAllArtworkResponses(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
+    {
+        ulong add = 0UL, update = 0UL;
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
+#pragma warning disable IDE0019
+        var extended = database as IExtenededDatabase;
+#pragma warning restore IDE0019
+        await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (extended is null)
+            {
+                foreach (var item in collection)
+                {
+                    if (await database.AddOrUpdateAsync(item.Id, token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
                     {
-                        if (await database.AddOrUpdateAsync(
-                                item.Id,
-                                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                                (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
-                                token
-                            ).ConfigureAwait(false))
+                        ++add;
+                        if (logInfo)
                         {
-                            ++add;
-                        }
-                        else
-                        {
-                            ++update;
+                            logger.LogInformation($"A {add,10}: {item.Id,16}");
                         }
                     }
+                    else
+                    {
+                        ++update;
+                        if (logTrace)
+                        {
+                            logger.LogTrace($"U {update,10}: {item.Id,16}");
+                        }
+                    }
+                }
+            }
+            else
+            {
+                var (_add, _update) = await extended.ArtworkAddOrUpdateAsync(collection, token).ConfigureAwait(false);
+                if (logInfo)
+                {
+                    logger.LogInformation($"Add: {_add} Update: {_update}");
+                }
 
-                    responseList = null;
+                add += _add;
+                update += _update;
+            }
+        }
+
+        return (add, update);
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong download)> PrivateDownloadNewArtworkResponsesAndFiles(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath))
+        {
+            return (0, 0, 0);
+        }
+
+        ulong add = 0UL, update = 0UL;
+        var filter = await filterFactory.CreateAsync(database, new FileInfo(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
+        if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Thumbnail: null, Ugoira: null })
+        {
+            (add, update) = await PrivateDownloadNewArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
+            return (add, update, 0);
+        }
+
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
+        var queue = new ConcurrentQueue<Artwork>();
+        object done = false;
+        var dequeDownloadTask = Task.Run(async () =>
+        {
+            var machine = new DownloadAsyncMachine(this, database, token);
+            var timeSpan = TimeSpan.FromSeconds(30d);
+
+            var shouldDownloadOriginal = fileFilter.Original is not null;
+            var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
+            var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
+            var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
+            var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
+
+            while (!Unsafe.Unbox<bool>(done))
+            {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                if (!queue.TryDequeue(out var artwork))
+                {
+                    await Task.Delay(timeSpan, token).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (!filter.FastFilter(artwork) || !await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                {
+                    continue;
+                }
+
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                var downloadResult = artwork.Type == ArtworkType.Ugoira ?
+                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+            }
+
+            return (ulong)machine.DownloadFileCount;
+        });
+        await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                break;
+            }
+
+            var oldAdd = add;
+            foreach (var item in collection)
+            {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                if (await database.AddOrUpdateAsync(item.Id, async token =>
+                {
+                    var artwork = await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
+                    queue.Enqueue(artwork);
+                    return artwork;
+                }, (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
+                {
+                    ++add;
+                    if (logInfo)
+                    {
+                        logger.LogInformation($"A {add,10}: {item.Id,16}");
+                    }
+                }
+                else
+                {
+                    ++update;
+                    if (logTrace)
+                    {
+                        logger.LogTrace($"U {update,10}: {item.Id,16}");
+                    }
+
+                    continue;
                 }
             }
 
-            if (!System.Console.IsOutputRedirected)
+            if (add == oldAdd || token.IsCancellationRequested)
             {
-                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
-                logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
+                break;
+            }
+        }
+
+        Unsafe.Unbox<bool>(done) = true;
+        return (add, update, await dequeDownloadTask.ConfigureAwait(false));
+    }
+
+    private async ValueTask<(ulong add, ulong update, ulong download)> PrivateDownloadAllArtworkResponsesAndFiles(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath))
+        {
+            return (0, 0, 0);
+        }
+
+        ulong add = 0UL, update = 0UL;
+        var filter = await filterFactory.CreateAsync(database, new FileInfo(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
+        if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Thumbnail: null, Ugoira: null })
+        {
+            (add, update) = await PrivateDownloadNewArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
+            return (add, update, 0);
+        }
+
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
+        var queue = new ConcurrentQueue<Artwork>();
+        object done = false;
+        var dequeDownloadTask = Task.Run(async () =>
+        {
+            var machine = new DownloadAsyncMachine(this, database, token);
+            var timeSpan = TimeSpan.FromSeconds(30d);
+
+            var shouldDownloadOriginal = fileFilter.Original is not null;
+            var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
+            var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
+            var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
+            var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
+
+            while (!Unsafe.Unbox<bool>(done))
+            {
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                if (!queue.TryDequeue(out var artwork))
+                {
+                    await Task.Delay(timeSpan, token).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (!filter.FastFilter(artwork) || !await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                {
+                    continue;
+                }
+
+                if (token.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                var downloadResult = artwork.Type == ArtworkType.Ugoira ?
+                    await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                    await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
             }
 
-            databaseFactory.Return(ref database);
+            return (ulong)machine.DownloadFileCount;
+        });
+        await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+        {
+            if (token.IsCancellationRequested)
+            {
+                break;
+            }
+
+            foreach (var item in collection)
+            {
+                if (await database.AddOrUpdateAsync(item.Id, async token =>
+                {
+                    var artwork = await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
+                    queue.Enqueue(artwork);
+                    return artwork;
+                }, (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
+                {
+                    ++add;
+                    if (logInfo)
+                    {
+                        logger.LogInformation($"A {add,10}: {item.Id,16}");
+                    }
+                }
+                else
+                {
+                    ++update;
+                    if (logTrace)
+                    {
+                        logger.LogTrace($"U {update,10}: {item.Id,16}");
+                    }
+
+                    continue;
+                }
+            }
         }
+
+        Unsafe.Unbox<bool>(done) = true;
+        return (add, update, await dequeDownloadTask.ConfigureAwait(false));
     }
 }

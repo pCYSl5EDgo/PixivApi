@@ -40,6 +40,7 @@ public partial class NetworkClient
         var token = Context.CancellationToken;
         var databaseTask = databaseFactory.RentAsync(token);
         var database = default(IDatabase);
+        var exteneded = default(IExtenededDatabase);
         var responseList = default(List<ArtworkResponseContent>);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong add = 0UL, update = 0UL;
@@ -71,7 +72,99 @@ public partial class NetworkClient
                     }
 
                     database = await databaseTask.ConfigureAwait(false);
+                    exteneded = database as IExtenededDatabase;
                     if (responseList is { Count: > 0 })
+                    {
+                        if (exteneded is null)
+                        {
+                            foreach (var item in responseList)
+                            {
+                                if (await database.AddOrUpdateAsync(
+                                    item.Id,
+                                    token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                                    (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                                    token
+                                ).ConfigureAwait(false))
+                                {
+                                    ++add;
+                                }
+                                else
+                                {
+                                    ++update;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            var (_add, _update) = await exteneded.ArtworkAddOrUpdateAsync(responseList, token).ConfigureAwait(false);
+                            add += _add;
+                            update += _update;
+                        }
+
+                        responseList = null;
+                    }
+                }
+
+                var oldAdd = add;
+                if (exteneded is null)
+                {
+                    foreach (var item in artworkCollection)
+                    {
+                        if (token.IsCancellationRequested)
+                        {
+                            return;
+                        }
+
+                        if (await database.AddOrUpdateAsync(
+                            item.Id,
+                            token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                            (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                            token
+                        ).ConfigureAwait(false))
+                        {
+                            ++add;
+                            if (System.Console.IsOutputRedirected)
+                            {
+                                Context.Logger.LogInformation($"{item.Id}");
+                            }
+                            else
+                            {
+                                Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
+                            }
+                        }
+                        else
+                        {
+                            ++update;
+                        }
+                    }
+                }
+                else
+                {
+                    var (_add, _update) = await exteneded.ArtworkAddOrUpdateAsync(artworkCollection, token).ConfigureAwait(false);
+                    add += _add;
+                    update += _update;
+                }
+
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+                
+                if (!addBehaviour && add == oldAdd)
+                {
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            if (database is null)
+            {
+                database = await databaseTask.ConfigureAwait(false);
+                exteneded = database as IExtenededDatabase;
+                if (responseList is { Count: > 0 })
+                {
+                    if (exteneded is null)
                     {
                         foreach (var item in responseList)
                         {
@@ -89,70 +182,12 @@ public partial class NetworkClient
                                 ++update;
                             }
                         }
-
-                        responseList = null;
-                    }
-                }
-
-                var oldAdd = add;
-                foreach (var item in artworkCollection)
-                {
-                    if (await database.AddOrUpdateAsync(
-                        item.Id,
-                        token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                        (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
-                        token
-                    ).ConfigureAwait(false))
-                    {
-                        ++add;
-                        if (System.Console.IsOutputRedirected)
-                        {
-                            Context.Logger.LogInformation($"{item.Id}");
-                        }
-                        else
-                        {
-                            Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
-                        }
                     }
                     else
                     {
-                        ++update;
-                    }
-                }
-
-                token.ThrowIfCancellationRequested();
-                if (!addBehaviour && add == oldAdd)
-                {
-                    break;
-                }
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            logger.LogError("Accept cancel. Please wait for writing to the database file.");
-        }
-        finally
-        {
-            if (database is null)
-            {
-                database = await databaseTask.ConfigureAwait(false);
-                if (responseList is { Count: > 0 })
-                {
-                    foreach (var item in responseList)
-                    {
-                        if (await database.AddOrUpdateAsync(
-                            item.Id,
-                            token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                            (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
-                            token
-                        ).ConfigureAwait(false))
-                        {
-                            ++add;
-                        }
-                        else
-                        {
-                            ++update;
-                        }
+                        var (_add, _update) = await exteneded.ArtworkAddOrUpdateAsync(responseList, token).ConfigureAwait(false);
+                        add += _add;
+                        update += _update;
                     }
 
                     responseList = null;

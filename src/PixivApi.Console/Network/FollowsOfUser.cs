@@ -5,7 +5,9 @@ public partial class NetworkClient
     [Command("follows")]
     public async ValueTask DownloadFollowsOfUserAsync
     (
-        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false
+        [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
+        bool allWork = false,
+        [Option("d")] bool download = false
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
