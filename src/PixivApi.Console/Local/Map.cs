@@ -8,13 +8,13 @@ public partial class LocalClient
         bool toString = false
     )
     {
-        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
+        filter ??= configSettings.ArtworkFilterFilePath;
+        if (string.IsNullOrWhiteSpace(filter) || string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
         {
             return;
         }
 
         var token = Context.CancellationToken;
-        filter ??= configSettings.DatabaseFilePath;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
