@@ -1,6 +1,7 @@
 ﻿using PixivApi.Core.Local;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using SQLitePCL;
 
 namespace PixivApi.Core.SqliteDatabase;
 
@@ -10,6 +11,7 @@ public sealed class DatabaseFactory : IDatabaseFactory
 
     public DatabaseFactory(ConfigSettings configSettings)
     {
+        Batteries_V2.Init();
         path = configSettings.DatabaseFilePath ?? throw new NullReferenceException();
     }
 
@@ -45,5 +47,4 @@ public sealed class DatabaseFactory : IDatabaseFactory
         Returned.Add((Database)database);
         database = null;
     }
-
 }
