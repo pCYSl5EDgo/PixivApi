@@ -66,7 +66,6 @@ public partial class NetworkClient
                 }
 
                 await LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token).ConfigureAwait(false);
-                database.Update();
                 if (System.Console.IsOutputRedirected)
                 {
                     logger.LogInformation($"{item.Id}");

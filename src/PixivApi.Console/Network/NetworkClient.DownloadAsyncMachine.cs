@@ -135,7 +135,6 @@ public partial class NetworkClient
 
         private async ValueTask<bool> DownloadFilePrepareDetailAsync(Artwork artwork)
         {
-            database.Update();
             ArtworkResponseContent detailArtwork;
             using (var response = await GetArtworkDetailAsync(requestSender, artwork.Id, token).ConfigureAwait(false))
             {

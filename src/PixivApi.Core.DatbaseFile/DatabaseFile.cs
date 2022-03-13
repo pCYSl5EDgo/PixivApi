@@ -311,8 +311,6 @@ internal sealed class DatabaseFile : IDatabase
         return ValueTask.FromResult(ToolSet.Register(value));
     }
 
-    public void Update() => Interlocked.Exchange(ref IsChanged, 1);
-
     public sealed class Formatter : IMessagePackFormatter<DatabaseFile?>
     {
         public void Serialize(ref MessagePackWriter writer, DatabaseFile? value, MessagePackSerializerOptions options) => SerializeStatic(ref writer, value, options);
