@@ -13,11 +13,11 @@ public sealed class DatabaseFactory : IDatabaseFactory
         path = configSettings.DatabaseFilePath ?? throw new NullReferenceException();
     }
 
-    private readonly ConcurrentQueue<Database> Returned = new();
+    private readonly ConcurrentBag<Database> Returned = new();
 
     public ValueTask<IDatabase> RentAsync(CancellationToken token)
     {
-        if (!Returned.TryDequeue(out var database))
+        if (!Returned.TryTake(out var database))
         {
             database = new(path);
         }
@@ -27,7 +27,7 @@ public sealed class DatabaseFactory : IDatabaseFactory
 
     public ValueTask DisposeAsync()
     {
-        while (Returned.TryDequeue(out var database))
+        while (Returned.TryTake(out var database))
         {
             database.Dispose();
         }
@@ -37,7 +37,8 @@ public sealed class DatabaseFactory : IDatabaseFactory
 
     public void Return([MaybeNull] ref IDatabase database)
     {
-        Returned.Enqueue((Database)database);
+        Returned.Add((Database)database);
         database = null;
     }
+
 }
