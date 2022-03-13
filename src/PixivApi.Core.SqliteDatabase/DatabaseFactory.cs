@@ -17,6 +17,11 @@ public sealed class DatabaseFactory : IDatabaseFactory
 
     public ValueTask<IDatabase> RentAsync(CancellationToken token)
     {
+        if (token.IsCancellationRequested)
+        {
+            return ValueTask.FromCanceled<IDatabase>(token);
+        }
+
         if (!Returned.TryTake(out var database))
         {
             database = new(path);
