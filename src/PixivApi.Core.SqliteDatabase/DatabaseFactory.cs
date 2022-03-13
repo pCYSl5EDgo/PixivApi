@@ -1,22 +1,43 @@
 ﻿using PixivApi.Core.Local;
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 
 namespace PixivApi.Core.SqliteDatabase;
 
 public sealed class DatabaseFactory : IDatabaseFactory
 {
+    private readonly string path;
+
+    public DatabaseFactory(ConfigSettings configSettings)
+    {
+        path = configSettings.DatabaseFilePath ?? throw new NullReferenceException();
+    }
+
+    private readonly ConcurrentQueue<Database> Returned = new();
+
     public ValueTask<IDatabase> RentAsync(CancellationToken token)
     {
-        throw new NotImplementedException();
+        if (!Returned.TryDequeue(out var database))
+        {
+            database = new(path);
+        }
+
+        return ValueTask.FromResult<IDatabase>(database);
     }
 
     public ValueTask DisposeAsync()
     {
-        throw new NotImplementedException();
+        while (Returned.TryDequeue(out var database))
+        {
+            database.Dispose();
+        }
+
+        return ValueTask.CompletedTask;
     }
 
-    public void Return([MaybeNull] ref IDatabase? database)
+    public void Return([MaybeNull] ref IDatabase database)
     {
-        throw new NotImplementedException();
+        Returned.Enqueue((Database)database);
+        database = null;
     }
 }
