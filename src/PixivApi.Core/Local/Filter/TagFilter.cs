@@ -2,48 +2,25 @@
 
 public sealed class TagFilter
 {
-    [JsonPropertyName("exact")] public string[]? Exacts;
+    [JsonPropertyName("exact")] public string? Exact;
     [JsonPropertyName("partial")] public string[]? Partials;
-    [JsonPropertyName("ignore-exact")] public string[]? IgnoreExacts;
+    [JsonPropertyName("ignore-exact")] public string? IgnoreExact;
     [JsonPropertyName("ignore-partial")] public string[]? IgnorePartials;
 
-    [JsonPropertyName("exact-or")] public bool ExactOr = true;
     [JsonPropertyName("partial-or")] public bool PartialOr = true;
-    [JsonPropertyName("ignore-exact-or")] public bool IgnoreExactOr = true;
     [JsonPropertyName("ignore-partial-or")] public bool IgnorePartialOr = true;
 
-    [JsonIgnore] private HashSet<uint>? setExact;
-    [JsonIgnore] private HashSet<uint>? setIgnoreExact;
-    [JsonIgnore] private HashSet<uint>? setPartial;
-    [JsonIgnore] private HashSet<uint>? setIgnorePartial;
+    [JsonIgnore] public HashSet<uint>? SetOk;
+    [JsonIgnore] public HashSet<uint>? SetNg;
+    [JsonIgnore] public uint ExactNumber;
+    [JsonIgnore] public uint IgnoreExactNumber;
 
     public async ValueTask InitializeAsync(ITagDatabase database, CancellationToken token)
     {
-        setExact = await CreateExactAsync(database, Exacts, token).ConfigureAwait(false);
-        setIgnoreExact = await CreateExactAsync(database, IgnoreExacts, token).ConfigureAwait(false);
-        setPartial = await CreatePartialAsync(database, Partials, token).ConfigureAwait(false);
-        setIgnorePartial = await CreatePartialAsync(database, IgnorePartials, token).ConfigureAwait(false);
-    }
-
-    private static async ValueTask<HashSet<uint>?> CreateExactAsync(ITagDatabase database, string[]? array, CancellationToken token)
-    {
-        if (array is not { Length: > 0 })
-        {
-            return null;
-        }
-
-        var answer = new HashSet<uint>(array.Length);
-        foreach (var item in array)
-        {
-            token.ThrowIfCancellationRequested();
-            var tag = await database.FindTagAsync(item, token).ConfigureAwait(false);
-            if (tag.HasValue)
-            {
-                answer.Add(tag.Value);
-            }
-        }
-
-        return answer.Count == 0 ? null : answer;
+        ExactNumber = string.IsNullOrEmpty(Exact) ? 0 : (await database.FindTagAsync(Exact, token).ConfigureAwait(false)) ?? 0;
+        IgnoreExactNumber = string.IsNullOrEmpty(IgnoreExact) ? 0 : (await database.FindTagAsync(IgnoreExact, token).ConfigureAwait(false)) ?? 0;
+        SetOk = await CreatePartialAsync(database, Partials, token).ConfigureAwait(false);
+        SetNg = await CreatePartialAsync(database, IgnorePartials, token).ConfigureAwait(false);
     }
 
     private static async ValueTask<HashSet<uint>?> CreatePartialAsync(ITagDatabase database, string[]? array, CancellationToken token)
@@ -153,48 +130,32 @@ public sealed class TagFilter
     public bool Filter(uint[] tags, uint[]? adds, uint[]? removes)
     {
         var (notEmpty, enumerable) = CalculateHash(tags, adds, removes);
-        if (setExact is not null)
+        if (ExactNumber != 0 && notEmpty)
         {
-            if (!notEmpty)
+            foreach (var item in enumerable)
             {
-                return false;
-            }
-
-            if (ExactOr)
-            {
-                if (!ContainsAny(setExact, enumerable))
+                if (ExactNumber == item)
                 {
-                    return false;
+                    goto OK;
                 }
             }
-            else
+
+            return false;
+        OK:;
+        }
+
+        if (IgnoreExactNumber != 0 && notEmpty)
+        {
+            foreach (var item in enumerable)
             {
-                if (!ContainsAll(setExact, enumerable))
+                if (IgnoreExactNumber == item)
                 {
                     return false;
                 }
             }
         }
 
-        if (setIgnoreExact is not null && notEmpty)
-        {
-            if (IgnoreExactOr)
-            {
-                if (ContainsAny(setIgnoreExact, enumerable))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (ContainsAll(setIgnoreExact, enumerable))
-                {
-                    return false;
-                }
-            }
-        }
-
-        if (setPartial is not null)
+        if (SetOk is not null)
         {
             if (!notEmpty)
             {
@@ -203,32 +164,32 @@ public sealed class TagFilter
 
             if (PartialOr)
             {
-                if (!ContainsAny(setPartial, enumerable))
+                if (!ContainsAny(SetOk, enumerable))
                 {
                     return false;
                 }
             }
             else
             {
-                if (!ContainsAll(setPartial, enumerable))
+                if (!ContainsAll(SetOk, enumerable))
                 {
                     return false;
                 }
             }
         }
 
-        if (setIgnorePartial is not null && notEmpty)
+        if (SetNg is not null && notEmpty)
         {
             if (IgnorePartialOr)
             {
-                if (ContainsAny(setIgnorePartial, enumerable))
+                if (ContainsAny(SetNg, enumerable))
                 {
                     return false;
                 }
             }
             else
             {
-                if (ContainsAll(setIgnorePartial, enumerable))
+                if (ContainsAll(SetNg, enumerable))
                 {
                     return false;
                 }

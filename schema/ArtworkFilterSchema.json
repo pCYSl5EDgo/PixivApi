@@ -141,6 +141,12 @@
       "description": "A filter for text json file",
       "properties": {
         "exact": {
+          "type": "string"
+        },
+        "ignore-exact": {
+          "$ref": "#/properties/tag-filter/properties/exact"
+        },
+        "ignore-partial": {
           "items": {
             "type": "string"
           },
@@ -148,23 +154,11 @@
           "type": "array",
           "uniqueItems": true
         },
-        "exact-or": {
-          "type": "boolean"
-        },
-        "ignore-exact": {
-          "$ref": "#/properties/tag-filter/properties/exact"
-        },
-        "ignore-exact-or": {
-          "type": "boolean"
-        },
-        "ignore-partial": {
-          "$ref": "#/properties/tag-filter/properties/exact"
-        },
         "ignore-partial-or": {
           "type": "boolean"
         },
         "partial": {
-          "$ref": "#/properties/tag-filter/properties/exact"
+          "$ref": "#/properties/tag-filter/properties/ignore-partial"
         },
         "partial-or": {
           "type": "boolean"

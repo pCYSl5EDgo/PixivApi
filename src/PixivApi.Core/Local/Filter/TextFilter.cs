@@ -2,87 +2,38 @@
 
 public sealed class TextFilter
 {
-    [JsonPropertyName("exact")] public string[]? Exacts;
+    [JsonPropertyName("exact")] public string? Exact;
     [JsonPropertyName("partial")] public string[]? Partials;
-    [JsonPropertyName("ignore-exact")] public string[]? IgnoreExacts;
+    [JsonPropertyName("ignore-exact")] public string? IgnoreExact;
     [JsonPropertyName("ignore-partial")] public string[]? IgnorePartials;
 
-    [JsonPropertyName("exact-or")] public bool ExactOr = true;
     [JsonPropertyName("partial-or")] public bool PartialOr = true;
-    [JsonPropertyName("ignore-exact-or")] public bool IgnoreExactOr = true;
     [JsonPropertyName("ignore-partial-or")] public bool IgnorePartialOr = true;
 
     public bool Filter(ReadOnlySpan<string?> span)
     {
-        if (Exacts is { Length: > 0 })
+        if (Exact is { Length: > 0 })
         {
-            if (ExactOr)
+            foreach (var item in span)
             {
-                foreach (var other in Exacts)
+                if (Exact.AsSpan().SequenceEqual(item.AsSpan()))
                 {
-                    foreach (var item in span)
-                    {
-                        if (item is not null && item.SequenceEqual(other))
-                        {
-                            goto OK;
-                        }
-                    }
-                }
-
-                return false;
-            OK:;
-            }
-            else
-            {
-                foreach (var other in Exacts)
-                {
-                    foreach (var item in span)
-                    {
-                        if (item is not null && item.SequenceEqual(other))
-                        {
-                            goto OK;
-                        }
-                    }
-
-                    return false;
-                OK:;
+                    goto OK;
                 }
             }
+
+            return false;
+        OK:;
         }
 
-        if (IgnoreExacts is { Length: > 0 })
+        if (IgnoreExact is { Length: > 0 })
         {
-            if (IgnoreExactOr)
+            foreach (var item in span)
             {
-                foreach (var other in IgnoreExacts)
+                if (IgnoreExact.AsSpan().SequenceEqual(item.AsSpan()))
                 {
-                    foreach (var item in span)
-                    {
-                        if (item is not null && item.SequenceEqual(other))
-                        {
-                            return false;
-                        }
-                    }
+                    return false;
                 }
-            }
-            else
-            {
-                foreach (var other in IgnoreExacts)
-                {
-                    foreach (var item in span)
-                    {
-                        if (item is not null && item.SequenceEqual(other))
-                        {
-                            goto BREAK;
-                        }
-                    }
-
-                    goto OK;
-                BREAK:;
-                }
-
-                return false;
-            OK:;
             }
         }
 

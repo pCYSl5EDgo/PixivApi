@@ -9,25 +9,21 @@
       "type": "string"
     },
     "exact": {
+      "type": "string"
+    },
+    "ignore-exact": { "$ref": "#/properties/exact" },
+    "ignore-partial": { 
       "items": {
         "type": "string"
       },
       "minItems": 1,
       "type": "array",
       "uniqueItems": true
-    },
-    "exact-or": {
-      "type": "boolean"
-    },
-    "ignore-exact": { "$ref": "#/properties/exact" },
-    "ignore-exact-or": {
-      "type": "boolean"
-    },
-    "ignore-partial": { "$ref": "#/properties/exact" },
+     },
     "ignore-partial-or": {
       "type": "boolean"
     },
-    "partial": { "$ref": "#/properties/exact" },
+    "partial": { "$ref": "#/properties/ignore-partial" },
     "partial-or": {
       "type": "boolean"
     }
