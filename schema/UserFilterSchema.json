@@ -75,8 +75,24 @@
     "only-registered": {
       "type": "boolean"
     },
-    "show-hidden": {
-      "type": "boolean"
+    "hide-filter": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "enum": [
+            "not-hidden",
+            "low-quality",
+            "irrelevant",
+            "external-link",
+            "dislike",
+            "crop"
+          ]
+        },
+        "disallow": {
+          "$ref": "#/properties/hide-filter/properties/allow"
+        }
+      },
+      "type": "object"
     },
     "tag-filter": {
       "additionalProperties": false,
@@ -90,26 +106,20 @@
           "type": "array",
           "uniqueItems": true
         },
-        "exact-or": {
+        "or": {
           "type": "boolean"
         },
         "ignore-exact": {
           "$ref": "#/properties/tag-filter/properties/exact"
         },
-        "ignore-exact-or": {
-          "type": "boolean"
-        },
         "ignore-partial": {
           "$ref": "#/properties/tag-filter/properties/exact"
         },
-        "ignore-partial-or": {
+        "ignore-or": {
           "type": "boolean"
         },
         "partial": {
           "$ref": "#/properties/tag-filter/properties/exact"
-        },
-        "partial-or": {
-          "type": "boolean"
         }
       },
       "title": "TextFilter",

@@ -30,6 +30,8 @@ public sealed class ArtworkFilter : IFilter<Artwork>
 
     public bool HasSlowFilter => FileExistanceFilter is not null || UserFilter is not null;
 
+    public bool ShouldHandleFileExistanceFilter => FileExistanceFilter is not { Original: null, Thumbnail: null, Ugoira: null };
+
     public bool FastFilter(Artwork artwork)
     {
         if (HideFilter is null)
@@ -163,7 +165,7 @@ public sealed class ArtworkFilter : IFilter<Artwork>
         if (UserFilter is not null)
         {
             var user = await database.GetUserAsync(artwork.UserId, token).ConfigureAwait(false);
-            if (user is null || !UserFilter.Filter(user))
+            if (user is null || !UserFilter.FastFilter(user))
             {
                 return false;
             }

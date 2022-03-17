@@ -1,13 +1,15 @@
 ﻿namespace PixivApi.Core.Local;
 
-public sealed class UserFilter
+public sealed class UserFilter : IFilter<User>
 {
     [JsonPropertyName("follow")] public bool? IsFollowed;
     [JsonPropertyName("only-registered")] public bool OnlyRegistered = false;
     [JsonPropertyName("id-filter")] public IdFilter? IdFilter = null;
     [JsonPropertyName("name-filter")] public TextFilter? NameFilter = null;
-    [JsonPropertyName("show-hidden")] public bool ShowHiddenUsers = false;
+    [JsonPropertyName("hide-filter")] public HideFilter? HideFilter = null;
     [JsonPropertyName("tag-filter")] public TagFilter? TagFilter = null;
+
+    public bool HasSlowFilter => false;
 
     public async ValueTask InitializeAsync(IDatabase database, CancellationToken token)
     {
@@ -17,7 +19,7 @@ public sealed class UserFilter
         }
     }
 
-    public bool Filter(User user)
+    public bool FastFilter(User user)
     {
         if (user.ExtraHideReason != HideReason.NotHidden)
         {
@@ -29,7 +31,14 @@ public sealed class UserFilter
             return false;
         }
 
-        if (!ShowHiddenUsers && user.ExtraHideReason != HideReason.NotHidden)
+        if (HideFilter is null)
+        {
+            if (user.ExtraHideReason != HideReason.NotHidden)
+            {
+                return false;
+            }
+        }
+        else if (!HideFilter.Filter(user.ExtraHideReason))
         {
             return false;
         }
@@ -51,4 +60,6 @@ public sealed class UserFilter
 
         return true;
     }
+
+    public ValueTask<bool> SlowFilter(User value, CancellationToken token) => ValueTask.FromResult(true);
 }

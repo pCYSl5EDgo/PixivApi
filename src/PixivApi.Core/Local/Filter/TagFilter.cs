@@ -2,25 +2,45 @@
 
 public sealed class TagFilter
 {
-    [JsonPropertyName("exact")] public string? Exact;
+    [JsonPropertyName("exact")] public string[]? Exacts;
     [JsonPropertyName("partial")] public string[]? Partials;
-    [JsonPropertyName("ignore-exact")] public string? IgnoreExact;
+    [JsonPropertyName("ignore-exact")] public string[]? IgnoreExacts;
     [JsonPropertyName("ignore-partial")] public string[]? IgnorePartials;
 
-    [JsonPropertyName("partial-or")] public bool PartialOr = true;
-    [JsonPropertyName("ignore-partial-or")] public bool IgnorePartialOr = true;
+    [JsonPropertyName("or")] public bool Or = true;
+    [JsonPropertyName("ignore-or")] public bool IgnoreOr = true;
 
-    [JsonIgnore] public HashSet<uint>? SetOk;
-    [JsonIgnore] public HashSet<uint>? SetNg;
-    [JsonIgnore] public uint ExactNumber;
-    [JsonIgnore] public uint IgnoreExactNumber;
+    [JsonIgnore] public HashSet<uint>? IntersectSet;
+    [JsonIgnore] public HashSet<uint>? ExceptSet;
 
     public async ValueTask InitializeAsync(ITagDatabase database, CancellationToken token)
     {
-        ExactNumber = string.IsNullOrEmpty(Exact) ? 0 : (await database.FindTagAsync(Exact, token).ConfigureAwait(false)) ?? 0;
-        IgnoreExactNumber = string.IsNullOrEmpty(IgnoreExact) ? 0 : (await database.FindTagAsync(IgnoreExact, token).ConfigureAwait(false)) ?? 0;
-        SetOk = await CreatePartialAsync(database, Partials, token).ConfigureAwait(false);
-        SetNg = await CreatePartialAsync(database, IgnorePartials, token).ConfigureAwait(false);
+        IntersectSet = await CreatePartialAsync(database, Partials, token).ConfigureAwait(false);
+        ExceptSet = await CreatePartialAsync(database, IgnorePartials, token).ConfigureAwait(false);
+
+        if (Exacts is { Length: > 0 })
+        {
+            foreach (var item in Exacts)
+            {
+                var number = await database.FindTagAsync(item, token).ConfigureAwait(false);
+                if (number > 0)
+                {
+                    (IntersectSet ??= new()).Add(number.Value);
+                }
+            }
+        }
+
+        if (IgnoreExacts is { Length: > 0 })
+        {
+            foreach (var item in IgnoreExacts)
+            {
+                var number = await database.FindTagAsync(item, token).ConfigureAwait(false);
+                if (number > 0)
+                {
+                    (ExceptSet ??= new()).Add(number.Value);
+                }
+            }
+        }
     }
 
     private static async ValueTask<HashSet<uint>?> CreatePartialAsync(ITagDatabase database, string[]? array, CancellationToken token)
@@ -130,66 +150,41 @@ public sealed class TagFilter
     public bool Filter(uint[] tags, uint[]? adds, uint[]? removes)
     {
         var (notEmpty, enumerable) = CalculateHash(tags, adds, removes);
-        if (ExactNumber != 0 && notEmpty)
-        {
-            foreach (var item in enumerable)
-            {
-                if (ExactNumber == item)
-                {
-                    goto OK;
-                }
-            }
-
-            return false;
-        OK:;
-        }
-
-        if (IgnoreExactNumber != 0 && notEmpty)
-        {
-            foreach (var item in enumerable)
-            {
-                if (IgnoreExactNumber == item)
-                {
-                    return false;
-                }
-            }
-        }
-
-        if (SetOk is not null)
+        if (IntersectSet is { Count: > 0 })
         {
             if (!notEmpty)
             {
                 return false;
             }
 
-            if (PartialOr)
+            if (Or)
             {
-                if (!ContainsAny(SetOk, enumerable))
+                if (!ContainsAny(IntersectSet, enumerable))
                 {
                     return false;
                 }
             }
             else
             {
-                if (!ContainsAll(SetOk, enumerable))
+                if (!ContainsAll(IntersectSet, enumerable))
                 {
                     return false;
                 }
             }
         }
 
-        if (SetNg is not null && notEmpty)
+        if (ExceptSet is { Count: > 0 } && notEmpty)
         {
-            if (IgnorePartialOr)
+            if (IgnoreOr)
             {
-                if (ContainsAny(SetNg, enumerable))
+                if (ContainsAny(ExceptSet, enumerable))
                 {
                     return false;
                 }
             }
             else
             {
-                if (ContainsAll(SetNg, enumerable))
+                if (ContainsAll(ExceptSet, enumerable))
                 {
                     return false;
                 }
