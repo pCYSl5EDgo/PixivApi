@@ -235,7 +235,7 @@ internal sealed class DatabaseFile : IDatabase
         }
     }
 
-    public async IAsyncEnumerable<User> FilterAsync(IFilter<User> filter, [EnumeratorCancellation] CancellationToken token)
+    public async IAsyncEnumerable<User> FilterAsync(UserFilter filter, [EnumeratorCancellation] CancellationToken token)
     {
         if (token.IsCancellationRequested)
         {
