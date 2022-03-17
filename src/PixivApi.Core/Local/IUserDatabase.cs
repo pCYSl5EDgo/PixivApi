@@ -8,7 +8,7 @@ public interface IUserDatabase
 
     ValueTask<bool> AddOrUpdateAsync(ulong id, DatabaseAddUserFunc add, DatabaseUpdateUserFunc update, CancellationToken token);
 
-    IAsyncEnumerable<User> FilterAsync(IFilter<User> filter, CancellationToken token);
+    IAsyncEnumerable<User> FilterAsync(UserFilter filter, CancellationToken token);
 
     IAsyncEnumerable<User> EnumerableUserAsync(CancellationToken token);
 }
