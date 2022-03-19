@@ -1,151 +1,211 @@
-CREATE TABLE `UserTable` (
-    `Id` INTEGER NOT NULL PRIMARY KEY,
-    `Name` TEXT NULL COLLATE BINARY,
-    `Account` TEXT NULL COLLATE BINARY,
-    `IsFollowed` INTEGER NOT NULL,
-    `IsMuted` INTEGER NOT NULL,
-    `IsOfficiallyRemoved` INTEGER NOT NULL,
-    `HideReason` INTEGER NOT NULL,
-    `ImageUrls` TEXT NULL COLLATE BINARY,
-    `Comment` TEXT NULL COLLATE BINARY,
-    `Memo` TEXT NULL COLLATE BINARY,
-    `DetailProfile_WebPage` TEXT NULL COLLATE BINARY,
-    `DetailProfile_Gender` TEXT NULL COLLATE BINARY,
-    `DetailProfile_Birth` TEXT NULL COLLATE BINARY,
-    `DetailProfile_BirthYear` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_BirthDay` TEXT NULL COLLATE BINARY,
-    `DetailProfile_Region` TEXT NULL COLLATE BINARY,
-    `DetailProfile_AddressId` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_CountryCode` TEXT NULL COLLATE BINARY,
-    `DetailProfile_Job` TEXT NULL COLLATE BINARY,
-    `DetailProfile_JobId` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_TotalFollowUsers` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_TotalIllusts` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_TotalManga` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_TotalNovels` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_TotalIllustBookmarksPublic` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_TotalIllustSeries` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_TotalNovelSeries` INTEGER NOT NULL DEFAULT 0,
-    `DetailProfile_BackgroundImageUrl` TEXT NULL COLLATE BINARY,
-    `DetailProfile_TwitterAccount` TEXT NULL COLLATE BINARY,
-    `DetailProfile_TwitterUrl` TEXT NULL COLLATE BINARY,
-    `DetailProfile_PawooUrl` TEXT NULL COLLATE BINARY,
-    `DetailProfile_IsPremium` INTEGER NULL,
-    `DetailProfile_IsUsingCustomProfileImage` INTEGER NULL,
-    `DetailProfilePublicity_Gender` TEXT NULL COLLATE BINARY,
-    `DetailProfilePublicity_Region` TEXT NULL COLLATE BINARY,
-    `DetailProfilePublicity_BirthDay` TEXT NULL COLLATE BINARY,
-    `DetailProfilePublicity_BirthYear` TEXT NULL COLLATE BINARY,
-    `DetailProfilePublicity_Job` TEXT NULL COLLATE BINARY,
-    `DetailProfilePublicity_Pawoo` INTEGER NULL,
-    `DetailWorkspace_Pc` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Monitor` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Tool` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Scanner` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Tablet` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Mouse` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Printer` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Desktop` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Music` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Desk` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Chair` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_Comment` TEXT NULL COLLATE BINARY,
-    `DetailWorkspace_WorkspaceImageUrl` TEXT NULL COLLATE BINARY
+CREATE TABLE "InfoTable" (
+    "Major" INTEGER NOT NULL DEFAULT 0,
+    "Minor" INTEGER NOT NULL DEFAULT 0,
+    UNIQUE ("Major", "Minor")
 ) STRICT;
 
-CREATE INDEX `UserIsFollowedIndex` ON `UserTable` (`IsFollowed`);
-CREATE INDEX `UserIsOfficiallyRemovedIndex` ON `UserTable` (`IsOfficiallyRemoved`);
-CREATE INDEX `UserHideReasonIndex` ON `UserTable` (`HideReason`);
+INSERT INTO "InfoTable" VALUES (0, 1);
 
-CREATE TABLE `ArtworkConcreteTable` (
-    `Id` INTEGER NOT NULL PRIMARY KEY,
-    `UserId` INTEGER NOT NULL REFERENCES `UserTable` (`Id`),
-    `PageCount` INTEGER NOT NULL,
-    `Width` INTEGER NOT NULL,
-    `Height` INTEGER NOT NULL,
-    `Type` INTEGER NOT NULL,
-    `Extension` INTEGER NOT NULL,
-    `IsXRestricted` INTEGER NOT NULL,
-    `IsVisible` INTEGER NOT NULL,
-    `IsMuted` INTEGER NOT NULL,
-    `CreateDate` TEXT NOT NULL COLLATE BINARY,
-    `FileDate` TEXT NOT NULL COLLATE BINARY
+CREATE TABLE "UserTable" (
+    "Id" INTEGER NOT NULL PRIMARY KEY,
+    "Name" TEXT NULL COLLATE BINARY,
+    "Account" TEXT NULL COLLATE BINARY,
+    "IsFollowed" INTEGER NOT NULL DEFAULT 0,
+    "IsMuted" INTEGER NOT NULL DEFAULT 0,
+    "IsOfficiallyRemoved" INTEGER NOT NULL DEFAULT 0,
+    "HideReason" INTEGER NOT NULL DEFAULT 0,
+    "ImageUrls" TEXT NULL COLLATE BINARY,
+    "Comment" TEXT NULL COLLATE BINARY,
+    "Memo" TEXT NULL COLLATE BINARY,
+    "HasDetail" INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
-CREATE INDEX `IsXRestrictedIndex` ON `ArtworkConcreteTable` (`IsXRestricted`);
+CREATE INDEX "UserTable_IsFollowed_Index" ON "UserTable" ("IsFollowed");
+CREATE INDEX "UserTable_IsOfficiallyRemoved_Index" ON "UserTable" ("IsOfficiallyRemoved");
+CREATE INDEX "UserTable_HideReason_Index" ON "UserTable" ("HideReason");
 
-CREATE TABLE `ArtworkSoftTable` (
-    `Id` INTEGER NOT NULL PRIMARY KEY REFERENCES `ArtworkConcreteTable` (`Id`),
-    `TotalView` INTEGER NOT NULL,
-    `TotalBookmarks` INTEGER NOT NULL,
-    `HideReason` INTEGER NOT NULL,
-    `IsOfficiallyRemoved` INTEGER NOT NULL,
-    `IsBookmarked` INTEGER NOT NULL,
-    `Title` TEXT NOT NULL COLLATE BINARY,
-    `Caption` TEXT NOT NULL COLLATE BINARY,
-    `Memo` TEXT NULL COLLATE BINARY
+CREATE TABLE "UserDetailTable" (
+    "Id" INTEGER NOT NULL PRIMARY KEY REFERENCES "UserTable" ("Id"),
+    "Profile_Webpage" TEXT NULL COLLATE BINARY,
+    "Profile_Gender" TEXT NULL COLLATE BINARY,
+    "Profile_Birth" TEXT NULL COLLATE BINARY,
+    "Profile_BirthYear" INTEGER NOT NULL DEFAULT 0,
+    "Profile_BirthDay" TEXT NULL COLLATE BINARY,
+    "Profile_Region" TEXT NULL COLLATE BINARY,
+    "Profile_AddressId" INTEGER NOT NULL DEFAULT 0,
+    "Profile_CountryCode" TEXT NULL COLLATE BINARY,
+    "Profile_Job" TEXT NULL COLLATE BINARY,
+    "Profile_JobId" INTEGER NOT NULL DEFAULT 0,
+    "Profile_TotalFollowUsers" INTEGER NOT NULL DEFAULT 0,
+    "Profile_TotalIllusts" INTEGER NOT NULL DEFAULT 0,
+    "Profile_TotalManga" INTEGER NOT NULL DEFAULT 0,
+    "Profile_TotalNovels" INTEGER NOT NULL DEFAULT 0,
+    "Profile_TotalIllustBookmarksPublic" INTEGER NOT NULL DEFAULT 0,
+    "Profile_TotalIllustSeries" INTEGER NOT NULL DEFAULT 0,
+    "Profile_TotalNovelSeries" INTEGER NOT NULL DEFAULT 0,
+    "Profile_BackgroundImageUrl" TEXT NULL COLLATE BINARY,
+    "Profile_TwitterAccount" TEXT NULL COLLATE BINARY,
+    "Profile_TwitterUrl" TEXT NULL COLLATE BINARY,
+    "Profile_PawooUrl" TEXT NULL COLLATE BINARY,
+    "Profile_IsPremium" INTEGER NOT NULL DEFAULT 0,
+    "Profile_IsUsingCustomProfileImage" INTEGER NOT NULL DEFAULT 0,
+    "ProfilePublicity_Gender" TEXT NULL COLLATE BINARY,
+    "ProfilePublicity_Region" TEXT NULL COLLATE BINARY,
+    "ProfilePublicity_BirthDay" TEXT NULL COLLATE BINARY,
+    "ProfilePublicity_BirthYear" TEXT NULL COLLATE BINARY,
+    "ProfilePublicity_Job" TEXT NULL COLLATE BINARY,
+    "ProfilePublicity_Pawoo" INTEGER NOT NULL DEFAULT 0,
+    "Workspace_Pc" TEXT NULL COLLATE BINARY,
+    "Workspace_Monitor" TEXT NULL COLLATE BINARY,
+    "Workspace_Tool" TEXT NULL COLLATE BINARY,
+    "Workspace_Scanner" TEXT NULL COLLATE BINARY,
+    "Workspace_Tablet" TEXT NULL COLLATE BINARY,
+    "Workspace_Mouse" TEXT NULL COLLATE BINARY,
+    "Workspace_Printer" TEXT NULL COLLATE BINARY,
+    "Workspace_Desktop" TEXT NULL COLLATE BINARY,
+    "Workspace_Music" TEXT NULL COLLATE BINARY,
+    "Workspace_Desk" TEXT NULL COLLATE BINARY,
+    "Workspace_Chair" TEXT NULL COLLATE BINARY,
+    "Workspace_Comment" TEXT NULL COLLATE BINARY,
+    "Workspace_WorkspaceImageUrl" TEXT NULL COLLATE BINARY
 ) STRICT;
 
-CREATE INDEX `ArtworkTotalBookmarksIndex` ON `ArtworkSoftTable` (`TotalBookmarks`);
-CREATE INDEX `ArtworkIsOfficiallyRemovedIndex` ON `ArtworkSoftTable` (`IsOfficiallyRemoved`);
-CREATE INDEX `ArtworkIsBookmarkedIndex` ON `ArtworkSoftTable` (`IsBookmarked`);
-CREATE INDEX `ArtworkHideReasonIndex` ON `ArtworkSoftTable` (`HideReason`);
+CREATE TABLE "ArtworkTable" (
+    "Id" INTEGER NOT NULL PRIMARY KEY,
+    "UserId" INTEGER NOT NULL REFERENCES "UserTable" ("Id"),
+    "PageCount" INTEGER NOT NULL DEFAULT 0,
+    "Width" INTEGER NOT NULL DEFAULT 0,
+    "Height" INTEGER NOT NULL DEFAULT 0,
+    "Type" INTEGER NOT NULL DEFAULT 0,
+    "Extension" INTEGER NOT NULL DEFAULT 0,
+    "IsXRestricted" INTEGER NOT NULL DEFAULT 0,
+    "IsVisible" INTEGER NOT NULL DEFAULT 0,
+    "IsMuted" INTEGER NOT NULL DEFAULT 0,
+    "CreateDate" TEXT NOT NULL COLLATE BINARY,
+    "FileDate" TEXT NOT NULL COLLATE BINARY,
+    "TotalView" INTEGER NOT NULL DEFAULT 0,
+    "TotalBookmarks" INTEGER NOT NULL DEFAULT 0,
+    "HideReason" INTEGER NOT NULL DEFAULT 0,
+    "IsOfficiallyRemoved" INTEGER NOT NULL DEFAULT 0,
+    "IsBookmarked" INTEGER NOT NULL DEFAULT 0,
+    "Title" TEXT NOT NULL COLLATE BINARY,
+    "Caption" TEXT NOT NULL COLLATE BINARY,
+    "Memo" TEXT NULL COLLATE BINARY
+) STRICT;
 
-CREATE VIRTUAL TABLE `ArtworkTextTable` USING fts5(
-    `Title`,
-    `Caption`,
-    `Memo`,
-    tokenize="trigram",
-    content=`ArtworkSoftTable`,
-    content_rowid=`Id`
+CREATE INDEX "ArtworkTable_IsXRestricted_Index" ON "ArtworkTable" ("IsXRestricted");
+CREATE INDEX "ArtworkTable_ArtworkTotalBookmarks_Index" ON "ArtworkTable" ("TotalBookmarks");
+CREATE INDEX "ArtworkTable_ArtworkIsOfficiallyRemoved_Index" ON "ArtworkTable" ("IsOfficiallyRemoved");
+CREATE INDEX "ArtworkTable_ArtworkIsBookmarked_Index" ON "ArtworkTable" ("IsBookmarked");
+CREATE INDEX "ArtworkTable_ArtworkHideReason_Index" ON "ArtworkTable" ("HideReason");
+CREATE INDEX "ArtworkTable_UserId_Index" ON "ArtworkTable" ("UserId");
+
+CREATE VIRTUAL TABLE "ArtworkTextTable" USING fts5(
+    "Title",
+    "Caption",
+    "Memo",
+    tokenize="trigram case_sensitive 1",
+    content="ArtworkTable",
+    content_rowid="Id"
 );
 
-CREATE TABLE `TagTable` (
-    `Id` INTEGER NOT NULL PRIMARY KEY, 
-    `VALUE` TEXT NOT NULL UNIQUE ON CONFLICT IGNORE COLLATE BINARY
+CREATE TRIGGER "Trigger_Add_ArtworkTable" AFTER INSERT ON "ArtworkTable"
+BEGIN
+    INSERT INTO "ArtworkTextTable"("rowid", "Title", "Caption", "Memo") VALUES ("new"."Id", "new"."Title", "new"."Caption", "new"."Memo");
+END;
+
+CREATE TRIGGER "Trigger_Update_ArtworkTable" AFTER UPDATE ON "ArtworkTable"
+BEGIN
+    INSERT INTO "ArtworkTextTable"("ArtworkTextTable", "rowid", "Title", "Caption", "Memo") VALUES ('delete', old."Id", old."Title", old."Caption", old."Memo");
+    INSERT INTO "ArtworkTextTable"("rowid", "Title", "Caption", "Memo") VALUES ("new"."Id", "new"."Title", "new"."Caption", "new"."Memo");
+END;
+
+CREATE TABLE "TagTable" (
+    "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
+    "Value" TEXT NOT NULL UNIQUE ON CONFLICT IGNORE COLLATE BINARY
 ) STRICT;
-CREATE TABLE `ToolTable` (
-    `Id` INTEGER NOT NULL PRIMARY KEY,
-    `VALUE` TEXT NOT NULL UNIQUE ON CONFLICT IGNORE COLLATE BINARY
+CREATE TABLE "ToolTable" (
+    "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "Value" TEXT NOT NULL UNIQUE ON CONFLICT IGNORE COLLATE BINARY
 ) STRICT;
 
-CREATE UNIQUE INDEX `TagIndex` ON `TagTable` (`VALUE`);
-CREATE UNIQUE INDEX `ToolIndex` ON `ToolTable` (`VALUE`);
+CREATE UNIQUE INDEX "TagIndex" ON "TagTable" ("Value");
+CREATE UNIQUE INDEX "ToolIndex" ON "ToolTable" ("Value");
 
-CREATE TABLE `ArtworkTagCrossTable` (
-    `ArtworkId` INTEGER NOT NULL REFERENCES `ArtworkConcreteTable` (`Id`),
-    `TagId` INTEGER NOT NULL REFERENCES `TagTable` (`Id`),
-    `ValueKind` INTEGER NOT NULL
+CREATE VIRTUAL TABLE "TagTextTable" USING fts5(
+    "Value",
+    tokenize="trigram case_sensitive 1"
+);
+
+CREATE TRIGGER "Trigger_Add_TagTable" AFTER INSERT ON "TagTable"
+BEGIN
+    INSERT INTO "TagTextTable"("rowid", "Value") VALUES ("new"."Id", "new"."Value");
+END;
+
+CREATE VIRTUAL TABLE "ToolTextTable" USING fts5(
+    "Value",
+    tokenize="trigram case_sensitive 1",
+    content="ToolTable",
+    content_rowid="Id"
+);
+
+CREATE TRIGGER "Trigger_Add_ToolTable" AFTER INSERT ON "ToolTable"
+BEGIN
+    INSERT INTO "ToolTextTable"("rowid", "Value") VALUES ("new"."Id", "new"."Value");
+END;
+
+CREATE TABLE "ArtworkTagCrossTable" (
+    "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
+    "TagId" INTEGER NOT NULL REFERENCES "TagTable" ("Id"),
+    "ValueKind" INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY ("Id", "TagId")
 ) STRICT;
 
-CREATE TABLE `ArtworkToolCrossTable` (
-    `ArtworkId` INTEGER NOT NULL REFERENCES `ArtworkConcreteTable` (`Id`),
-    `ToolId` INTEGER NOT NULL REFERENCES `ToolTable` (`Id`),
-    `ValueKind` INTEGER NOT NULL
+CREATE INDEX "ArtworkTagCrossTable_Id_Index" ON "ArtworkTagCrossTable" ("Id");
+CREATE INDEX "ArtworkTagCrossTable_TagId_Index" ON "ArtworkTagCrossTable" ("TagId");
+
+CREATE TABLE "ArtworkToolCrossTable" (
+    "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
+    "ToolId" INTEGER NOT NULL REFERENCES "ToolTable" ("Id"),
+    PRIMARY KEY ("Id", "ToolId")
 ) STRICT;
 
-CREATE TABLE `UserTagCrossTable` (
-    `UserId` INTEGER NOT NULL REFERENCES `UserTable` (`Id`),
-    `TagId` INTEGER NOT NULL REFERENCES `TagTable` (`Id`),
-    `ValueKind` INTEGER NOT NULL
+CREATE INDEX "ArtworkToolCrossTable_Id_Index" ON "ArtworkToolCrossTable" ("Id");
+CREATE INDEX "ArtworkToolCrossTable_ToolId_Index" ON "ArtworkToolCrossTable" ("ToolId");
+
+CREATE TABLE "UserTagCrossTable" (
+    "Id" INTEGER NOT NULL REFERENCES "UserTable" ("Id"),
+    "TagId" INTEGER NOT NULL REFERENCES "TagTable" ("Id"),
+    "ValueKind" INTEGER NOT NULL DEFAULT 1
+    PRIMARY KEY ("Id", "TagId")
 ) STRICT;
 
-CREATE TABLE `UgoiraFrameTable` (
-    `ArtworkId` INTEGER NOT NULL REFERENCES `ArtworkConcreteTable` (`Id`),
-    `Index` INTEGER NOT NULL,
-    `Delay` INTEGER NOT NULL,
-    PRIMARY KEY (`ArtworkId`, `Index`)
+CREATE INDEX "UserTagCrossTable_Id_Index" ON "UserTagCrossTable" ("Id");
+
+CREATE TABLE "UgoiraFrameTable" (
+    "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
+    "Index" INTEGER NOT NULL DEFAULT 0,
+    "Delay" INTEGER NOT NULL DEFAULT 0
 ) STRICT;
 
-CREATE TABLE `HidePageTable` (
-    `ArtworkId` INTEGER NOT NULL REFERENCES `ArtworkConcreteTable` (`Id`),
-    `Index` INTEGER NOT NULL,
-    `HideReason` INTEGER NOT NULL,
-    PRIMARY KEY (`ArtworkId`, `Index`)
+CREATE INDEX "UgoiraFrameTable_Id_Index" ON "UgoiraFrameTable" ("Id");
+CREATE INDEX "UgoiraFrameTable_Index_Index" ON "UgoiraFrameTable" ("Index");
+
+CREATE TABLE "HidePageTable" (
+    "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
+    "Index" INTEGER NOT NULL DEFAULT 0,
+    "HideReason" INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY ("Id", "Index")
 ) STRICT;
 
-CREATE TABLE `RankingTable` (
-    `Date` TEXT NOT NULL COLLATE BINARY,
-    `RankingKind` INTEGER NOT NULL,
-    `ArtworkId` INTEGER NOT NULL REFERENCES `ArtworkConcreteTable` (`Id`)
+CREATE INDEX "HidePageTable_Id_Index" ON "HidePageTable" ("Id");
+
+CREATE TABLE "RankingTable" (
+    "Date" TEXT NOT NULL COLLATE BINARY,
+    "RankingKind" INTEGER NOT NULL DEFAULT 0,
+    "Index" INTEGER NOT NULL DEFAULT 0,
+    "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
+    PRIMARY KEY ("Date", "RankingKind", "Index")
 ) STRICT;
+
+CREATE INDEX "RankingTable_Date_RankingKind_Index" ON "RankingTable" ("Date", "RankingKind");
