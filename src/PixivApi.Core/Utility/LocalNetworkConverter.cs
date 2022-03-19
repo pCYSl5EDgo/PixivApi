@@ -271,7 +271,7 @@ public static class LocalNetworkConverter
         OverwriteExtensions.Overwrite(ref destination.WorkspaceImageUrl, source.WorkspaceImageUrl);
     }
 
-    private static FileExtensionKind ConvertToFileExtensionKind(this in ArtworkResponseContent source)
+    public static FileExtensionKind ConvertToFileExtensionKind(this in ArtworkResponseContent source)
     {
         var ext = source.MetaSinglePage.OriginalImageUrl is string url ? url.AsSpan(url.LastIndexOf('.')) : source.MetaPages?[0].ImageUrls.Original is string original ? original.AsSpan(original.LastIndexOf('.')) : throw new NullReferenceException();
         if (ext.SequenceEqual(".jpg") || ext.SequenceEqual(".jpeg"))
@@ -292,7 +292,7 @@ public static class LocalNetworkConverter
         }
     }
 
-    private static DateTime ParseFileDate(in ArtworkResponseContent source)
+    public static DateTime ParseFileDate(in ArtworkResponseContent source)
     {
         var page = (source.MetaSinglePage.OriginalImageUrl ?? source.MetaPages?[0].ImageUrls.Original).AsSpan();
         if (!TryParseDate(page, out var answer))
