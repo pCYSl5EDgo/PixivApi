@@ -30,8 +30,6 @@ public interface IExtenededDatabase : IDatabase
         return pair;
     }
 
-    ValueTask<(ulong Add, ulong Update)> RankingAddOrUpdateAsync(DateOnly date, RankingKind rankingKind, IEnumerable<ArtworkResponseContent> sources, CancellationToken token);
-
     /// <returns>True: Add, False: Update</returns>
     ValueTask<bool> UserAddOrUpdateAsync(UserDetailResponseData source, CancellationToken token);
 
