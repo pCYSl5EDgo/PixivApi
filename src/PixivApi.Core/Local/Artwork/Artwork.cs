@@ -184,6 +184,38 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         }
     }
 
+    public Dictionary<uint, uint> CalculateTags()
+    {
+        var dic = new Dictionary<uint, uint>();
+        foreach (var item in ExtraTags.AsSpan())
+        {
+            dic.Add(item, 2);
+        }
+
+        foreach (var item in Tags)
+        {
+            CollectionsMarshal.GetValueRefOrAddDefault(dic, item, out _) = 1;
+        }
+
+        foreach (var item in ExtraFakeTags.AsSpan())
+        {
+            ref var value = ref CollectionsMarshal.GetValueRefOrAddDefault(dic, item, out var exists);
+            if (exists)
+            {
+                if (value == 1)
+                {
+                    value = 0;
+                }
+                else
+                {
+                    dic.Remove(item);
+                }
+            }
+        }
+
+        return dic;
+    }
+
     public IEnumerable<string>? StringifiedTags { get; private set; }
 
     public IEnumerable<string>? StringifiedTools { get; private set; }
