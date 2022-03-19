@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using SQLitePCL;
+using Microsoft.Extensions.Logging;
 
 namespace PixivApi.Core.SqliteDatabase;
 
@@ -9,15 +10,16 @@ public sealed class DatabaseFactory : IDatabaseFactory
 {
     private readonly string path;
 
-    public DatabaseFactory(ConfigSettings configSettings)
+    public DatabaseFactory(ConfigSettings configSettings, ILogger<DatabaseFactory> logger)
     {
         Batteries_V2.Init();
         raw.sqlite3_initialize();
         path = configSettings.DatabaseFilePath ?? throw new NullReferenceException();
+        this.logger = logger;
     }
 
     private readonly ConcurrentBag<Database> Returned = new();
-    private ulong index = 0;
+    private readonly ILogger<DatabaseFactory> logger;
 
     public ValueTask<IDatabase> RentAsync(CancellationToken token)
     {
@@ -28,7 +30,7 @@ public sealed class DatabaseFactory : IDatabaseFactory
 
         if (!Returned.TryTake(out var database))
         {
-            database = new(path, Interlocked.Increment(ref index));
+            database = new(logger, path);
         }
 
         return ValueTask.FromResult<IDatabase>(database);
