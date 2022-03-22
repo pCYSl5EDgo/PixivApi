@@ -9,7 +9,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
     public DatabaseFactory(ConfigSettings configSettings, ILogger<DatabaseFactory> logger)
     {
         Batteries_V2.Init();
-        raw.sqlite3_initialize();
+        sqlite3_initialize();
         path = (configSettings.DatabaseFilePath ?? throw new NullReferenceException()) + ".sqlite3";
         this.logger = logger;
         var info = new FileInfo(path);
@@ -20,7 +20,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
             ReadOnlySpan<byte> span = GetInitSql(), outSpan;
             do
             {
-                var pcode = raw.sqlite3_prepare_v3(database.database, span, 0, out var statement, out outSpan);
+                var pcode = sqlite3_prepare_v3(database.database, span, 0, out var statement, out outSpan);
                 if (statement.IsInvalid)
                 {
                     statement.manual_close();
@@ -32,8 +32,8 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
                     ;
                 }
 
-                var code = raw.sqlite3_step(statement);
-                if (code != raw.SQLITE_DONE)
+                var code = sqlite3_step(statement);
+                if (code != SQLITE_DONE)
                 {
                     throw new InvalidOperationException(code.ToString());
                 }
@@ -69,7 +69,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
             database.Dispose();
         }
 
-        raw.sqlite3_shutdown();
+        sqlite3_shutdown();
         return ValueTask.CompletedTask;
     }
 
