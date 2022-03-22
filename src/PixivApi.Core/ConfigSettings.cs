@@ -19,6 +19,8 @@ public sealed class ConfigSettings
     public string UgoiraFolder { get; set; } = "Ugoira";
     public ulong UserId { get; set; }
 
+    public string? DatabasePlugin { get; set; }
+
     public string? UgoiraZipFinderPlugin { get; set; }
     public string? UgoiraThumbnailFinderPlugin { get; set; }
     public string? UgoiraOriginalFinderPlugin { get; set; }

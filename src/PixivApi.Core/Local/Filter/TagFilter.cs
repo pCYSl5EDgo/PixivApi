@@ -54,7 +54,7 @@ public sealed class TagFilter
         foreach (var item in array)
         {
             token.ThrowIfCancellationRequested();
-            await foreach (var tag in database.EnumeratePartialMatchAsync(item, token))
+            await foreach (var tag in database.EnumeratePartialMatchTagAsync(item, token))
             {
                 answer.Add(tag);
             }

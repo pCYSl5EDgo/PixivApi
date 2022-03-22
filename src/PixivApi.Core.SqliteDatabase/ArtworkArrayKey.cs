@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-
-namespace PixivApi.Core.SqliteDatabase;
+﻿namespace PixivApi.Core.SqliteDatabase;
 
 public struct ArtworkArrayKey : IEquatable<ArtworkArrayKey>, IComparable<ArtworkArrayKey>, IDisposable
 {

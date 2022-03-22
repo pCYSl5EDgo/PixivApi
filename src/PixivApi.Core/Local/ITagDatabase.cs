@@ -2,6 +2,8 @@
 
 public interface ITagDatabase
 {
+    IAsyncEnumerable<(string, uint)> EnumerateTagAsync(CancellationToken token);
+
     ValueTask<ulong> CountTagAsync(CancellationToken token);
 
     ValueTask<string?> GetTagAsync(uint id, CancellationToken token);
@@ -10,5 +12,5 @@ public interface ITagDatabase
 
     ValueTask<uint> RegisterTagAsync(string value, CancellationToken token);
 
-    IAsyncEnumerable<uint> EnumeratePartialMatchAsync(string key, CancellationToken token);
+    IAsyncEnumerable<uint> EnumeratePartialMatchTagAsync(string key, CancellationToken token);
 }

@@ -33,7 +33,7 @@ public partial class NetworkClient
             {
                 if (addBehaviour)
                 {
-                    await Parallel.ForEachAsync(database.EnumerableUserAsync(token), token, (user, token) =>
+                    await Parallel.ForEachAsync(database.EnumerateUserAsync(token), token, (user, token) =>
                     {
                         if (token.IsCancellationRequested)
                         {
@@ -55,7 +55,7 @@ public partial class NetworkClient
             {
                 if (addBehaviour)
                 {
-                    await Parallel.ForEachAsync(database.EnumerableUserAsync(token), token, (user, token) =>
+                    await Parallel.ForEachAsync(database.EnumerateUserAsync(token), token, (user, token) =>
                     {
                         if (token.IsCancellationRequested)
                         {

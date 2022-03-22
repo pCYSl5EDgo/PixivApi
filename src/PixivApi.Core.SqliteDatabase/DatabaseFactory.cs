@@ -1,12 +1,8 @@
-﻿using PixivApi.Core.Local;
-using System.Collections.Concurrent;
-using System.Diagnostics.CodeAnalysis;
-using SQLitePCL;
-using Microsoft.Extensions.Logging;
+﻿using System.Collections.Concurrent;
 
 namespace PixivApi.Core.SqliteDatabase;
 
-public sealed class DatabaseFactory : IDatabaseFactory
+public sealed partial class DatabaseFactory : IDatabaseFactory
 {
     private readonly string path;
 
@@ -14,8 +10,39 @@ public sealed class DatabaseFactory : IDatabaseFactory
     {
         Batteries_V2.Init();
         raw.sqlite3_initialize();
-        path = configSettings.DatabaseFilePath ?? throw new NullReferenceException();
+        path = (configSettings.DatabaseFilePath ?? throw new NullReferenceException()) + ".sqlite3";
         this.logger = logger;
+        var info = new FileInfo(path);
+        if (!info.Exists || info.Length == 0)
+        {
+            File.Create(path).Dispose();
+            Database database = new(logger, path);
+            ReadOnlySpan<byte> span = GetInitSql(), outSpan;
+            do
+            {
+                var pcode = raw.sqlite3_prepare_v3(database.database, span, 0, out var statement, out outSpan);
+                if (statement.IsInvalid)
+                {
+                    statement.manual_close();
+                    break;
+                }
+
+                if (pcode != 0)
+                {
+                    ;
+                }
+
+                var code = raw.sqlite3_step(statement);
+                if (code != raw.SQLITE_DONE)
+                {
+                    throw new InvalidOperationException(code.ToString());
+                }
+
+                statement.manual_close();
+                span = outSpan;
+            } while (!span.IsEmpty);
+            database.Dispose();
+        }
     }
 
     private readonly ConcurrentBag<Database> Returned = new();
@@ -23,11 +50,7 @@ public sealed class DatabaseFactory : IDatabaseFactory
 
     public ValueTask<IDatabase> RentAsync(CancellationToken token)
     {
-        if (token.IsCancellationRequested)
-        {
-            return ValueTask.FromCanceled<IDatabase>(token);
-        }
-
+        token.ThrowIfCancellationRequested();
         if (!Returned.TryTake(out var database))
         {
             database = new(logger, path);
@@ -35,6 +58,9 @@ public sealed class DatabaseFactory : IDatabaseFactory
 
         return ValueTask.FromResult<IDatabase>(database);
     }
+
+    [EmbedResourceCSharp.FileEmbed("init.sql")]
+    private static partial ReadOnlySpan<byte> GetInitSql();
 
     public ValueTask DisposeAsync()
     {

@@ -15,9 +15,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\PixivApi.Console.Utility\PixivApi.Console.Utility.csproj" />
-	  <ProjectReference Include="..\PixivApi.Core.DatbaseFile\PixivApi.Core.DatbaseFile.csproj" />
-	  <ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
+		<ProjectReference Include="..\PixivApi.Console.Utility\PixivApi.Console.Utility.csproj" />
+		<ProjectReference Include="..\PixivApi.Core.DatbaseFile\PixivApi.Core.DatbaseFile.csproj" />
+		<ProjectReference Include="..\PixivApi.Core.SqliteDatabase\PixivApi.Core.SqliteDatabase.csproj" />
+		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -47,6 +48,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+		<Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
 	</ItemGroup>
 </Project>

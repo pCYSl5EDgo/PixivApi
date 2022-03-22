@@ -18,5 +18,5 @@ public interface IArtworkDatabase
     /// </summary>
     /// <param name="token"></param>
     /// <returns></returns>
-    IAsyncEnumerable<Artwork> EnumerableArtworkAsync(CancellationToken token);
+    IAsyncEnumerable<Artwork> EnumerateArtworkAsync(CancellationToken token);
 }

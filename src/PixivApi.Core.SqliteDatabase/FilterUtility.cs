@@ -1,7 +1,4 @@
-﻿using Cysharp.Text;
-using PixivApi.Core.Local;
-
-namespace PixivApi.Core.SqliteDatabase;
+﻿namespace PixivApi.Core.SqliteDatabase;
 
 internal static class FilterUtility
 {

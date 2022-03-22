@@ -1,8 +1,9 @@
+BEGIN TRANSACTION;
 CREATE TABLE "InfoTable" (
     "Major" INTEGER NOT NULL DEFAULT 0,
     "Minor" INTEGER NOT NULL DEFAULT 0,
     UNIQUE ("Major", "Minor")
-) STRICT;
+);
 
 INSERT INTO "InfoTable" VALUES (0, 1);
 
@@ -18,7 +19,7 @@ CREATE TABLE "UserTable" (
     "Comment" TEXT NULL COLLATE BINARY,
     "Memo" TEXT NULL COLLATE BINARY,
     "HasDetail" INTEGER NOT NULL DEFAULT 0
-) STRICT;
+);
 
 CREATE INDEX "UserTable_IsFollowed_Index" ON "UserTable" ("IsFollowed");
 CREATE INDEX "UserTable_IsOfficiallyRemoved_Index" ON "UserTable" ("IsOfficiallyRemoved");
@@ -68,7 +69,7 @@ CREATE TABLE "UserDetailTable" (
     "Workspace_Chair" TEXT NULL COLLATE BINARY,
     "Workspace_Comment" TEXT NULL COLLATE BINARY,
     "Workspace_WorkspaceImageUrl" TEXT NULL COLLATE BINARY
-) STRICT;
+);
 
 CREATE TABLE "ArtworkTable" (
     "Id" INTEGER NOT NULL PRIMARY KEY,
@@ -91,7 +92,7 @@ CREATE TABLE "ArtworkTable" (
     "Title" TEXT NOT NULL COLLATE BINARY,
     "Caption" TEXT NOT NULL COLLATE BINARY,
     "Memo" TEXT NULL COLLATE BINARY
-) STRICT;
+);
 
 CREATE INDEX "ArtworkTable_IsXRestricted_Index" ON "ArtworkTable" ("IsXRestricted");
 CREATE INDEX "ArtworkTable_ArtworkTotalBookmarks_Index" ON "ArtworkTable" ("TotalBookmarks");
@@ -123,11 +124,11 @@ END;
 CREATE TABLE "TagTable" (
     "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, 
     "Value" TEXT NOT NULL UNIQUE ON CONFLICT IGNORE COLLATE BINARY
-) STRICT;
+);
 CREATE TABLE "ToolTable" (
     "Id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "Value" TEXT NOT NULL UNIQUE ON CONFLICT IGNORE COLLATE BINARY
-) STRICT;
+);
 
 CREATE UNIQUE INDEX "TagIndex" ON "TagTable" ("Value");
 CREATE UNIQUE INDEX "ToolIndex" ON "ToolTable" ("Value");
@@ -159,7 +160,7 @@ CREATE TABLE "ArtworkTagCrossTable" (
     "TagId" INTEGER NOT NULL REFERENCES "TagTable" ("Id"),
     "ValueKind" INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY ("Id", "TagId")
-) STRICT;
+);
 
 CREATE INDEX "ArtworkTagCrossTable_Id_Index" ON "ArtworkTagCrossTable" ("Id");
 CREATE INDEX "ArtworkTagCrossTable_TagId_Index" ON "ArtworkTagCrossTable" ("TagId");
@@ -168,7 +169,7 @@ CREATE TABLE "ArtworkToolCrossTable" (
     "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
     "ToolId" INTEGER NOT NULL REFERENCES "ToolTable" ("Id"),
     PRIMARY KEY ("Id", "ToolId")
-) STRICT;
+);
 
 CREATE INDEX "ArtworkToolCrossTable_Id_Index" ON "ArtworkToolCrossTable" ("Id");
 CREATE INDEX "ArtworkToolCrossTable_ToolId_Index" ON "ArtworkToolCrossTable" ("ToolId");
@@ -176,9 +177,9 @@ CREATE INDEX "ArtworkToolCrossTable_ToolId_Index" ON "ArtworkToolCrossTable" ("T
 CREATE TABLE "UserTagCrossTable" (
     "Id" INTEGER NOT NULL REFERENCES "UserTable" ("Id"),
     "TagId" INTEGER NOT NULL REFERENCES "TagTable" ("Id"),
-    "ValueKind" INTEGER NOT NULL DEFAULT 1
+    "ValueKind" INTEGER NOT NULL DEFAULT 1,
     PRIMARY KEY ("Id", "TagId")
-) STRICT;
+);
 
 CREATE INDEX "UserTagCrossTable_Id_Index" ON "UserTagCrossTable" ("Id");
 
@@ -186,7 +187,7 @@ CREATE TABLE "UgoiraFrameTable" (
     "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
     "Index" INTEGER NOT NULL DEFAULT 0,
     "Delay" INTEGER NOT NULL DEFAULT 0
-) STRICT;
+);
 
 CREATE INDEX "UgoiraFrameTable_Id_Index" ON "UgoiraFrameTable" ("Id");
 CREATE INDEX "UgoiraFrameTable_Index_Index" ON "UgoiraFrameTable" ("Index");
@@ -196,7 +197,7 @@ CREATE TABLE "HidePageTable" (
     "Index" INTEGER NOT NULL DEFAULT 0,
     "HideReason" INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY ("Id", "Index")
-) STRICT;
+);
 
 CREATE INDEX "HidePageTable_Id_Index" ON "HidePageTable" ("Id");
 
@@ -206,6 +207,7 @@ CREATE TABLE "RankingTable" (
     "Index" INTEGER NOT NULL DEFAULT 0,
     "Id" INTEGER NOT NULL REFERENCES "ArtworkTable" ("Id"),
     PRIMARY KEY ("Date", "RankingKind", "Index")
-) STRICT;
+);
 
 CREATE INDEX "RankingTable_Date_RankingKind_Index" ON "RankingTable" ("Date", "RankingKind");
+END TRANSACTION;

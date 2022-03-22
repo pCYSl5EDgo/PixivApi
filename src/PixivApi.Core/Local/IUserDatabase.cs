@@ -10,5 +10,5 @@ public interface IUserDatabase
 
     IAsyncEnumerable<User> FilterAsync(UserFilter filter, CancellationToken token);
 
-    IAsyncEnumerable<User> EnumerableUserAsync(CancellationToken token);
+    IAsyncEnumerable<User> EnumerateUserAsync(CancellationToken token);
 }

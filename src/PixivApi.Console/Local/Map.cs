@@ -30,7 +30,7 @@ public partial class LocalClient
                 logger.LogInformation("[");
             }
 
-            var collection = artworkFilter is null ? database.EnumerableArtworkAsync(token) : database.FilterAsync(artworkFilter, token);
+            var collection = artworkFilter is null ? database.EnumerateArtworkAsync(token) : database.FilterAsync(artworkFilter, token);
             await foreach (var item in collection)
             {
                 if (token.IsCancellationRequested)

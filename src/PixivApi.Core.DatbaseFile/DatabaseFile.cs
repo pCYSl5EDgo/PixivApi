@@ -147,11 +147,15 @@ internal sealed class DatabaseFile : IDatabase
 
     public ValueTask<ulong> CountUserAsync(CancellationToken token) => ValueTask.FromResult((ulong)UserDictionary.Count);
 
-    public IAsyncEnumerable<Artwork> EnumerableArtworkAsync(CancellationToken token) => ArtworkDictionary.Values.ToAsyncEnumerable();
+    public IAsyncEnumerable<Artwork> EnumerateArtworkAsync(CancellationToken token) => ArtworkDictionary.Values.ToAsyncEnumerable();
 
-    public IAsyncEnumerable<User> EnumerableUserAsync(CancellationToken token) => UserDictionary.Values.ToAsyncEnumerable();
+    public IAsyncEnumerable<User> EnumerateUserAsync(CancellationToken token) => UserDictionary.Values.ToAsyncEnumerable();
 
-    public async IAsyncEnumerable<uint> EnumeratePartialMatchAsync(string key, [EnumeratorCancellation] CancellationToken token)
+    public IAsyncEnumerable<(string, uint)> EnumerateTagAsync(CancellationToken _) => TagSet.Reverses.Select(static pair => (pair.Key, pair.Value)).ToAsyncEnumerable();
+
+    public IAsyncEnumerable<(string, uint)> EnumerateToolAsync(CancellationToken _) => ToolSet.Reverses.Select(static pair => (pair.Key, pair.Value)).ToAsyncEnumerable();
+
+    public async IAsyncEnumerable<uint> EnumeratePartialMatchTagAsync(string key, [EnumeratorCancellation] CancellationToken token)
     {
         ConcurrentBag<uint> bag = new();
         await Parallel.ForEachAsync(TagSet.Reverses, token, (pair, token) =>
@@ -287,7 +291,9 @@ internal sealed class DatabaseFile : IDatabase
         }
     }
 
-    public ValueTask<uint?> FindTagAsync(string key, CancellationToken token) => throw new NotImplementedException();
+    public ValueTask<uint?> FindTagAsync(string key, CancellationToken token) => ValueTask.FromResult(TagSet.Reverses.TryGetValue(key, out var tag) ? tag : default(uint?));
+    
+    public ValueTask<uint?> FindToolAsync(string key, CancellationToken token) => ValueTask.FromResult(ToolSet.Reverses.TryGetValue(key, out var tool) ? tool : default(uint?));
 
     public ValueTask<Artwork?> GetArtworkAsync(ulong id, CancellationToken token) => ValueTask.FromResult(ArtworkDictionary.TryGetValue(id, out var answer) ? answer : null);
 

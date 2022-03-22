@@ -1,21 +1,12 @@
-﻿using Cysharp.Text;
-using PixivApi.Core.Local;
-using SQLitePCL;
-using System.Buffers;
-using static SQLitePCL.raw;
-
-namespace PixivApi.Core.SqliteDatabase;
+﻿namespace PixivApi.Core.SqliteDatabase;
 
 internal static class ArtworkFilterUtility
 {
-    public static sqlite3_stmt CreateStatement(sqlite3 database, string prefix, ArtworkFilter filter)
+    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter)
     {
-        var builder = ZString.CreateUtf8StringBuilder();
-        builder.Append(prefix);
         var and = false;
         Filter(filter, ref builder, ref and, "Origin");
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
-        builder.Dispose();
         return answer;
     }
 
@@ -148,7 +139,9 @@ internal static class ArtworkFilterUtility
         if (filter.Partials is { Length: > 0 })
         {
             builder.And(ref and);
-            builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \""); builder.Append(origin); builder.Append("\".\"Id\" AND (");
+            builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \"");
+            builder.Append(origin);
+            builder.Append("\".\"Id\" AND (");
             TextPartial(ref builder, filter.Partials, filter.PartialOr);
             builder.Append("))");
 
@@ -164,7 +157,9 @@ internal static class ArtworkFilterUtility
             if (filter.IgnorePartials is { Length: > 0 })
             {
                 builder.And(ref and);
-                builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \""); builder.Append(origin); builder.Append("\".\"Id\" AND NOT (");
+                builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \"");
+                builder.Append(origin);
+                builder.Append("\".\"Id\" AND NOT (");
                 TextPartial(ref builder, filter.IgnorePartials, filter.IgnorePartialOr);
                 builder.Append("))");
             }
@@ -189,11 +184,17 @@ internal static class ArtworkFilterUtility
 
     private static void TextExact(ref Utf8ValueStringBuilder builder, string origin, string text)
     {
-        builder.Append("\""); builder.Append(origin); builder.Append("\".\"Title\" = ");
+        builder.Append("\"");
+        builder.Append(origin);
+        builder.Append("\".\"Title\" = ");
         AddSingleQuoteText(ref builder, text);
-        builder.Append("OR \""); builder.Append(origin); builder.Append("\".\"Caption\" = ");
+        builder.Append("OR \"");
+        builder.Append(origin);
+        builder.Append("\".\"Caption\" = ");
         AddSingleQuoteText(ref builder, text);
-        builder.Append("OR \""); builder.Append(origin); builder.Append("\".\"Memo\" = ");
+        builder.Append("OR \"");
+        builder.Append(origin);
+        builder.Append("\".\"Memo\" = ");
         AddSingleQuoteText(ref builder, text);
     }
 
@@ -312,14 +313,18 @@ internal static class ArtworkFilterUtility
             if (filter.Until.HasValue)
             {
                 var unixEpochUntilSeconds = (ulong)filter.Until.Value.Subtract(DateTime.UnixEpoch).TotalSeconds;
-                builder.Append("unixepoch(\""); builder.Append(origin); builder.Append("\".\"CreateData\") BETWEEN ");
+                builder.Append("unixepoch(\"");
+                builder.Append(origin);
+                builder.Append("\".\"CreateData\") BETWEEN ");
                 builder.Append(unixEpochSinceSeconds);
                 builder.Append(" AND ");
                 builder.Append(unixEpochUntilSeconds);
             }
             else
             {
-                builder.Append("unixepoch(\""); builder.Append(origin); builder.Append("\".\"CreateData\") >= ");
+                builder.Append("unixepoch(\"");
+                builder.Append(origin);
+                builder.Append("\".\"CreateData\") >= ");
                 builder.Append(unixEpochSinceSeconds);
             }
         }
@@ -329,7 +334,9 @@ internal static class ArtworkFilterUtility
             {
                 var unixEpochUntilSeconds = (ulong)filter.Until.Value.Subtract(DateTime.UnixEpoch).TotalSeconds;
                 builder.And(ref and);
-                builder.Append("unixepoch(\""); builder.Append(origin); builder.Append("\".\"CreateData\") <= ");
+                builder.Append("unixepoch(\"");
+                builder.Append(origin);
+                builder.Append("\".\"CreateData\") <= ");
                 builder.Append(unixEpochUntilSeconds);
             }
             else
@@ -347,7 +354,9 @@ internal static class ArtworkFilterUtility
         }
 
         builder.And(ref and);
-        builder.Append("\""); builder.Append(origin); builder.Append("\".\"Type\" = ");
+        builder.Append("\"");
+        builder.Append(origin);
+        builder.Append("\".\"Type\" = ");
         builder.Append((byte)value.Value);
     }
 

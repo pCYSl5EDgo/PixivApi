@@ -184,6 +184,8 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         }
     }
 
+    public Dictionary<uint, uint> TagDictionary = new();
+
     public Dictionary<uint, uint> CalculateTags()
     {
         var dic = new Dictionary<uint, uint>();

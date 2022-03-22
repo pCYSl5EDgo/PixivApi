@@ -1,8 +1,25 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.0-pre20220207221914" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="EmbedResourceCSharp" Version="1.1.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.0-pre20220318192836" />
+		<PackageReference Include="StringLiteralGenerator" Version="2.0.0" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<Using Include="SQLitePCL.raw" Static="true" />
+		<Using Include="SQLitePCL" />
+		<Using Include="System.Diagnostics.CodeAnalysis" />
+		<Using Include="System.Runtime.CompilerServices" />
+		<Using Include="System.Runtime.InteropServices" />
+		<Using Include="System.Buffers" />
+		<Using Include="Microsoft.Extensions.Logging" />
+		<Using Include="PixivApi.Core.Local" />
+		<Using Include="PixivApi.Core.Network" />
+		<Using Include="Cysharp.Text" />
+	</ItemGroup>
 </Project>

@@ -1,20 +1,12 @@
-﻿using Cysharp.Text;
-using PixivApi.Core.Local;
-using SQLitePCL;
-using static SQLitePCL.raw;
-
-namespace PixivApi.Core.SqliteDatabase;
+﻿namespace PixivApi.Core.SqliteDatabase;
 
 internal static class UserFilterUtility
 {
-    public static sqlite3_stmt CreateStatement(sqlite3 database, string prefix, UserFilter filter)
+    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, UserFilter filter)
     {
-        var builder = ZString.CreateUtf8StringBuilder();
-        builder.Append(prefix);
         var and = false;
         filter.Filter(ref builder, ref and, "Origin");
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
-        builder.Dispose();
         return answer;
     }
 
