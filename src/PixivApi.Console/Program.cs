@@ -1,4 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
+using Polly;
+using Polly.Extensions.Http;
+using System.Net.Sockets;
 
 namespace PixivApi.Console;
 
@@ -55,7 +58,8 @@ public sealed class Program
                     client.AddToDefaultHeader(config);
                 })
                     .ConfigurePrimaryHttpMessageHandler(ServiceProviderServiceExtensions.GetRequiredService<HttpMessageHandler>)
-                    .SetHandlerLifetime(Timeout.InfiniteTimeSpan);
+                    .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+                    .AddPolicyHandler(GetRetryPolicy());
 
                 _ = services.AddHttpClient("download", static (provider, client) =>
                 {
@@ -171,5 +175,13 @@ public sealed class Program
                 NativeLibrary.Free(kernel32);
             }
         }
+    }
+
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+    {
+        return HttpPolicyExtensions
+          .HandleTransientHttpError()
+          .Or<SocketException>()
+          .WaitAndRetryAsync(6, retryAttempt => TimeSpan.FromMinutes(Math.Pow(2, retryAttempt)));
     }
 }
