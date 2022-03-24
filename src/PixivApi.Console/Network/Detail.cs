@@ -19,7 +19,7 @@ public partial class NetworkClient
 
         var logger = Context.Logger;
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
-        ulong update = 0;
+        ulong update = 0, removed = 0;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
@@ -39,6 +39,7 @@ public partial class NetworkClient
 
                     if (response.StatusCode == HttpStatusCode.NotFound)
                     {
+                        removed++;
                         goto REMOVED;
                     }
 
@@ -48,6 +49,7 @@ public partial class NetworkClient
 
                 if (artwork.User.Id == 0)
                 {
+                    removed++;
                     goto REMOVED;
                 }
 
@@ -90,7 +92,76 @@ public partial class NetworkClient
             if (!System.Console.IsOutputRedirected)
             {
                 var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
-                logger.LogInformation($"Total: {artworkCount} Update: {update}");
+                logger.LogInformation($"Total: {artworkCount} Update: {update} Removed: {removed}");
+            }
+
+            databaseFactory.Return(ref database);
+        }
+    }
+
+    [Command("update-all")]
+    public async ValueTask UpdateAllAsync(
+        ulong artworkId = 10,
+        ulong artworkEndId = 97132567
+    )
+    {
+        var start = artworkId;
+        if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath) || string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath))
+        {
+            return;
+        }
+
+        var token = Context.CancellationToken;
+        var logger = Context.Logger;
+        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
+        ulong update = 0;
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        try
+        {
+            for (; artworkId < artworkEndId; artworkId++)
+            {
+                ArtworkResponseContent artwork;
+                do
+                {
+                    using var response = await GetArtworkDetailAsync(requestSender, artworkId, token).ConfigureAwait(false);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var array = await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false);
+                        artwork = IOUtility.JsonDeserialize<IllustDateilResponseData>(array).Illust;
+                        break;
+                    }
+
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        goto REMOVED;
+                    }
+
+                    response.EnsureSuccessStatusCode();
+                    continue;
+                } while (true);
+
+                if (artwork.User.Id == 0)
+                {
+                    goto REMOVED;
+                }
+
+                await database.AddOrUpdateAsync(artworkId, 
+                    token => LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token),
+                    (item, token) => LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token), token);
+                ++update;
+                if ((artworkId & 1023) == 0)
+                {
+                    logger.LogInformation($"{artworkId}");
+                }
+
+            REMOVED:;
+            }
+        }
+        finally
+        {
+            if (!System.Console.IsOutputRedirected)
+            {
+                logger.LogInformation($"Update: {artworkId - start}");
             }
 
             databaseFactory.Return(ref database);
