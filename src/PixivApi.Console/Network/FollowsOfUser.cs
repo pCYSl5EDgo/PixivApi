@@ -7,7 +7,8 @@ public partial class NetworkClient
     (
         [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool allWork = false,
-        [Option("d")] bool download = false
+        [Option("d")] bool download = false,
+        ulong? idOffset = null
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -44,11 +45,11 @@ public partial class NetworkClient
                         return ValueTask.CompletedTask;
                     }).ConfigureAwait(false);
 
-                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, url, token).ConfigureAwait(false);
+                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
                 }
                 else
                 {
-                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_New_All_Async(database, requestSender, url, token).ConfigureAwait(false);
+                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_New_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
                 }
             }
             else
@@ -68,7 +69,7 @@ public partial class NetworkClient
 
                     if (allWork)
                     {
-                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_All_All_Async(database, requestSender, url, token).ConfigureAwait(false);
+                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_All_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
                     }
                     else
                     {
@@ -79,7 +80,7 @@ public partial class NetworkClient
                 {
                     if (allWork)
                     {
-                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_New_All_Async(database, requestSender, url, token).ConfigureAwait(false);
+                        (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_New_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
                     }
                     else
                     {
@@ -180,11 +181,12 @@ public partial class NetworkClient
         return (add, update, addArtwork, updateArtwork);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_New_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_New_All_Async(IDatabase database, RequestSender requestSender, string url, ulong? idOffset, CancellationToken token)
     {
         var logger = Context.Logger;
         var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
         var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        var idOffsetDone = !idOffset.HasValue;
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
         try
         {
@@ -216,6 +218,18 @@ public partial class NetworkClient
                     {
                         ++update;
                         logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                    }
+
+                    if (!idOffsetDone)
+                    {
+                        if (item.User.Id == idOffset)
+                        {
+                            idOffsetDone = true;
+                        }
+                        else
+                        {
+                            continue;
+                        }
                     }
 
                     var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
@@ -312,11 +326,12 @@ public partial class NetworkClient
         return (add, update, addArtwork, updateArtwork);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_All_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork)> PrivateDownloadFollowsOfUser_All_All_Async(IDatabase database, RequestSender requestSender, string url, ulong? idOffset, CancellationToken token)
     {
         var logger = Context.Logger;
         var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
         var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        var idOffsetDone = !idOffset.HasValue;
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
         try
         {
@@ -349,6 +364,18 @@ public partial class NetworkClient
                         logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
                     }
 
+                    if (!idOffsetDone)
+                    {
+                        if (item.User.Id == idOffset)
+                        {
+                            idOffsetDone = true;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
                     var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
                     var (_addArtwork, _updateArtwork) = await PrivateDownloadAllArtworkResponses(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
                     addArtwork += _addArtwork;
@@ -365,11 +392,12 @@ public partial class NetworkClient
         return (add, update, addArtwork, updateArtwork);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_New_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_New_All_Async(IDatabase database, RequestSender requestSender, string url, ulong? idOffset, CancellationToken token)
     {
         var logger = Context.Logger;
         var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
         var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        var idOffsetDone = !idOffset.HasValue;
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0, download = 0, transfer = 0;
         try
         {
@@ -403,6 +431,18 @@ public partial class NetworkClient
                         logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
                     }
 
+                    if (!idOffsetDone)
+                    {
+                        if (item.User.Id == idOffset)
+                        {
+                            idOffsetDone = true;
+                        }
+                        else
+                        {
+                            continue;
+                        }
+                    }
+
                     var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
                     var (_addArtwork, _updateArtwork, _download, _transfer) = await PrivateDownloadAllArtworkResponsesAndFiles(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
                     addArtwork += _addArtwork;
@@ -426,11 +466,12 @@ public partial class NetworkClient
         return (add, update, addArtwork, updateArtwork, download, transfer);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_All_All_Async(IDatabase database, RequestSender requestSender, string url, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_All_All_Async(IDatabase database, RequestSender requestSender, string url, ulong? idOffset, CancellationToken token)
     {
         var logger = Context.Logger;
         var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
         var logDebug = logger.IsEnabled(LogLevel.Debug) ? logger : null;
+        var idOffsetDone = !idOffset.HasValue;
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0, download = 0, transfer = 0;
         try
         {
@@ -461,6 +502,18 @@ public partial class NetworkClient
                     {
                         ++update;
                         logDebug?.LogDebug($"User-U {update,10}: {item.User.Id,20}");
+                    }
+
+                    if (!idOffsetDone)
+                    {
+                        if (item.User.Id == idOffset)
+                        {
+                            idOffsetDone = true;
+                        }
+                        else
+                        {
+                            continue;
+                        }
                     }
 
                     var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
