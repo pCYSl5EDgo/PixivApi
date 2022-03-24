@@ -6,6 +6,7 @@ internal sealed partial class Database
     private sqlite3_stmt? getUserDetailStatement;
     private sqlite3_stmt? getTagsOfUserStatement;
     private sqlite3_stmt? enumerateUserStatement;
+    private sqlite3_stmt? officiallyRemoveUserStatement;
 
     [StringLiteral.Utf8("SELECT \"Name\", \"Account\", \"IsFollowed\", \"IsMuted\", \"IsOfficiallyRemoved\", \"HideReason\", \"ImageUrls\", \"Comment\", \"Memo\", \"HasDetail\" FROM \"UserTable\" WHERE \"Id\" = ?")]
     private static partial ReadOnlySpan<byte> Literal_SelectUser_FromUserTable_WhereId();
@@ -230,6 +231,32 @@ internal sealed partial class Database
                 }
                 yield return answer;
             } while (true);
+        }
+        finally
+        {
+            Reset(statement);
+        }
+    }
+
+    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"UserRemoveTable\" VALUES (?)")]
+    private static partial ReadOnlySpan<byte> Literal_Remove_User();
+
+    public async ValueTask OfficiallyRemoveUser(ulong id, CancellationToken token)
+    {
+        var statement = officiallyRemoveUserStatement ??= Prepare(Literal_Remove_User(), true, out _);
+        Bind(statement, 1, id);
+        try
+        {
+            do
+            {
+                var code = Step(statement);
+                if (code != SQLITE_BUSY)
+                {
+                    break;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+            } while (!token.IsCancellationRequested);
         }
         finally
         {

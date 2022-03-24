@@ -20,6 +20,7 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
         CloseStatement(ref getUgoiraFramesStatement);
         CloseStatement(ref getHideReasonsStatement);
         CloseStatement(ref enumerateArtworkStatement);
+        CloseStatement(ref officiallyRemoveArtworkStatement);
         CloseStatement(ref insertUserStatement);
         CloseStatement(ref insertUser_UserDetailResponse_Statement);
         CloseStatement(ref insertUser_UserPreviewResponse_Statement);
@@ -29,6 +30,7 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
         CloseStatement(ref getUserDetailStatement);
         CloseStatement(ref getTagsOfUserStatement);
         CloseStatement(ref enumerateUserStatement);
+        CloseStatement(ref officiallyRemoveUserStatement);
         CloseStatement(ref countArtworkStatement);
         CloseStatement(ref countUserStatement);
         CloseStatement(ref countTagStatement);

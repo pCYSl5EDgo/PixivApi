@@ -8,6 +8,7 @@ internal sealed partial class Database
     private sqlite3_stmt? getUgoiraFramesStatement;
     private sqlite3_stmt? getHideReasonsStatement;
     private sqlite3_stmt? enumerateArtworkStatement;
+    private sqlite3_stmt? officiallyRemoveArtworkStatement;
 
     [StringLiteral.Utf8("SELECT \"UserId\", \"PageCount\", \"Width\", \"Height\", " +
         "\"Type\", \"Extension\", \"IsXRestricted\", \"IsVisible\", \"IsMuted\"," +
@@ -239,6 +240,32 @@ internal sealed partial class Database
                 await ColumnArtworkAsync(answer, statement, 1, token).ConfigureAwait(false);
                 yield return answer;
             } while (true);
+        }
+        finally
+        {
+            Reset(statement);
+        }
+    }
+
+    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkRemoveTable\" VALUES (?)")]
+    private static partial ReadOnlySpan<byte> Literal_Remove_Artwork();
+
+    public async ValueTask OfficiallyRemoveArtwork(ulong id, CancellationToken token)
+    {
+        var statement = officiallyRemoveArtworkStatement ??= Prepare(Literal_Remove_Artwork(), true, out _);
+        Bind(statement, 1, id);
+        try
+        {
+            do
+            {
+                var code = Step(statement);
+                if (code != SQLITE_BUSY)
+                {
+                    break;
+                }
+                
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+            } while (!token.IsCancellationRequested);
         }
         finally
         {

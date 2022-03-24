@@ -4,6 +4,11 @@ namespace PixivApi.Core.Network;
 
 public interface IExtenededDatabase : IDatabase
 {
+    ValueTask OfficiallyRemoveArtwork(ulong id, CancellationToken token);
+    
+    ValueTask OfficiallyRemoveUser(ulong id, CancellationToken token);
+
+
     /// <returns>True: Add, False: Update</returns>
     ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent source, CancellationToken token);
 

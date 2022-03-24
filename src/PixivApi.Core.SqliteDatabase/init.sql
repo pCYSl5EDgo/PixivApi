@@ -210,4 +210,12 @@ CREATE TABLE "RankingTable" (
 );
 
 CREATE INDEX "RankingTable_Date_RankingKind_Index" ON "RankingTable" ("Date", "RankingKind");
+
+CREATE TABLE "ArtworkRemoveTable"(
+    "Id" INTEGER NOT NULL PRIMARY KEY REFERENCES "ArtworkTable" ("Id")
+);
+
+CREATE TABLE "UserRemoveTable"(
+    "Id" INTEGER NOT NULL PRIMARY KEY REFERENCES "UserTable" ("Id")
+);
 END TRANSACTION;
