@@ -166,7 +166,7 @@ internal sealed partial class Database
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_Insert_TagsOfArtwork_Parts_0());
+            builder.AppendLiteral(Literal_Insert_ToolsOfArtwork_Parts_0());
             for (int i = 1, index = 2; i < array.Length; i++)
             {
                 builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
