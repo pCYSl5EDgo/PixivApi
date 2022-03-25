@@ -2,42 +2,53 @@
 
 namespace PixivApi.Core.Network;
 
-public sealed record class AuthenticationHeaderValueHolder(ConfigSettings ConfigSettings, HttpClient HttpClient, TimeSpan LoopInterval) : IDisposable
+public sealed class AuthenticationHeaderValueHolder : IDisposable
 {
+    public readonly ConfigSettings ConfigSettings;
+    public readonly HttpClient HttpClient;
+    public readonly TimeSpan LoopInterval;
     private readonly AsyncLock asyncLock = new();
-    private volatile AuthenticationHeaderValue? value;
+    private readonly AuthenticationHeaderValue?[] values;
+    private int index;
+
+    public AuthenticationHeaderValueHolder(ConfigSettings configSettings, HttpClient httpClient, TimeSpan loopInterval)
+    {
+        ConfigSettings = configSettings;
+        HttpClient = httpClient;
+        LoopInterval = loopInterval;
+        values = ConfigSettings.RefreshTokens.Length == 0 ? Array.Empty<AuthenticationHeaderValue?>() : new AuthenticationHeaderValue?[ConfigSettings.RefreshTokens.Length];
+        index = 0;
+    }
+
+    private int CalcNextIndex(int index) => ++index == values.Length ? 0 : index;
 
     public async ValueTask<AuthenticationHeaderValue> GetAsync(CancellationToken token)
     {
-        var currentValue = value;
+        var currentIndex = index;
+        var currentValue = values[currentIndex];
         if (currentValue is not null)
         {
             return currentValue;
         }
 
         using var @lock = await asyncLock.LockAsync(token).ConfigureAwait(false);
-        if (value is null)
+        currentValue = values[currentIndex];
+        if (currentValue is not null)
         {
-            var accessToken = await AccessTokenUtility.GetAccessTokenAsync(HttpClient, ConfigSettings, token).ConfigureAwait(false);
-            value = new("Bearer", accessToken);
+            return currentValue;
         }
 
-        return value;
+        var accessToken = await AccessTokenUtility.GetAccessTokenAsync(HttpClient, ConfigSettings, currentIndex, token).ConfigureAwait(false);
+        return values[currentIndex] = new("Bearer", accessToken);
     }
 
     public async ValueTask InvalidateAsync(CancellationToken token)
     {
-        var currentValue = value;
-        if (currentValue is null)
-        {
-            return;
-        }
-
         using var @lock = await asyncLock.LockAsync(token).ConfigureAwait(false);
-        if (currentValue == value)
-        {
-            value = null;
-        }
+        var currentIndex = index;
+        var nextIndex = CalcNextIndex(currentIndex);
+        _ = Interlocked.Exchange(ref index, nextIndex);
+        Interlocked.Exchange(ref values[currentIndex], null);
     }
 
     public void Dispose() => asyncLock.Dispose();

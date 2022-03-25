@@ -112,7 +112,7 @@ public static partial class AccessTokenUtility
     [StringLiteral.Utf8(@"""refresh_token"":")]
     private static partial ReadOnlySpan<byte> RefreshToken();
 
-    public static async ValueTask<string?> GetAccessTokenAsync(HttpClient client, ConfigSettings config, CancellationToken token)
+    public static async ValueTask<string?> GetAccessTokenAsync(HttpClient client, ConfigSettings config, int index, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://oauth.secure.pixiv.net/auth/token");
@@ -121,7 +121,7 @@ public static partial class AccessTokenUtility
             return null;
         }
 
-        var data = new AccessTokenPostRequestData(config.ClientId, config.ClientSecret, config.RefreshToken);
+        var data = new AccessTokenPostRequestData(config.ClientId, config.ClientSecret, config.RefreshTokens[index]);
         using var buffer = IOUtility.JsonUtf8Serialize(data);
         request.Content = new ReadOnlyMemoryContent(buffer.AsMemory());
         request.Content.Headers.ContentType = new("application/x-www-form-urlencoded");

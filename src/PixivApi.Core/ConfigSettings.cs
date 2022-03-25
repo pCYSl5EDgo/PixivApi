@@ -2,7 +2,8 @@
 
 public sealed class ConfigSettings
 {
-    public string RefreshToken { get; set; } = "";
+    public string[] RefreshTokens { get; set; } = Array.Empty<string>();
+
     public string AppOS { get; set; } = "ios";
     public string AppOSVersion { get; set; } = "14.6";
     public string UserAgent { get; set; } = "PixivIOSApp/7.13.3 (iOS 14.6; iPhone13,2)";

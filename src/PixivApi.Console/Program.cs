@@ -93,14 +93,14 @@ public sealed class Program
         }
 
         configSettings ??= new();
-        if (string.IsNullOrWhiteSpace(configSettings.RefreshToken))
+        if (configSettings.RefreshTokens.Length == 0)
         {
             using var httpClient = new HttpClient();
             var valueTask = AccessTokenUtility.AuthAsync(httpClient, configSettings, CancellationToken.None);
             await InitializeDirectoriesAsync(configSettings.OriginalFolder, CancellationToken.None).ConfigureAwait(false);
             await InitializeDirectoriesAsync(configSettings.ThumbnailFolder, CancellationToken.None).ConfigureAwait(false);
             await InitializeDirectoriesAsync(configSettings.UgoiraFolder, CancellationToken.None).ConfigureAwait(false);
-            configSettings.RefreshToken = await valueTask.ConfigureAwait(false) ?? string.Empty;
+            configSettings.RefreshTokens = new[] { await valueTask.ConfigureAwait(false) ?? string.Empty };
             await IOUtility.JsonSerializeAsync(configFileName, configSettings, FileMode.Create).ConfigureAwait(false);
         }
 
@@ -177,11 +177,8 @@ public sealed class Program
         }
     }
 
-    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
-    {
-        return HttpPolicyExtensions
+    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() => HttpPolicyExtensions
           .HandleTransientHttpError()
           .Or<SocketException>()
           .WaitAndRetryAsync(6, retryAttempt => TimeSpan.FromMinutes(Math.Pow(2, retryAttempt)));
-    }
 }

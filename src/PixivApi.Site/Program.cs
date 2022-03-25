@@ -105,13 +105,13 @@ public sealed class Program
         }
 
         configSettings ??= new();
-        if (string.IsNullOrWhiteSpace(configSettings.RefreshToken))
+        if (configSettings.RefreshTokens.Length == 0)
         {
             var valueTask = AccessTokenUtility.AuthAsync(httpClient, configSettings, token);
             await InitializeDirectoriesAsync(configSettings.OriginalFolder, token).ConfigureAwait(false);
             await InitializeDirectoriesAsync(configSettings.ThumbnailFolder, token).ConfigureAwait(false);
             await InitializeDirectoriesAsync(configSettings.UgoiraFolder, token).ConfigureAwait(false);
-            configSettings.RefreshToken = await valueTask.ConfigureAwait(false) ?? string.Empty;
+            configSettings.RefreshTokens = new[] { await valueTask.ConfigureAwait(false) ?? string.Empty };
             await IOUtility.JsonSerializeAsync(configFileName, configSettings, FileMode.Create).ConfigureAwait(false);
         }
 
