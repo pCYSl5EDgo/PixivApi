@@ -8,31 +8,60 @@
       "format": "uri",
       "type": "string"
     },
-    "AppOS": { "type": "string" },
-    "AppOSVersion": { "type": "string" },
+    "AppOS": {
+      "type": "string"
+    },
+    "AppOSVersion": {
+      "type": "string"
+    },
     "ArtworkFilterFilePath": {
       "pattern": ".+\\.json.*",
       "type": "string"
     },
-    "ClientId": { "type": "string" },
-    "ClientSecret": { "type": "string" },
-    "DatabaseFilePath": { "type": "string" },
-    "HashSecret": { "type": "string" },
+    "ClientId": {
+      "type": "string"
+    },
+    "ClientSecret": {
+      "type": "string"
+    },
+    "DatabaseFilePath": {
+      "type": "string"
+    },
+    "HashSecret": {
+      "type": "string"
+    },
     "HttpRequestTimeoutSeconds": {
       "minimum": 0,
       "type": "number"
     },
-    "IllustOriginalFinderPlugin": { "type": "string" },
-    "IllustThumbnailFinderPlugin": { "type": "string" },
-    "MangaOriginalFinderPlugin": { "type": "string" },
-    "MangaThumbnailFinderPlugin": { "type": "string" },
-    "OriginalConverterPlugin": { "type": "string" },
-    "OriginalFolder": { "type": "string" },
+    "IllustOriginalFinderPlugin": {
+      "type": "string"
+    },
+    "IllustThumbnailFinderPlugin": {
+      "type": "string"
+    },
+    "MangaOriginalFinderPlugin": {
+      "type": "string"
+    },
+    "MangaThumbnailFinderPlugin": {
+      "type": "string"
+    },
+    "OriginalConverterPlugin": {
+      "type": "string"
+    },
+    "OriginalFolder": {
+      "type": "string"
+    },
     "ReconnectLoopIntervalMinutes": {
       "minimum": 0,
       "type": "number"
     },
-    "RefreshToken": { "type": "string" },
+    "RefreshTokens": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "RetrySeconds": {
       "minimum": 0,
       "type": "number"
@@ -41,15 +70,33 @@
       "minimum": 0,
       "type": "number"
     },
-    "ThumbnailConverterPlugin": { "type": "string" },
-    "ThumbnailFolder": { "type": "string" },
-    "UgoiraFolder": { "type": "string" },
-    "UgoiraOriginalFinderPlugin": { "type": "string" },
-    "UgoiraThumbnailFinderPlugin": { "type": "string" },
-    "UgoiraZipConverterPlugin": { "type": "string" },
-    "UgoiraZipFinderPlugin": { "type": "string" },
-    "UserAgent": { "type": "string" },
-    "UserFilterFilePath": { "$ref": "#/properties/ArtworkFilterFilePath" },
+    "ThumbnailConverterPlugin": {
+      "type": "string"
+    },
+    "ThumbnailFolder": {
+      "type": "string"
+    },
+    "UgoiraFolder": {
+      "type": "string"
+    },
+    "UgoiraOriginalFinderPlugin": {
+      "type": "string"
+    },
+    "UgoiraThumbnailFinderPlugin": {
+      "type": "string"
+    },
+    "UgoiraZipConverterPlugin": {
+      "type": "string"
+    },
+    "UgoiraZipFinderPlugin": {
+      "type": "string"
+    },
+    "UserAgent": {
+      "type": "string"
+    },
+    "UserFilterFilePath": {
+      "$ref": "#/properties/ArtworkFilterFilePath"
+    },
     "UserId": {
       "type": "integer",
       "minimum": 0
