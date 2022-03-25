@@ -30,7 +30,13 @@ public sealed class RequestSender
         {
             token.ThrowIfCancellationRequested();
 
-            responseMessage = await RetryWhenSocketExceptionHappend(client, url, token).ConfigureAwait(false);
+            using (HttpRequestMessage request = new(HttpMethod.Get, url))
+            {
+                var authentication = await holder.GetAsync(token).ConfigureAwait(false);
+                AddToHeader(request, authentication);
+                responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            }
+
             var statusCode = responseMessage.StatusCode;
             var isBadRequest = statusCode == HttpStatusCode.BadRequest;
             if (responseMessage.IsSuccessStatusCode || (statusCode != HttpStatusCode.Forbidden && !isBadRequest))
@@ -60,25 +66,6 @@ public sealed class RequestSender
             finally
             {
                 responseMessage.Dispose();
-            }
-        } while (true);
-    }
-
-    private async ValueTask<HttpResponseMessage> RetryWhenSocketExceptionHappend(HttpClient client, string url, CancellationToken token)
-    {
-        do
-        {
-            try
-            {
-                using HttpRequestMessage request = new(HttpMethod.Get, url);
-                var authentication = await holder.GetAsync(token).ConfigureAwait(false);
-                AddToHeader(request, authentication);
-                return await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
-            }
-            catch (HttpRequestException e) when (e.InnerException is IOException { InnerException: System.Net.Sockets.SocketException { ErrorCode: 10054 or 10060 } })
-            {
-                await Task.Delay(retryTimeSpan, token).ConfigureAwait(false);
-                await holder.InvalidateAsync(token).ConfigureAwait(false);
             }
         } while (true);
     }
