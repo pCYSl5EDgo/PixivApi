@@ -10,7 +10,7 @@ internal static class ArtworkFilterUtility
         return answer;
     }
 
-    public static void Filter(this ArtworkFilter filter, ref Utf8ValueStringBuilder builder, ref bool and, string origin)
+    public static void Filter(ArtworkFilter filter, ref Utf8ValueStringBuilder builder, ref bool and, string origin)
     {
         builder.Filter(ref and, origin, filter.IdFilter);
         builder.Filter(ref and, origin, filter.TagFilter, "ArtworkTagCrossTable");
@@ -18,15 +18,15 @@ internal static class ArtworkFilterUtility
         builder.Filter(ref and, origin, filter.IsOfficiallyRemoved, nameof(filter.IsOfficiallyRemoved));
         builder.Filter(ref and, origin, filter.IsVisible, nameof(filter.IsVisible));
         builder.Filter(ref and, origin, filter.IsMuted, nameof(filter.IsMuted));
-        Filter(ref builder, ref and, origin, filter.TotalView, nameof(filter.TotalView));
-        Filter(ref builder, ref and, origin, filter.TotalBookmarks, nameof(filter.TotalBookmarks));
-        Filter(ref builder, ref and, origin, filter.PageCount, nameof(filter.PageCount));
-        Filter(ref builder, ref and, origin, filter.Width, nameof(filter.Width));
-        Filter(ref builder, ref and, origin, filter.Height, nameof(filter.Height));
-        Filter(ref builder, ref and, origin, filter.Type);
+        builder.Filter(ref and, origin, filter.TotalView, nameof(filter.TotalView));
+        builder.Filter(ref and, origin, filter.TotalBookmarks, nameof(filter.TotalBookmarks));
+        builder.Filter(ref and, origin, filter.PageCount, nameof(filter.PageCount));
+        builder.Filter(ref and, origin, filter.Width, nameof(filter.Width));
+        builder.Filter(ref and, origin, filter.Height, nameof(filter.Height));
+        builder.Filter(ref and, origin, filter.Type);
         builder.Filter(ref and, origin, filter.R18, "IsXRestricted");
-        Filter(ref builder, ref and, origin, filter.DateTimeFilter);
-        Filter(ref builder, ref and, origin, filter.TitleFilter);
+        builder.Filter(ref and, origin, filter.DateTimeFilter);
+        builder.Filter(ref and, origin, filter.TitleFilter);
         if (filter.UserFilter is not null)
         {
             builder.And(ref and);
@@ -38,15 +38,15 @@ internal static class ArtworkFilterUtility
             builder.AppendAscii(')');
         }
 
-        OrderBy(ref builder, origin, filter.Order);
+        builder.OrderBy(origin, filter.Order);
 
         if (!filter.ShouldHandleFileExistanceFilter)
         {
-            Limit(ref builder, filter.Count, filter.Offset);
+            builder.Limit(filter.Count, filter.Offset);
         }
     }
 
-    private static void AddSingleQuoteText(ref Utf8ValueStringBuilder builder, string text)
+    private static void AddSingleQuoteText(ref this Utf8ValueStringBuilder builder, string text)
     {
         const byte special = (byte)'\'';
         builder.GetSpan(1)[0] = special;
@@ -56,7 +56,7 @@ internal static class ArtworkFilterUtility
         builder.Advance(1);
     }
 
-    private static void AddDoubleQuoteText(ref Utf8ValueStringBuilder builder, string text)
+    private static void AddDoubleQuoteText(ref this Utf8ValueStringBuilder builder, string text)
     {
         const byte special = (byte)'"';
         builder.GetSpan(1)[0] = special;
@@ -129,7 +129,7 @@ internal static class ArtworkFilterUtility
     }
 
     #region TextFilter
-    private static void Filter(ref Utf8ValueStringBuilder builder, ref bool and, string origin, TextFilter? filter)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, TextFilter? filter)
     {
         if (filter is null)
         {
@@ -142,13 +142,13 @@ internal static class ArtworkFilterUtility
             builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \"");
             builder.Append(origin);
             builder.Append("\".\"Id\" AND (");
-            TextPartial(ref builder, filter.Partials, filter.PartialOr);
+            builder.TextPartial(filter.Partials, filter.PartialOr);
             builder.Append("))");
 
             if (filter.IgnorePartials is { Length: > 0 })
             {
                 builder.Append(" AND NOT (");
-                TextPartial(ref builder, filter.IgnorePartials, filter.IgnorePartialOr);
+                builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
                 builder.Append("))");
             }
         }
@@ -160,7 +160,7 @@ internal static class ArtworkFilterUtility
                 builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \"");
                 builder.Append(origin);
                 builder.Append("\".\"Id\" AND NOT (");
-                TextPartial(ref builder, filter.IgnorePartials, filter.IgnorePartialOr);
+                builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
                 builder.Append("))");
             }
         }
@@ -169,7 +169,7 @@ internal static class ArtworkFilterUtility
         {
             builder.And(ref and);
             builder.AppendAscii('(');
-            TextExact(ref builder, origin, filter.Exact);
+            builder.TextExact(origin, filter.Exact);
             builder.AppendAscii(')');
         }
 
@@ -177,33 +177,33 @@ internal static class ArtworkFilterUtility
         {
             builder.And(ref and);
             builder.Append("NOT (");
-            TextExact(ref builder, origin, filter.IgnoreExact);
+            builder.TextExact(origin, filter.IgnoreExact);
             builder.AppendAscii(')');
         }
     }
 
-    private static void TextExact(ref Utf8ValueStringBuilder builder, string origin, string text)
+    private static void TextExact(ref this Utf8ValueStringBuilder builder, string origin, string text)
     {
         builder.Append("\"");
         builder.Append(origin);
         builder.Append("\".\"Title\" = ");
-        AddSingleQuoteText(ref builder, text);
+        builder.AddSingleQuoteText(text);
         builder.Append("OR \"");
         builder.Append(origin);
         builder.Append("\".\"Caption\" = ");
-        AddSingleQuoteText(ref builder, text);
+        builder.AddSingleQuoteText(text);
         builder.Append("OR \"");
         builder.Append(origin);
         builder.Append("\".\"Memo\" = ");
-        AddSingleQuoteText(ref builder, text);
+        builder.AddSingleQuoteText(text);
     }
 
-    private static void TextPartial(ref Utf8ValueStringBuilder builder, string[] partials, bool or)
+    private static void TextPartial(ref this Utf8ValueStringBuilder builder, string[] partials, bool or)
     {
         var (oneOrTwo, oneOrTwoCount, threeOrMore, threeOrMoreCount) = Divide(partials);
         if (threeOrMore is not null)
         {
-            TextMatch(ref builder, or, threeOrMore.AsSpan(0, threeOrMoreCount));
+            builder.TextMatch(or, threeOrMore.AsSpan(0, threeOrMoreCount));
 
             if (oneOrTwo is not null)
             {
@@ -216,31 +216,31 @@ internal static class ArtworkFilterUtility
                     builder.Append(" AND ");
                 }
 
-                TextLike(ref builder, or, oneOrTwo.AsSpan(0, oneOrTwoCount));
+                builder.TextLike(or, oneOrTwo.AsSpan(0, oneOrTwoCount));
                 ArrayPool<string>.Shared.Return(oneOrTwo);
                 ArrayPool<string>.Shared.Return(threeOrMore);
             }
         }
         else
         {
-            TextLike(ref builder, or, (oneOrTwo ?? throw new NullReferenceException()).AsSpan(0, oneOrTwoCount));
+            builder.TextLike(or, (oneOrTwo ?? throw new NullReferenceException()).AsSpan(0, oneOrTwoCount));
         }
     }
 
-    private static void TextLike(ref Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
+    private static void TextLike(ref this Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
     {
         builder.AppendAscii('(');
-        TextLike(ref builder, or, span[0]);
+        builder.TextLike(or, span[0]);
         foreach (var item in span[1..])
         {
             builder.Append(" OR ");
-            TextLike(ref builder, or, item);
+            builder.TextLike(or, item);
         }
 
         builder.AppendAscii(')');
     }
 
-    private static void TextLike(ref Utf8ValueStringBuilder builder, bool or, string first)
+    private static void TextLike(ref this Utf8ValueStringBuilder builder, bool or, string first)
     {
         builder.Append("(\"TextTable\".\"Title\" LIKE '%");
         builder.AddSingleQuoteTextWithoutQuote(first);
@@ -267,17 +267,17 @@ internal static class ArtworkFilterUtility
         builder.Append("%')");
     }
 
-    private static void TextMatch(ref Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
+    private static void TextMatch(ref this Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
     {
         builder.Append("(\"TextTable\" MATCH ");
         if (span.Length == 1)
         {
-            AddSingleQuoteText(ref builder, span[0]);
+            builder.AddSingleQuoteText(span[0]);
         }
         else
         {
             builder.AppendAscii('\'');
-            AddDoubleQuoteText(ref builder, span[0]);
+            builder.AddDoubleQuoteText(span[0]);
             foreach (var item in span[1..])
             {
                 if (or)
@@ -289,7 +289,7 @@ internal static class ArtworkFilterUtility
                     builder.Append(" AND ");
                 }
 
-                AddDoubleQuoteText(ref builder, item);
+                builder.AddDoubleQuoteText(item);
             }
 
             builder.AppendAscii('\'');
@@ -299,7 +299,7 @@ internal static class ArtworkFilterUtility
     }
     #endregion
 
-    private static void Filter(ref Utf8ValueStringBuilder builder, ref bool and, string origin, DateTimeFilter? filter)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, DateTimeFilter? filter)
     {
         if (filter is null)
         {
@@ -346,7 +346,7 @@ internal static class ArtworkFilterUtility
         }
     }
 
-    private static void Filter(ref Utf8ValueStringBuilder builder, ref bool and, string origin, ArtworkType? value)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, ArtworkType? value)
     {
         if (value is null)
         {
@@ -360,7 +360,7 @@ internal static class ArtworkFilterUtility
         builder.Append((byte)value.Value);
     }
 
-    private static void Filter(ref Utf8ValueStringBuilder builder, ref bool and, string origin, MinMaxFilter? filter, string name)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, MinMaxFilter? filter, string name)
     {
         if (filter is null)
         {
@@ -402,7 +402,7 @@ internal static class ArtworkFilterUtility
         }
     }
 
-    private static void OrderBy(ref Utf8ValueStringBuilder builder, string origin, ArtworkOrderKind order)
+    private static void OrderBy(ref this Utf8ValueStringBuilder builder, string origin, ArtworkOrderKind order)
     {
         if (order == ArtworkOrderKind.None)
         {
@@ -428,7 +428,7 @@ internal static class ArtworkFilterUtility
         builder.Append(orderKindAscDesc);
     }
 
-    private static void Limit(ref Utf8ValueStringBuilder builder, int? count, int offset)
+    private static void Limit(ref this Utf8ValueStringBuilder builder, int? count, int offset)
     {
         if (count.HasValue)
         {
