@@ -11,18 +11,13 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var artworkFilter = await IOUtility.JsonDeserializeAsync<ArtworkFilter>(configSettings.ArtworkFilterFilePath, token).ConfigureAwait(false);
-        if (artworkFilter is null)
-        {
-            return;
-        }
-
         var logger = Context.Logger;
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong update = 0, removed = 0;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         try
         {
+            var artworkFilter = await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false) ?? throw new NullReferenceException();
             var collection = database.FilterAsync(artworkFilter, token);
             await foreach (var item in collection)
             {
