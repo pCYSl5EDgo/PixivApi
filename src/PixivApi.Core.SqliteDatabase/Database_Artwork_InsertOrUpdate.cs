@@ -22,7 +22,7 @@ internal sealed partial class Database
         {
             await InsertArtworkTAsync(answer, token).ConfigureAwait(false);
             await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertTagsOfArtworkAsync(answer.Id, answer.TagDictionary, token).ConfigureAwait(false);
+            await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
             await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
             await InsertToolsOfArtworkAsync(answer.Id, answer.Tools, token).ConfigureAwait(false);
             await DeleteHidesAsync(answer.Id, token).ConfigureAwait(false);
@@ -48,7 +48,7 @@ internal sealed partial class Database
         {
             await UpdateArtworkAsync(answer, token).ConfigureAwait(false);
             await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertTagsOfArtworkAsync(answer.Id, answer.TagDictionary, token).ConfigureAwait(false);
+            await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
             await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
             await InsertToolsOfArtworkAsync(answer.Id, answer.Tools, token).ConfigureAwait(false);
             await DeleteHidesAsync(answer.Id, token).ConfigureAwait(false);
@@ -77,7 +77,7 @@ internal sealed partial class Database
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_InsertHides_Parts_0());
+            builder.AppendLiteral(Literal_InsertUgoiraFrames_Parts_0());
             for (int i = 1, index = 3; i < frames.Length; i++)
             {
                 builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());

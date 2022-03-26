@@ -45,7 +45,23 @@ internal sealed partial class Database
 
                 var tagId = CU32(statement, 0);
                 var kind = CU32(statement, 1);
-                artwork.TagDictionary[tagId] = kind;
+                switch (kind)
+                {
+                    case 0:
+                        Array.Resize(ref artwork.ExtraFakeTags, (artwork.ExtraFakeTags?.Length ?? 0) + 1);
+                        artwork.ExtraFakeTags[^1] = tagId;
+                        break;
+                    case 1:
+                        Array.Resize(ref artwork.Tags, artwork.Tags.Length + 1);
+                        artwork.Tags[^1] = tagId;
+                        break;
+                    case 2:
+                        Array.Resize(ref artwork.ExtraTags, (artwork.ExtraTags?.Length ?? 0) + 1);
+                        artwork.ExtraTags[^1] = tagId;
+                        break;
+                    default:
+                        break;
+                }
             } while (true);
         }
         finally
@@ -263,7 +279,7 @@ internal sealed partial class Database
                 {
                     break;
                 }
-                
+
                 await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
             } while (!token.IsCancellationRequested);
         }
