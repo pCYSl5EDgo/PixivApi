@@ -8,7 +8,6 @@ public interface IExtenededDatabase : IDatabase
     
     ValueTask OfficiallyRemoveUser(ulong id, CancellationToken token);
 
-
     /// <returns>True: Add, False: Update</returns>
     ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent source, CancellationToken token);
 
