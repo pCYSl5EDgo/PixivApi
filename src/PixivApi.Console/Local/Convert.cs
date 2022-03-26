@@ -17,7 +17,7 @@ public partial class LocalClient
             var output = await sqlFactory.RentAsync(token).ConfigureAwait(false);
             try
             {
-                for (var stageIndex = stage; stageIndex < 4; stageIndex++)
+                for (var stageIndex = stage; stageIndex < 4 && !token.IsCancellationRequested; stageIndex++)
                 {
                     switch (stageIndex)
                     {
@@ -26,6 +26,11 @@ public partial class LocalClient
                             var tagCount = 0;
                             await foreach (var (tag, _) in input.EnumerateTagAsync(token))
                             {
+                                if (token.IsCancellationRequested)
+                                {
+                                    break;
+                                }
+
                                 await output.RegisterTagAsync(tag, token).ConfigureAwait(false);
                                 if ((++tagCount & mask2) == 0)
                                 {
@@ -38,6 +43,11 @@ public partial class LocalClient
                             var toolCount = 0;
                             await foreach (var (tool, _) in input.EnumerateToolAsync(token))
                             {
+                                if (token.IsCancellationRequested)
+                                {
+                                    break;
+                                }
+
                                 await output.RegisterToolAsync(tool, token).ConfigureAwait(false);
                                 if ((++toolCount & mask2) == 0)
                                 {
@@ -50,6 +60,11 @@ public partial class LocalClient
                             var userCount = 0;
                             await foreach (var item in input.EnumerateUserAsync(token))
                             {
+                                if (token.IsCancellationRequested)
+                                {
+                                    break;
+                                }
+
                                 await output.AddOrUpdateAsync(item.Id, _ => ValueTask.FromResult(item), static (_, _) => throw new NotImplementedException(), token);
                                 if ((++userCount & mask2) == 0)
                                 {
@@ -64,6 +79,11 @@ public partial class LocalClient
                             var artworkCount = 0;
                             await foreach (var item in filter is null ? input.EnumerateArtworkAsync(token) : input.FilterAsync(filter, token))
                             {
+                                if (token.IsCancellationRequested)
+                                {
+                                    break;
+                                }
+
                                 var copied = new Artwork();
                                 await CopyAsync(item, copied, input, output);
                                 await output.AddOrUpdateAsync(item.Id, _ => ValueTask.FromResult(item), static (_, _) => throw new NotImplementedException(), token);
