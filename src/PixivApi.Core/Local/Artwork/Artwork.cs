@@ -184,8 +184,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         }
     }
 
-    public Dictionary<uint, uint> TagDictionary = new();
-
     public Dictionary<uint, uint> CalculateTags()
     {
         var dic = new Dictionary<uint, uint>();
@@ -217,7 +215,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
         return dic;
     }
-
     public IEnumerable<string>? StringifiedTags { get; private set; }
 
     public IEnumerable<string>? StringifiedTools { get; private set; }
