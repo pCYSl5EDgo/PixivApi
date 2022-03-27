@@ -27,7 +27,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
     public bool IsBookmarked;
     public bool IsVisible;
     public bool IsMuted;
-    public bool ExtraHideLast;
 
     public DateTime CreateDate;
     public DateTime FileDate;
@@ -323,7 +322,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
                     | ((value.IsBookmarked ? 1U : 0) << 3)
                     | ((value.IsVisible ? 1U : 0) << 2)
                     | ((value.IsMuted ? 1U : 0) << 1)
-                    | (value.ExtraHideLast ? 1U : 0)
                     );
                 writer.Advance(BinLength);
             }
@@ -395,10 +393,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
                             if ((flags & 0b10) != 0)
                             {
                                 answer.IsMuted = true;
-                            }
-                            if ((flags & 0b1) != 0)
-                            {
-                                answer.ExtraHideLast = true;
                             }
                         }
                         break;
@@ -724,7 +718,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
     [StringLiteral.Utf8("bookmarked")] private static partial ReadOnlySpan<byte> LiteralIsBookmarked();
     [StringLiteral.Utf8("visible")] private static partial ReadOnlySpan<byte> LiteralIsVisible();
     [StringLiteral.Utf8("muted")] private static partial ReadOnlySpan<byte> LiteralIsMuted();
-    [StringLiteral.Utf8("hide-last")] private static partial ReadOnlySpan<byte> LiteralExtraHideLast();
 
     [StringLiteral.Utf8("memo")] private static partial ReadOnlySpan<byte> LiteralExtraMemo();
     [StringLiteral.Utf8("ugoira-frames")] private static partial ReadOnlySpan<byte> LiteralUgoiraFrames();
@@ -735,11 +728,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
     public bool IsNotHided(uint pageIndex)
     {
         if (ExtraHideReason != HideReason.NotHidden)
-        {
-            return false;
-        }
-
-        if (pageIndex + 1U == PageCount && ExtraHideLast)
         {
             return false;
         }
@@ -761,11 +749,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         public PageIndexEnumerator(Artwork artwork)
         {
             maxExclusive = (int)artwork.PageCount;
-            if (artwork.ExtraHideLast)
-            {
-                --maxExclusive;
-            }
-
             index = artwork.ExtraHideReason != HideReason.NotHidden ? maxExclusive : -1;
             if (artwork.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary)
             {
@@ -880,11 +863,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
             if (value.ExtraHideReason != HideReason.NotHidden)
             {
                 writer.WriteString(LiteralHideReason(), GetLiteral(value.ExtraHideReason));
-            }
-
-            if (value.ExtraHideLast)
-            {
-                writer.WriteBoolean(LiteralExtraHideLast(), true);
             }
 
             if (value.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary)
