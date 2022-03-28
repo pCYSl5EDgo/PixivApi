@@ -86,7 +86,11 @@ public partial class LocalClient
 
                                 var copied = new Artwork();
                                 await CopyAsync(item, copied, input, output);
-                                await output.AddOrUpdateAsync(item.Id, _ => ValueTask.FromResult(copied), static (_, _) => ValueTask.CompletedTask, token);
+                                await output.AddOrUpdateAsync(item.Id, _ =>
+                                {
+                                    System.Console.WriteLine($"Count: {artworkCount + 1}  {copied.Id} of {copied.UserId} - {copied.Title}");
+                                    return ValueTask.FromResult(copied);
+                                }, static (_, _) => ValueTask.CompletedTask, token);
                                 if ((++artworkCount & mask2) == 0)
                                 {
                                     System.Console.Write($"{VirtualCodes.DeleteLine1}Count: {artworkCount}");
