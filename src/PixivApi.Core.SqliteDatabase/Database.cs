@@ -4,6 +4,7 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
 {
     private readonly ILogger logger;
     private readonly bool logTrace;
+    private readonly bool logError;
 
     internal readonly sqlite3 database;
 
@@ -75,6 +76,7 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
 
         this.logger = logger;
         logTrace = logger.IsEnabled(LogLevel.Trace);
+        logError = logger.IsEnabled(LogLevel.Error);
     }
 
     #region Prepare
@@ -98,6 +100,11 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
         if (logTrace)
         {
             logger.LogTrace($"Query: {System.Text.Encoding.UTF8.GetString(query)}\nCode: {code}");
+        }
+
+        if (logError && code == SQLITE_ERROR)
+        {
+            logger.LogError($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
         }
 
         return statement;
