@@ -225,7 +225,7 @@ internal sealed partial class Database
 
     public async IAsyncEnumerable<Artwork> EnumerateArtworkAsync([EnumeratorCancellation] CancellationToken token)
     {
-        var statement = enumerateArtworkStatement ??= Prepare(EnumerateArtworkQuery, true, out _);
+        var statement = enumerateArtworkStatement ??= Prepare(Literal_EnumerateArtwork(), true, out _);
         try
         {
             do

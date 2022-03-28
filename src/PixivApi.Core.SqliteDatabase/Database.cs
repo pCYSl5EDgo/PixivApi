@@ -82,18 +82,6 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
     #region Prepare
 #pragma warning disable CA2254
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private sqlite3_stmt Prepare(string query, bool persistent, out int code)
-    {
-        code = sqlite3_prepare_v3(database, query, persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out var statement);
-        if (logTrace)
-        {
-            logger.LogTrace($"Query: {query}\nCode: {code}");
-        }
-
-        return statement;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private sqlite3_stmt Prepare(ReadOnlySpan<byte> query, bool persistent, out int code)
     {
         code = sqlite3_prepare_v3(database, query, persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out var statement);
@@ -117,6 +105,11 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
         if (logTrace)
         {
             logger.LogTrace($"Query: {query}\nCode: {code}");
+        }
+
+        if (logError && code == SQLITE_ERROR)
+        {
+            logger.LogError($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
         }
 
         return statment;
