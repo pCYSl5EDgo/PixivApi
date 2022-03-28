@@ -187,7 +187,7 @@ internal sealed partial class Database
         }
     }
 
-    [StringLiteral.Utf8("SELECT \"Index\", \"HideReason\" FROM \"HidePageTable\" FROM \"Id\" = ?")]
+    [StringLiteral.Utf8("SELECT \"Index\", \"HideReason\" FROM \"HidePageTable\" WHERE \"Id\" = ?")]
     private static partial ReadOnlySpan<byte> Literal_SelectHideReasons();
 
     private async ValueTask ColumnHideReasonsAsync(Artwork answer, CancellationToken token)
