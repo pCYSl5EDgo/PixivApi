@@ -161,6 +161,9 @@ internal sealed partial class Database
         answer.ExtraHideReason = (HideReason)sqlite3_column_int(statement, offset++);
         answer.IsOfficiallyRemoved = CBool(statement, offset++);
         answer.IsBookmarked = CBool(statement, offset++);
+        answer.Title = CStr(statement, offset++) ?? string.Empty;
+        answer.Caption = CStr(statement, offset++) ?? string.Empty;
+        answer.ExtraMemo = CStr(statement, offset++);
     }
 
     [StringLiteral.Utf8("SELECT \"Delay\" FROM \"UgoiraFrameTable\" WHERE \"Id\" = ? ORDER BY \"Index\" ASC")]
