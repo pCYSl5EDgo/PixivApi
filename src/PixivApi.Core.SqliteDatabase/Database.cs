@@ -161,7 +161,7 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
                 case SQLITE_ROW:
                     break;
                 default:
-                    logger.LogError($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
+                    logger.LogError($"Error: {sqlite3_errmsg(database).utf8_to_string()} - {sqlite3_sql(statement).utf8_to_string()}");
                     break;
             }
         }
