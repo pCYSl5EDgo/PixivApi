@@ -332,7 +332,24 @@ internal sealed partial class Database
                     yield break;
                 }
 
+                var id = CU64(statement, 0);
+                if (id == 0)
+                {
+                    continue;
+                }
 
+                var answer = new Artwork
+                {
+                    Id = id,
+                };
+
+                await ColumnArtworkAsync(answer, statement, 1, token).ConfigureAwait(false);
+                if (filter.HasSlowFilter && !await filter.SlowFilter(answer, token).ConfigureAwait(false))
+                {
+                    continue;
+                }
+
+                yield return answer;
             } while (!token.IsCancellationRequested);
         }
         finally
