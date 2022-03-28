@@ -152,6 +152,20 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
             logger.LogTrace($"Step\n{code}");
         }
 
+        if (logError)
+        {
+            switch (code)
+            {
+                case SQLITE_DONE:
+                case SQLITE_BUSY:
+                case SQLITE_ROW:
+                    break;
+                default:
+                    logger.LogError($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
+                    break;
+            }
+        }
+
         return code;
     }
 
@@ -161,10 +175,10 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
         var code = sqlite3_reset(statement);
         if (logTrace)
         {
-            sqlite3_clear_bindings(statement);
-            logger.LogTrace($"Reset\n{code}");
+            logger.LogTrace($"Reset: {code}");
         }
 
+        code = sqlite3_clear_bindings(statement);
         return code;
     }
 
