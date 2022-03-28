@@ -232,8 +232,8 @@ internal sealed partial class Database
 
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTable\"" +
         " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20) " +
-        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"exluded\".\"IsMuted\", " +
-            "\"CreateDate\" = \"exluded\".\"CreateDate\", \"FileDate\" = \"exluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\"," +
+        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\", " +
+            "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\"," +
             "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\", \"HideReason\" = \"excluded\".\"HideReason\", " +
             "\"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Title\" = \"excluded\".\"Title\"," +
             "\"Caption\" = \"excluded\".\"Caption\", \"Memo\" = \"excluded\".\"Memo\"")]
@@ -459,8 +459,8 @@ internal sealed partial class Database
 
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTable\" VALUES " +
         "(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, 0, 0, ?15, ?16, ?17, NULL) " +
-        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"exluded\".\"IsMuted\", " +
-            "\"CreateDate\" = \"exluded\".\"CreateDate\", \"FileDate\" = \"exluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\"," +
+        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\", " +
+            "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\"," +
             "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\", " +
             "\"IsOfficiallyRemoved\" = 0, \"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Title\" = \"excluded\".\"Title\"," +
             "\"Caption\" = \"excluded\".\"Caption\", \"Memo\" = \"excluded\".\"Memo\"")]
