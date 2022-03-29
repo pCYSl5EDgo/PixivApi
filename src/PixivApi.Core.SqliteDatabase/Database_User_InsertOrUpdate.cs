@@ -20,21 +20,10 @@ internal sealed partial class Database
 
     private async ValueTask InsertOrUpdateAsync(User user, CancellationToken token)
     {
-        await BeginTransactionAsync(token);
-        try
-        {
-            await InsertOrUpdateUserAsync(user, token).ConfigureAwait(false);
-            await InsertOrUpdateUserDetailAsync(user, token).ConfigureAwait(false);
-            await DeleteTagsOfUserStatementAsync(user.Id, token).ConfigureAwait(false);
-            await InsertTagsOfUserAsync(user.Id, user.ExtraTags, token).ConfigureAwait(false);
-        }
-        catch
-        {
-            RollbackTransaction();
-            throw;
-        }
-
-        EndTransaction();
+        await InsertOrUpdateUserAsync(user, token).ConfigureAwait(false);
+        await InsertOrUpdateUserDetailAsync(user, token).ConfigureAwait(false);
+        await DeleteTagsOfUserStatementAsync(user.Id, token).ConfigureAwait(false);
+        await InsertTagsOfUserAsync(user.Id, user.ExtraTags, token).ConfigureAwait(false);
     }
 
     [StringLiteral.Utf8("INSERT INTO \"UserTagCrossTable\" VALUES (?1, ?2")]
@@ -139,21 +128,9 @@ internal sealed partial class Database
 
     public async ValueTask<bool> UserAddOrUpdateAsync(UserDetailResponseData user, CancellationToken token)
     {
-        await BeginTransactionAsync(token);
-        ulong rowId;
-        try
-        {
-            await InsertOrUpdateUserAsync(user, token).ConfigureAwait(false);
-            rowId = GetLastInsertRowId();
-            await InsertOrUpdateUserDetailAsync(user, token).ConfigureAwait(false);
-        }
-        catch
-        {
-            RollbackTransaction();
-            throw;
-        }
-
-        EndTransaction();
+        await InsertOrUpdateUserAsync(user, token).ConfigureAwait(false);
+        var rowId = GetLastInsertRowId();
+        await InsertOrUpdateUserDetailAsync(user, token).ConfigureAwait(false);
         return rowId == user.User.Id;
     }
 
@@ -181,20 +158,8 @@ internal sealed partial class Database
 
     public async ValueTask<bool> UserAddOrUpdateAsync(UserPreviewResponseContent user, CancellationToken token)
     {
-        await BeginTransactionAsync(token);
-        ulong rowId;
-        try
-        {
-            await InsertOrUpdateUserAsync(user, token).ConfigureAwait(false);
-            rowId = GetLastInsertRowId();
-        }
-        catch
-        {
-            RollbackTransaction();
-            throw;
-        }
-
-        EndTransaction();
+        await InsertOrUpdateUserAsync(user, token).ConfigureAwait(false);
+        var rowId = GetLastInsertRowId();
         if (user.Illusts is { Length: > 0 } artworks)
         {
             foreach (var artwork in artworks)

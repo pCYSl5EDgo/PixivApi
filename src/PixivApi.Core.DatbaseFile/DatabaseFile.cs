@@ -66,6 +66,28 @@ internal sealed class DatabaseFile : IDatabase
         return ValueTask.FromResult(isAdd);
     }
 
+#pragma warning disable CS1998
+    public async IAsyncEnumerable<bool> AddOrUpdateAsync(IEnumerable<Artwork> collection, [EnumeratorCancellation] CancellationToken token)
+#pragma warning restore CS1998
+    {
+        foreach (var source in collection)
+        {
+            if (token.IsCancellationRequested)
+            {
+                yield break;
+            }
+
+            var add = true;
+            ArtworkDictionary.AddOrUpdate(source.Id, source, (_, _) =>
+            {
+                add = false;
+                return source;
+            });
+
+            yield return add;
+        }
+    }
+
     public ValueTask<bool> AddOrUpdateAsync(ulong id, DatabaseAddUserFunc add, DatabaseUpdateUserFunc update, CancellationToken token)
     {
         _ = Interlocked.Exchange(ref IsChanged, 1);
@@ -292,7 +314,7 @@ internal sealed class DatabaseFile : IDatabase
     }
 
     public ValueTask<uint?> FindTagAsync(string key, CancellationToken token) => ValueTask.FromResult(TagSet.Reverses.TryGetValue(key, out var tag) ? tag : default(uint?));
-    
+
     public ValueTask<uint?> FindToolAsync(string key, CancellationToken token) => ValueTask.FromResult(ToolSet.Reverses.TryGetValue(key, out var tool) ? tool : default(uint?));
 
     public ValueTask<Artwork?> GetArtworkAsync(ulong id, CancellationToken token) => ValueTask.FromResult(ArtworkDictionary.TryGetValue(id, out var answer) ? answer : null);

@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.SqliteDatabase;
 
-internal sealed partial class Database : IExtenededDatabase, IDisposable
+internal sealed partial class Database : IExtenededDatabase, ITransactionalDatabase, IDisposable
 {
     private readonly ILogger logger;
     private readonly bool logTrace;
@@ -37,6 +37,7 @@ internal sealed partial class Database : IExtenededDatabase, IDisposable
         CloseStatement(ref countTagStatement);
         CloseStatement(ref countToolStatement);
         CloseStatement(ref countRankingStatement);
+        CloseStatement(ref existsArtworkStatement);
         CloseStatement(ref deleteHidesStatement);
         CloseStatement(ref updateArtworkStatement);
         CloseStatement(ref insertArtworkStatement);

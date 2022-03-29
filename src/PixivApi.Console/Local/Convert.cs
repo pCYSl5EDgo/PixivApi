@@ -77,24 +77,36 @@ public partial class LocalClient
                             var filter = string.IsNullOrWhiteSpace(filterPath) ? null : await filterFactory.CreateAsync(input, new(filterPath), token).ConfigureAwait(false);
                             logger.LogInformation("Start register artworks.");
                             var artworkCount = 0;
-                            await foreach (var item in filter is null ? input.EnumerateArtworkAsync(token) : input.FilterAsync(filter, token))
+                            var collection = (filter is null ? input.EnumerateArtworkAsync(token) : input.FilterAsync(filter, token)).SelectAwait(async item =>
                             {
-                                if (token.IsCancellationRequested)
-                                {
-                                    break;
-                                }
-
                                 var copied = new Artwork();
                                 await CopyAsync(item, copied, input, output);
-                                await output.AddOrUpdateAsync(item.Id, _ =>
+                                return copied;
+                            }).ToEnumerable();
+                            var transaction = output as ITransactionalDatabase;
+                            if (transaction is not null)
+                            {
+                                await transaction.BeginTransactionAsync(token).ConfigureAwait(false);
+                            }
+
+                            try
+                            {
+                                await foreach (var _ in output.AddOrUpdateAsync(collection, token))
                                 {
-                                    System.Console.WriteLine($"Count: {artworkCount + 1}  {copied.Id} of {copied.UserId} - {copied.Title}");
-                                    return ValueTask.FromResult(copied);
-                                }, static (_, _) => ValueTask.CompletedTask, token);
-                                if ((++artworkCount & mask2) == 0)
-                                {
-                                    System.Console.Write($"{VirtualCodes.DeleteLine1}Count: {artworkCount}");
+                                    if (token.IsCancellationRequested)
+                                    {
+                                        break;
+                                    }
+
+                                    if ((++artworkCount & mask2) == 0)
+                                    {
+                                        System.Console.Write($"{VirtualCodes.DeleteLine1}Count: {artworkCount}");
+                                    }
                                 }
+                            }
+                            finally
+                            {
+                                transaction?.EndTransaction();
                             }
 
                             break;

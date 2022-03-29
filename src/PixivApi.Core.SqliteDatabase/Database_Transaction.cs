@@ -6,7 +6,7 @@ internal sealed partial class Database
     private sqlite3_stmt? endTransactionStatement;
     private sqlite3_stmt? rollbackTransactionStatement;
 
-    private async ValueTask BeginTransactionAsync(CancellationToken token)
+    public async ValueTask BeginTransactionAsync(CancellationToken token)
     {
         beginTransactionStatement ??= Prepare(Literal_Begin_Transaction(), true, out _);
         try
@@ -28,14 +28,14 @@ internal sealed partial class Database
     [StringLiteral.Utf8("END TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
     [StringLiteral.Utf8("ROLLBACK TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();
 
-    private void EndTransaction()
+    public void EndTransaction()
     {
         endTransactionStatement ??= Prepare(Literal_End_Transaction(), true, out _);
         Step(endTransactionStatement);
         Reset(endTransactionStatement);
     }
 
-    private void RollbackTransaction()
+    public void RollbackTransaction()
     {
         rollbackTransactionStatement ??= Prepare(Literal_Rollback_Transaction(), true, out _);
         Step(rollbackTransactionStatement);

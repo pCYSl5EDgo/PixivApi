@@ -2,6 +2,7 @@
 
 internal sealed partial class Database
 {
+    private sqlite3_stmt? existsArtworkStatement;
     private sqlite3_stmt? deleteHidesStatement;
     private sqlite3_stmt? updateArtworkStatement;
     private sqlite3_stmt? insertArtworkStatement;
@@ -17,54 +18,86 @@ internal sealed partial class Database
 
     private async ValueTask InsertAsync(Artwork answer, CancellationToken token)
     {
-        await BeginTransactionAsync(token).ConfigureAwait(false);
+        await InsertArtworkAsync(answer, token).ConfigureAwait(false);
+        await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
+        await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
+        await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
+        await InsertToolsOfArtworkAsync(answer.Id, answer.Tools, token).ConfigureAwait(false);
+        await DeleteHidesAsync(answer.Id, token).ConfigureAwait(false);
+        await InsertHidesAsync(answer.Id, answer.ExtraPageHideReasonDictionary, token).ConfigureAwait(false);
+        if (answer.Type == ArtworkType.Ugoira && answer.UgoiraFrames is { Length: > 0 })
+        {
+            await InsertUgoiraFramesAsync(answer.Id, answer.UgoiraFrames, token).ConfigureAwait(false);
+        }
+    }
+
+    [StringLiteral.Utf8("SELECT \"Id\" FROM \"ArtworkTable\" WHERE \"Id\" = ?")]
+    private static partial ReadOnlySpan<byte> Literal_ExistsArtwork();
+
+    private async ValueTask<bool> ExistsArtworkAsync(ulong id, CancellationToken token)
+    {
+        var statement = existsArtworkStatement ??= Prepare(Literal_ExistsArtwork(), true, out _);
+        Bind(statement, 1, id);
         try
         {
-            await InsertArtworkTAsync(answer, token).ConfigureAwait(false);
-            await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
-            await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertToolsOfArtworkAsync(answer.Id, answer.Tools, token).ConfigureAwait(false);
-            await DeleteHidesAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertHidesAsync(answer.Id, answer.ExtraPageHideReasonDictionary, token).ConfigureAwait(false);
+            do
+            {
+                token.ThrowIfCancellationRequested();
+                var code = Step(statement);
+                if (code == SQLITE_BUSY)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                    continue;
+                }
+
+                return code == SQLITE_ROW;
+            } while (true);
+        }
+        finally
+        {
+            Reset(statement);
+        }
+    }
+
+    public async IAsyncEnumerable<bool> AddOrUpdateAsync(IEnumerable<Artwork> collection, [EnumeratorCancellation] CancellationToken token)
+    {
+        foreach (var answer in collection)
+        {
+            if (token.IsCancellationRequested)
+            {
+                break;
+            }
+
+            var exists = await ExistsArtworkAsync(answer.Id, CancellationToken.None).ConfigureAwait(false);
+            await InsertArtworkAsync(answer, CancellationToken.None).ConfigureAwait(false);
+            await DeleteTagsOfArtworkStatementAsync(answer.Id, CancellationToken.None).ConfigureAwait(false);
+            await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), CancellationToken.None).ConfigureAwait(false);
+            await DeleteToolsOfArtworkStatementAsync(answer.Id, CancellationToken.None).ConfigureAwait(false);
+            await InsertToolsOfArtworkAsync(answer.Id, answer.Tools, CancellationToken.None).ConfigureAwait(false);
+            await DeleteHidesAsync(answer.Id, CancellationToken.None).ConfigureAwait(false);
+            await InsertHidesAsync(answer.Id, answer.ExtraPageHideReasonDictionary, CancellationToken.None).ConfigureAwait(false);
             if (answer.Type == ArtworkType.Ugoira && answer.UgoiraFrames is { Length: > 0 })
             {
-                await InsertUgoiraFramesAsync(answer.Id, answer.UgoiraFrames, token).ConfigureAwait(false);
+                await InsertUgoiraFramesAsync(answer.Id, answer.UgoiraFrames, CancellationToken.None).ConfigureAwait(false);
             }
-        }
-        catch
-        {
-            RollbackTransaction();
-            throw;
-        }
 
-        EndTransaction();
+            yield return !exists;
+        }
     }
 
     private async ValueTask UpdateAsync(Artwork answer, CancellationToken token)
     {
-        await BeginTransactionAsync(token).ConfigureAwait(false);
-        try
+        await UpdateArtworkAsync(answer, token).ConfigureAwait(false);
+        await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
+        await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
+        await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
+        await InsertToolsOfArtworkAsync(answer.Id, answer.Tools, token).ConfigureAwait(false);
+        await DeleteHidesAsync(answer.Id, token).ConfigureAwait(false);
+        await InsertHidesAsync(answer.Id, answer.ExtraPageHideReasonDictionary, token).ConfigureAwait(false);
+        if (answer.Type == ArtworkType.Ugoira && answer.UgoiraFrames is { Length: > 0 })
         {
-            await UpdateArtworkAsync(answer, token).ConfigureAwait(false);
-            await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
-            await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertToolsOfArtworkAsync(answer.Id, answer.Tools, token).ConfigureAwait(false);
-            await DeleteHidesAsync(answer.Id, token).ConfigureAwait(false);
-            await InsertHidesAsync(answer.Id, answer.ExtraPageHideReasonDictionary, token).ConfigureAwait(false);
-            if (answer.Type == ArtworkType.Ugoira && answer.UgoiraFrames is { Length: > 0 })
-            {
-                await InsertUgoiraFramesAsync(answer.Id, answer.UgoiraFrames, token).ConfigureAwait(false);
-            }
+            await InsertUgoiraFramesAsync(answer.Id, answer.UgoiraFrames, token).ConfigureAwait(false);
         }
-        catch
-        {
-            RollbackTransaction();
-            throw;
-        }
-
-        EndTransaction();
     }
 
 
@@ -239,7 +272,7 @@ internal sealed partial class Database
             "\"Caption\" = \"excluded\".\"Caption\", \"Memo\" = \"excluded\".\"Memo\"")]
     private static partial ReadOnlySpan<byte> Literal_InsertArtwork_Parts_0();
 
-    private ValueTask InsertArtworkTAsync(Artwork answer, CancellationToken token)
+    private ValueTask InsertArtworkAsync(Artwork answer, CancellationToken token)
     {
         var statement = insertArtworkStatement ??= Prepare(Literal_InsertArtwork_Parts_0(), true, out _);
         Bind(statement, 0x01, answer.Id);
@@ -435,24 +468,12 @@ internal sealed partial class Database
 
     public async ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent answer, CancellationToken token)
     {
-        await BeginTransactionAsync(token).ConfigureAwait(false);
-        ulong rowId;
-        try
-        {
-            await InsertOrUpdateArtworkAsync(answer, token).ConfigureAwait(false);
-            rowId = GetLastInsertRowId();
-            await DeleteTagsOfArtworkWhereValueKindEquals1StatementAsync(answer.Id, token).ConfigureAwait(false);
-            await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-            await EnumerateInsertTagAsync(answer.Tags, token).ConfigureAwait(false);
-            await EnumerateInsertToolAsync(answer.Tools, token).ConfigureAwait(false);
-        }
-        catch
-        {
-            RollbackTransaction();
-            throw;
-        }
-
-        EndTransaction();
+        await InsertOrUpdateArtworkAsync(answer, token).ConfigureAwait(false);
+        var rowId = GetLastInsertRowId();
+        await DeleteTagsOfArtworkWhereValueKindEquals1StatementAsync(answer.Id, token).ConfigureAwait(false);
+        await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
+        await EnumerateInsertTagAsync(answer.Tags, token).ConfigureAwait(false);
+        await EnumerateInsertToolAsync(answer.Tools, token).ConfigureAwait(false);
         return rowId == answer.Id;
 
     }
