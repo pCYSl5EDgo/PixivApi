@@ -40,7 +40,7 @@ public sealed class Program
             jsonSerializerOptions.Converters.Add(NotUgoiraArtworkUtilityStruct.Converter.Instance);
             return jsonSerializerOptions;
         })
-        .AddSingleton<IDatabaseFactory, DatabaseFileFactory>()
+        .AddSingleton<IDatabaseFactory, Core.SqliteDatabase.DatabaseFactory>()
         .AddSingleton<IArtworkFilterFactory<ReadOnlyMemory<char>>, ContentArtworkFilterFactory>();
 
         var app = builder.Build();
