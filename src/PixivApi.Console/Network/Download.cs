@@ -17,6 +17,12 @@ public partial class NetworkClient
         var token = Context.CancellationToken;
         var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        var transactional = database as ITransactionalDatabase;
+        if (transactional is not null)
+        {
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+        }
+
         try
         {
             var artworkFilter = await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
@@ -87,6 +93,7 @@ public partial class NetworkClient
         }
         finally
         {
+            transactional?.EndTransaction();
             databaseFactory.Return(ref database);
         }
     }

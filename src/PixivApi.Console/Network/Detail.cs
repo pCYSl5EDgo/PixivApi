@@ -15,6 +15,12 @@ public partial class NetworkClient
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong update = 0, removed = 0;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        var transactional = database as ITransactionalDatabase;
+        if (transactional is not null)
+        {
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+        }
+
         try
         {
             var artworkFilter = await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false) ?? throw new NullReferenceException();
@@ -90,6 +96,7 @@ public partial class NetworkClient
                 logger.LogInformation($"Total: {artworkCount} Update: {update} Removed: {removed}");
             }
 
+            transactional?.EndTransaction();
             databaseFactory.Return(ref database);
         }
     }

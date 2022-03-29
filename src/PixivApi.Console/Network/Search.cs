@@ -44,6 +44,12 @@ public partial class NetworkClient
         var responseList = default(List<ArtworkResponseContent>);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong add = 0UL, update = 0UL;
+        var transaction = database as ITransactionalDatabase;
+        if (transaction is not null)
+        {
+            await transaction.BeginTransactionAsync(token).ConfigureAwait(false);
+        }
+
         try
         {
             await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, requestSender.GetAsync).WithCancellation(token))
@@ -200,6 +206,7 @@ public partial class NetworkClient
                 logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
             }
 
+            transaction?.EndTransaction();
             databaseFactory.Return(ref database);
         }
     }

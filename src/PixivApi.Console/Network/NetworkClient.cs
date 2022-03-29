@@ -27,6 +27,12 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong addCount = 0UL, updateCount = 0UL, downloadCount = 0UL, transferByteCount = 0UL;
+        var transactional = database as ITransactionalDatabase;
+        if (transactional is not null)
+        {
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+        }
+
         try
         {
             if (download)
@@ -60,6 +66,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 logger.LogInformation($"Total: {artworkCount} Add: {addCount} Update: {updateCount} Download: {downloadCount} Transfer: {ByteAmountUtility.ToDisplayable(transferByteCount)}");
             }
 
+            transactional?.EndTransaction();
             databaseFactory.Return(ref database);
         }
     }

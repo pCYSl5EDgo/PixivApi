@@ -38,6 +38,12 @@ public partial class NetworkClient
         finally
         {
             var database = await databaseTask.ConfigureAwait(false);
+            var transactional = database as ITransactionalDatabase;
+            if (transactional is not null)
+            {
+                await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+            }
+
             if (rankingList.Count != 0)
             {
                 var rankingArray = new ulong[rankingList.Count];
@@ -74,6 +80,7 @@ public partial class NetworkClient
                 }
             }
 
+            transactional?.EndTransaction();
             databaseFactory.Return(ref database);
         }
     }

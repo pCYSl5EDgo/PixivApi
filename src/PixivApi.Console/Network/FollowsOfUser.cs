@@ -28,6 +28,12 @@ public partial class NetworkClient
         var url = $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}";
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL, downloadCount = 0UL, transferByteCount = 0UL;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        var transactional = database as ITransactionalDatabase;
+        if (transactional is not null)
+        {
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+        }
+
         try
         {
             if (download)
@@ -98,6 +104,7 @@ public partial class NetworkClient
                 logger.LogInformation($"User Total: {userCount} Add: {add} Update: {update}    Artwork Total: {artworkCount} Add: {addArtwork} Update: {updateArtwork} Download: {downloadCount} Transfer: {ByteAmountUtility.ToDisplayable(transferByteCount)}");
             }
 
+            transactional?.EndTransaction();
             databaseFactory.Return(ref database);
         }
     }
