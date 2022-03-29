@@ -12,7 +12,6 @@ public sealed class Program
         var app = await BuildAsync(args).ConfigureAwait(false);
         app.AddSubCommands<NetworkClient>();
         app.AddSubCommands<LocalClient>();
-        app.AddSubCommands<PluginClient>();
         await app.RunAsync().ConfigureAwait(false);
     }
 
