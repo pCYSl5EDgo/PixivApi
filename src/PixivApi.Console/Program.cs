@@ -45,8 +45,7 @@ public sealed class Program
                         MaxConnectionsPerServer = 2,
                     })
                     .AddSingleton<RequestSender>()
-                    .AddSingleton<IDatabaseFactory, DatabaseFileFactory>()
-                    .AddSingleton<Core.SqliteDatabase.DatabaseFactory>()
+                    .AddSingleton<IDatabaseFactory, Core.SqliteDatabase.DatabaseFactory>()
                     .AddSingleton<IArtworkFilterFactory<FileInfo>, FileArtworkFilterFactory>();
 
                 _ = services.AddHttpClient(Options.DefaultName, static (provider, client) =>
