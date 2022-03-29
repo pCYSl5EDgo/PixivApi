@@ -15,6 +15,12 @@ public partial class LocalClient
         {
             var sqlFactory = Context.ServiceProvider.GetRequiredService<Core.SqliteDatabase.DatabaseFactory>();
             var output = await sqlFactory.RentAsync(token).ConfigureAwait(false);
+            var transaction = output as ITransactionalDatabase;
+            if (transaction is not null)
+            {
+                await transaction.BeginTransactionAsync(token).ConfigureAwait(false);
+            }
+
             try
             {
                 for (var stageIndex = stage; stageIndex < 4 && !token.IsCancellationRequested; stageIndex++)
@@ -83,30 +89,18 @@ public partial class LocalClient
                                 await CopyAsync(item, copied, input, output);
                                 return copied;
                             }).ToEnumerable();
-                            var transaction = output as ITransactionalDatabase;
-                            if (transaction is not null)
-                            {
-                                await transaction.BeginTransactionAsync(token).ConfigureAwait(false);
-                            }
 
-                            try
+                            await foreach (var _ in output.AddOrUpdateAsync(collection, token))
                             {
-                                await foreach (var _ in output.AddOrUpdateAsync(collection, token))
+                                if (token.IsCancellationRequested)
                                 {
-                                    if (token.IsCancellationRequested)
-                                    {
-                                        break;
-                                    }
-
-                                    if ((++artworkCount & mask2) == 0)
-                                    {
-                                        System.Console.Write($"{VirtualCodes.DeleteLine1}Count: {artworkCount}");
-                                    }
+                                    break;
                                 }
-                            }
-                            finally
-                            {
-                                transaction?.EndTransaction();
+
+                                if ((++artworkCount & mask2) == 0)
+                                {
+                                    System.Console.Write($"{VirtualCodes.DeleteLine1}Count: {artworkCount}");
+                                }
                             }
 
                             break;
@@ -117,6 +111,7 @@ public partial class LocalClient
             }
             finally
             {
+                transaction?.EndTransaction();
                 sqlFactory.Return(ref output);
             }
         }
