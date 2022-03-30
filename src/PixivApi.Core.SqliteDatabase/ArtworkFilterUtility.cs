@@ -1,40 +1,112 @@
 ﻿namespace PixivApi.Core.SqliteDatabase;
 
-internal static class ArtworkFilterUtility
+internal static partial class ArtworkFilterUtility
 {
+    [StringLiteral.Utf8("\"Origin\"")]
+    private static partial ReadOnlySpan<byte> Literal_Origin();
+
+    [StringLiteral.Utf8("\"ArtworkTagCrossTable\"")]
+    private static partial ReadOnlySpan<byte> Literal_ArtworkTagCrossTable();
+
+    [StringLiteral.Utf8("\"TextTable\"")]
+    private static partial ReadOnlySpan<byte> Literal_TextTable();
+
+    [StringLiteral.Utf8("\"UT\"")]
+    private static partial ReadOnlySpan<byte> Literal_UT();
+
+    [StringLiteral.Utf8(".\"UserId\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotUserId();
+
+    [StringLiteral.Utf8(".\"Title\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotTitle();
+
+    [StringLiteral.Utf8(".\"Caption\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotCaption();
+
+    [StringLiteral.Utf8(".\"Memo\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotMemo();
+
+    [StringLiteral.Utf8(".\"CreateDate\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotCreateDate();
+
+    [StringLiteral.Utf8(".\"Type\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotType();
+
+    [StringLiteral.Utf8(".\"TotalView\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotTotalView();
+
+    [StringLiteral.Utf8(".\"TotalBookmarks\"")]
+    private static partial ReadOnlySpan<byte> Literal_DotTotalBookmarks();
+
+    [StringLiteral.Utf8(" NOT (")]
+    private static partial ReadOnlySpan<byte> Literal_NotLeftParen();
+
+    [StringLiteral.Utf8("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = ")]
+    private static partial ReadOnlySpan<byte> Literal_ExistsTextTableRowId();
+
     public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter)
     {
         var and = false;
-        Filter(filter, ref builder, ref and, "Origin");
+        Filter(filter, ref builder, ref and, Literal_Origin());
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
         return answer;
     }
 
-    public static void Filter(ArtworkFilter filter, ref Utf8ValueStringBuilder builder, ref bool and, string origin)
+    [StringLiteral.Utf8(" IN (")]
+    private static partial ReadOnlySpan<byte> Literal_InLeftParen();
+
+    [StringLiteral.Utf8("\"TotalView\"")]
+    private static partial ReadOnlySpan<byte> Literal_TotalView();
+
+    [StringLiteral.Utf8("\"TotalBookmarks\"")]
+    private static partial ReadOnlySpan<byte> Literal_TotalBookmarks();
+
+    [StringLiteral.Utf8("\"PageCount\"")]
+    private static partial ReadOnlySpan<byte> Literal_PageCount();
+
+    [StringLiteral.Utf8("\"Width\"")]
+    private static partial ReadOnlySpan<byte> Literal_Width();
+
+    [StringLiteral.Utf8("\"Height\"")]
+    private static partial ReadOnlySpan<byte> Literal_Height();
+
+    [StringLiteral.Utf8("\"IsXRestricted\"")]
+    private static partial ReadOnlySpan<byte> Literal_R18();
+
+    [StringLiteral.Utf8("\"IsOfficiallyRemoved\"")]
+    private static partial ReadOnlySpan<byte> Literal_IsOfficiallyRemoved();
+
+    [StringLiteral.Utf8("\"IsVisible\"")]
+    private static partial ReadOnlySpan<byte> Literal_IsVisible();
+
+    [StringLiteral.Utf8("\"IsMuted\"")]
+    private static partial ReadOnlySpan<byte> Literal_IsMuted();
+
+    public static void Filter(ArtworkFilter filter, ref Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin)
     {
         builder.Filter(ref and, origin, filter.IdFilter);
-        builder.Filter(ref and, origin, filter.TagFilter, "ArtworkTagCrossTable");
+        builder.Filter(ref and, origin, filter.TagFilter, Literal_ArtworkTagCrossTable());
         builder.Filter(ref and, origin, filter.HideFilter);
-        builder.Filter(ref and, origin, filter.IsOfficiallyRemoved, nameof(filter.IsOfficiallyRemoved));
-        builder.Filter(ref and, origin, filter.IsVisible, nameof(filter.IsVisible));
-        builder.Filter(ref and, origin, filter.IsMuted, nameof(filter.IsMuted));
-        builder.Filter(ref and, origin, filter.TotalView, nameof(filter.TotalView));
-        builder.Filter(ref and, origin, filter.TotalBookmarks, nameof(filter.TotalBookmarks));
-        builder.Filter(ref and, origin, filter.PageCount, nameof(filter.PageCount));
-        builder.Filter(ref and, origin, filter.Width, nameof(filter.Width));
-        builder.Filter(ref and, origin, filter.Height, nameof(filter.Height));
+        builder.Filter(ref and, origin, filter.IsOfficiallyRemoved, Literal_IsOfficiallyRemoved());
+        builder.Filter(ref and, origin, filter.IsVisible, Literal_IsVisible());
+        builder.Filter(ref and, origin, filter.IsMuted, Literal_IsMuted());
+        builder.Filter(ref and, origin, filter.TotalView, Literal_TotalView());
+        builder.Filter(ref and, origin, filter.TotalBookmarks, Literal_TotalBookmarks());
+        builder.Filter(ref and, origin, filter.PageCount, Literal_PageCount());
+        builder.Filter(ref and, origin, filter.Width, Literal_Width());
+        builder.Filter(ref and, origin, filter.Height, Literal_Height());
         builder.Filter(ref and, origin, filter.Type);
-        builder.Filter(ref and, origin, filter.R18, "IsXRestricted");
+        builder.Filter(ref and, origin, filter.R18, Literal_R18());
         builder.Filter(ref and, origin, filter.DateTimeFilter);
         builder.Filter(ref and, origin, filter.TitleFilter);
         if (filter.UserFilter is not null)
         {
             builder.And(ref and);
-            builder.Append("\"");
-            builder.Append(origin);
-            builder.Append("\".\"UserId\" IN (");
+            builder.AppendLiteral(origin);
+            builder.AppendLiteral(Literal_DotUserId());
+            builder.AppendLiteral(Literal_InLeftParen());
             var userAnd = false;
-            filter.UserFilter.Filter(ref builder, ref userAnd, "UT");
+            filter.UserFilter.Filter(ref builder, ref userAnd, Literal_UT());
             builder.AppendAscii(')');
         }
 
@@ -129,7 +201,10 @@ internal static class ArtworkFilterUtility
     }
 
     #region TextFilter
-    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, TextFilter? filter)
+    [StringLiteral.Utf8("))")]
+    private static partial ReadOnlySpan<byte> Literal_RRParen();
+
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TextFilter? filter)
     {
         if (filter is null)
         {
@@ -139,17 +214,20 @@ internal static class ArtworkFilterUtility
         if (filter.Partials is { Length: > 0 })
         {
             builder.And(ref and);
-            builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \"");
-            builder.Append(origin);
-            builder.Append("\".\"Id\" AND (");
+            builder.AppendLiteral(Literal_ExistsTextTableRowId());
+            builder.AppendLiteral(origin);
+            builder.AppendLiteral(FilterUtility.Literal_DotId());
+            builder.AppendLiteral(FilterUtility.Literal_And());
+            builder.AppendAscii('(');
             builder.TextPartial(filter.Partials, filter.PartialOr);
-            builder.Append("))");
+            builder.AppendLiteral(Literal_RRParen());
 
             if (filter.IgnorePartials is { Length: > 0 })
             {
-                builder.Append(" AND NOT (");
+                builder.AppendLiteral(FilterUtility.Literal_And());
+                builder.AppendLiteral(Literal_NotLeftParen());
                 builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
-                builder.Append("))");
+                builder.AppendLiteral(Literal_RRParen());
             }
         }
         else
@@ -157,11 +235,13 @@ internal static class ArtworkFilterUtility
             if (filter.IgnorePartials is { Length: > 0 })
             {
                 builder.And(ref and);
-                builder.Append("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = \"");
-                builder.Append(origin);
-                builder.Append("\".\"Id\" AND NOT (");
+                builder.AppendLiteral(Literal_ExistsTextTableRowId());
+                builder.AppendLiteral(origin);
+                builder.AppendLiteral(FilterUtility.Literal_DotId());
+                builder.AppendLiteral(FilterUtility.Literal_And());
+                builder.AppendLiteral(Literal_NotLeftParen());
                 builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
-                builder.Append("))");
+                builder.AppendLiteral(Literal_RRParen());
             }
         }
 
@@ -176,25 +256,27 @@ internal static class ArtworkFilterUtility
         if (filter.IgnoreExact is { Length: > 0 })
         {
             builder.And(ref and);
-            builder.Append("NOT (");
+            builder.AppendLiteral(Literal_NotLeftParen());
             builder.TextExact(origin, filter.IgnoreExact);
             builder.AppendAscii(')');
         }
     }
 
-    private static void TextExact(ref this Utf8ValueStringBuilder builder, string origin, string text)
+    private static void TextExact(ref this Utf8ValueStringBuilder builder, ReadOnlySpan<byte> origin, string text)
     {
-        builder.Append("\"");
-        builder.Append(origin);
-        builder.Append("\".\"Title\" = ");
+        builder.AppendLiteral(origin);
+        builder.AppendLiteral(Literal_DotTitle());
+        builder.AppendLiteral(FilterUtility.Literal_Equal());
         builder.AddSingleQuoteText(text);
-        builder.Append("OR \"");
-        builder.Append(origin);
-        builder.Append("\".\"Caption\" = ");
+        builder.AppendLiteral(FilterUtility.Literal_Or());
+        builder.AppendLiteral(origin);
+        builder.AppendLiteral(Literal_DotCaption());
+        builder.AppendLiteral(FilterUtility.Literal_Equal());
         builder.AddSingleQuoteText(text);
-        builder.Append("OR \"");
-        builder.Append(origin);
-        builder.Append("\".\"Memo\" = ");
+        builder.AppendLiteral(FilterUtility.Literal_Or());
+        builder.AppendLiteral(origin);
+        builder.AppendLiteral(Literal_DotMemo());
+        builder.AppendLiteral(FilterUtility.Literal_Equal());
         builder.AddSingleQuoteText(text);
     }
 
@@ -207,15 +289,7 @@ internal static class ArtworkFilterUtility
 
             if (oneOrTwo is not null)
             {
-                if (or)
-                {
-                    builder.Append(" OR ");
-                }
-                else
-                {
-                    builder.Append(" AND ");
-                }
-
+                builder.AppendLiteral(or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
                 builder.TextLike(or, oneOrTwo.AsSpan(0, oneOrTwoCount));
                 ArrayPool<string>.Shared.Return(oneOrTwo);
                 ArrayPool<string>.Shared.Return(threeOrMore);
@@ -233,43 +307,52 @@ internal static class ArtworkFilterUtility
         builder.TextLike(or, span[0]);
         foreach (var item in span[1..])
         {
-            builder.Append(" OR ");
+            builder.AppendLiteral(FilterUtility.Literal_Or());
             builder.TextLike(or, item);
         }
 
         builder.AppendAscii(')');
     }
 
+    [StringLiteral.Utf8(" LIKE '%")]
+    private static partial ReadOnlySpan<byte> Literal_LikeQuotePercent();
+
+    [StringLiteral.Utf8("%'")]
+    private static partial ReadOnlySpan<byte> Literal_PercentQuote();
+
     private static void TextLike(ref this Utf8ValueStringBuilder builder, bool or, string first)
     {
-        builder.Append("(\"TextTable\".\"Title\" LIKE '%");
+        builder.AppendAscii('(');
+        builder.AppendLiteral(Literal_TextTable());
+        builder.AppendLiteral(Literal_DotTitle());
+        builder.AppendLiteral(Literal_LikeQuotePercent());
         builder.AddSingleQuoteTextWithoutQuote(first);
-        if (or)
-        {
-            builder.Append("%' OR \"TextTable\".\"Caption\" LIKE '%");
-        }
-        else
-        {
-            builder.Append("%' AND \"TextTable\".\"Caption\" LIKE '%");
-        }
+
+        builder.AppendLiteral(Literal_PercentQuote());
+        builder.AppendLiteral(or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
+        builder.AppendLiteral(Literal_TextTable());
+        builder.AppendLiteral(Literal_DotCaption());
+        builder.AppendLiteral(Literal_LikeQuotePercent());
 
         builder.AddSingleQuoteTextWithoutQuote(first);
-        if (or)
-        {
-            builder.Append("%' OR \"TextTable\".\"Memo\" LIKE '%");
-        }
-        else
-        {
-            builder.Append("%' AND \"TextTable\".\"Memo\" LIKE '%");
-        }
+        builder.AppendLiteral(Literal_PercentQuote());
+        builder.AppendLiteral(or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
+        builder.AppendLiteral(Literal_TextTable());
+        builder.AppendLiteral(Literal_DotMemo());
+        builder.AppendLiteral(Literal_LikeQuotePercent());
 
         builder.AddSingleQuoteTextWithoutQuote(first);
-        builder.Append("%')");
+        builder.AppendLiteral(Literal_PercentQuote());
     }
+
+    [StringLiteral.Utf8(" MATCH ")]
+    private static partial ReadOnlySpan<byte> Literal_Match();
 
     private static void TextMatch(ref this Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
     {
-        builder.Append("(\"TextTable\" MATCH ");
+        builder.AppendAscii('(');
+        builder.AppendLiteral(Literal_TextTable());
+        builder.AppendLiteral(Literal_Match());
         if (span.Length == 1)
         {
             builder.AddSingleQuoteText(span[0]);
@@ -278,17 +361,10 @@ internal static class ArtworkFilterUtility
         {
             builder.AppendAscii('\'');
             builder.AddDoubleQuoteText(span[0]);
+            var orOrAnd = or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And();
             foreach (var item in span[1..])
             {
-                if (or)
-                {
-                    builder.Append(" OR ");
-                }
-                else
-                {
-                    builder.Append(" AND ");
-                }
-
+                builder.AppendLiteral(orOrAnd);
                 builder.AddDoubleQuoteText(item);
             }
 
@@ -299,7 +375,19 @@ internal static class ArtworkFilterUtility
     }
     #endregion
 
-    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, DateTimeFilter? filter)
+    [StringLiteral.Utf8(" BETWEEN ")]
+    private static partial ReadOnlySpan<byte> Literal_Between();
+
+    [StringLiteral.Utf8("unixepoch(")]
+    private static partial ReadOnlySpan<byte> Literal_UnixEpoch();
+
+    [StringLiteral.Utf8(" >= ")]
+    private static partial ReadOnlySpan<byte> Literal_GreaterOrEqual();
+
+    [StringLiteral.Utf8(" <= ")]
+    private static partial ReadOnlySpan<byte> Literal_LessOrEqual();
+
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, DateTimeFilter? filter)
     {
         if (filter is null)
         {
@@ -313,18 +401,22 @@ internal static class ArtworkFilterUtility
             if (filter.Until.HasValue)
             {
                 var unixEpochUntilSeconds = (ulong)filter.Until.Value.Subtract(DateTime.UnixEpoch).TotalSeconds;
-                builder.Append("unixepoch(\"");
-                builder.Append(origin);
-                builder.Append("\".\"CreateData\") BETWEEN ");
+                builder.AppendLiteral(Literal_UnixEpoch());
+                builder.AppendLiteral(origin);
+                builder.AppendLiteral(Literal_DotCreateDate());
+                builder.AppendAscii(')');
+                builder.AppendLiteral(Literal_Between());
                 builder.Append(unixEpochSinceSeconds);
-                builder.Append(" AND ");
+                builder.AppendLiteral(FilterUtility.Literal_And());
                 builder.Append(unixEpochUntilSeconds);
             }
             else
             {
-                builder.Append("unixepoch(\"");
-                builder.Append(origin);
-                builder.Append("\".\"CreateData\") >= ");
+                builder.AppendLiteral(Literal_UnixEpoch());
+                builder.AppendLiteral(origin);
+                builder.AppendLiteral(Literal_DotCreateDate());
+                builder.AppendAscii(')');
+                builder.AppendLiteral(Literal_GreaterOrEqual());
                 builder.Append(unixEpochSinceSeconds);
             }
         }
@@ -334,9 +426,11 @@ internal static class ArtworkFilterUtility
             {
                 var unixEpochUntilSeconds = (ulong)filter.Until.Value.Subtract(DateTime.UnixEpoch).TotalSeconds;
                 builder.And(ref and);
-                builder.Append("unixepoch(\"");
-                builder.Append(origin);
-                builder.Append("\".\"CreateData\") <= ");
+                builder.AppendLiteral(Literal_UnixEpoch());
+                builder.AppendLiteral(origin);
+                builder.AppendLiteral(Literal_DotCreateDate());
+                builder.AppendAscii(')');
+                builder.AppendLiteral(Literal_LessOrEqual());
                 builder.Append(unixEpochUntilSeconds);
             }
             else
@@ -346,7 +440,7 @@ internal static class ArtworkFilterUtility
         }
     }
 
-    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, ArtworkType? value)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, ArtworkType? value)
     {
         if (value is null)
         {
@@ -354,13 +448,13 @@ internal static class ArtworkFilterUtility
         }
 
         builder.And(ref and);
-        builder.Append("\"");
-        builder.Append(origin);
-        builder.Append("\".\"Type\" = ");
+        builder.AppendLiteral(origin);
+        builder.AppendLiteral(Literal_DotType());
+        builder.AppendLiteral(FilterUtility.Literal_Equal());
         builder.Append((byte)value.Value);
     }
 
-    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, MinMaxFilter? filter, string name)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, MinMaxFilter? filter, ReadOnlySpan<byte> name)
     {
         if (filter is null)
         {
@@ -376,77 +470,93 @@ internal static class ArtworkFilterUtility
                 if (filter.Min.HasValue && filter.Min > 0)
                 {
                     builder.AddName(origin, name);
-                    builder.Append(" BETWEEN ");
+                    builder.AppendLiteral(Literal_Between());
                     builder.Append(filter.Min.Value);
-                    builder.Append(" AND ");
+                    builder.AppendLiteral(FilterUtility.Literal_And());
                     builder.Append(maxValue);
                 }
                 else
                 {
                     builder.AddName(origin, name);
-                    builder.Append(" <= ");
+                    builder.AppendLiteral(Literal_LessOrEqual());
                     builder.Append(maxValue);
                 }
             }
             else
             {
-                builder.Append("FALSE");
+                builder.AppendAscii('0');
             }
         }
         else if (filter.Min.HasValue && filter.Min > 0)
         {
             builder.And(ref and);
             builder.AddName(origin, name);
-            builder.Append(" >= ");
+            builder.AppendLiteral(Literal_GreaterOrEqual());
             builder.Append(filter.Min.Value);
         }
     }
 
-    private static void OrderBy(ref this Utf8ValueStringBuilder builder, string origin, ArtworkOrderKind order)
+    [StringLiteral.Utf8(" ORDER BY ")]
+    private static partial ReadOnlySpan<byte> Literal_OrderBy();
+
+    [StringLiteral.Utf8(" ASC")]
+    private static partial ReadOnlySpan<byte> Literal_Asc();
+
+    [StringLiteral.Utf8(" DESC")]
+    private static partial ReadOnlySpan<byte> Literal_Desc();
+
+    private static void OrderBy(ref this Utf8ValueStringBuilder builder, ReadOnlySpan<byte> origin, ArtworkOrderKind order)
     {
         if (order == ArtworkOrderKind.None)
         {
             return;
         }
 
-        builder.Append(" ORDER BY \""); builder.Append(origin); builder.Append("\".\"");
+        builder.AppendLiteral(Literal_OrderBy());
+        builder.AppendLiteral(origin);
         var orderKind = order switch
         {
-            ArtworkOrderKind.Id or ArtworkOrderKind.ReverseId => "Id\"",
-            ArtworkOrderKind.View or ArtworkOrderKind.ReverseView => "TotalView\"",
-            ArtworkOrderKind.Bookmarks or ArtworkOrderKind.ReverseBookmarks => "TotalBookmarks\"",
-            ArtworkOrderKind.UserId or ArtworkOrderKind.ReverseUserId => "UserId\"",
+            ArtworkOrderKind.Id or ArtworkOrderKind.ReverseId => FilterUtility.Literal_DotId(),
+            ArtworkOrderKind.View or ArtworkOrderKind.ReverseView => Literal_DotTotalView(),
+            ArtworkOrderKind.Bookmarks or ArtworkOrderKind.ReverseBookmarks => Literal_DotTotalBookmarks(),
+            ArtworkOrderKind.UserId or ArtworkOrderKind.ReverseUserId => Literal_DotUserId(),
             _ => throw new InvalidDataException(),
         };
-        builder.Append(orderKind);
+        builder.AppendLiteral(orderKind);
         var orderKindAscDesc = order switch
         {
-            ArtworkOrderKind.Id or ArtworkOrderKind.View or ArtworkOrderKind.Bookmarks or ArtworkOrderKind.UserId => " ASC",
-            ArtworkOrderKind.ReverseId or ArtworkOrderKind.ReverseView or ArtworkOrderKind.ReverseBookmarks or ArtworkOrderKind.ReverseUserId => " DESC",
+            ArtworkOrderKind.Id or ArtworkOrderKind.View or ArtworkOrderKind.Bookmarks or ArtworkOrderKind.UserId => Literal_Asc(),
+            ArtworkOrderKind.ReverseId or ArtworkOrderKind.ReverseView or ArtworkOrderKind.ReverseBookmarks or ArtworkOrderKind.ReverseUserId => Literal_Desc(),
             _ => throw new InvalidDataException(),
         };
-        builder.Append(orderKindAscDesc);
+        builder.AppendLiteral(orderKindAscDesc);
     }
+
+    [StringLiteral.Utf8(" LIMIT ")]
+    private static partial ReadOnlySpan<byte> Literal_Limit();
+
+    [StringLiteral.Utf8(" OFFSET ")]
+    private static partial ReadOnlySpan<byte> Literal_Offset();
 
     private static void Limit(ref this Utf8ValueStringBuilder builder, int? count, int offset)
     {
         if (count.HasValue)
         {
+            builder.AppendLiteral(Literal_Limit());
             var c = count.Value;
             if (c == 0)
             {
-                builder.Append(" LIMIT 0");
+                builder.AppendAscii('0');
             }
             else if (c > 0)
             {
-                builder.Append(" LIMIT ");
                 builder.Append(c);
             }
         }
 
         if (offset > 0)
         {
-            builder.Append(" OFFSET ");
+            builder.AppendLiteral(Literal_Offset());
             builder.Append(offset);
         }
     }
