@@ -14,7 +14,7 @@ internal sealed partial class Database
 
     [StringLiteral.Utf8("\"Id\"")] private static partial ReadOnlySpan<byte> Literal_Id();
 
-    [StringLiteral.Utf8("\"Date\", \"RankingKind\", \"Index\"")] private static partial ReadOnlySpan<byte> Literal_Date_RankingKind_Index();
+    [StringLiteral.Utf8("\"Date\"")] private static partial ReadOnlySpan<byte> Literal_Date();
 
     private ulong Count([NotNull] ref sqlite3_stmt? statement, ReadOnlySpan<byte> column, ReadOnlySpan<byte> table)
     {
@@ -32,7 +32,7 @@ internal sealed partial class Database
 
     public ValueTask<ulong> CountArtworkAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countArtworkStatement, Literal_Id(), Literal_ArtworkTable()));
 
-    public ValueTask<ulong> CountRankingAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countRankingStatement, Literal_Date_RankingKind_Index(), Literal_RankingTable()));
+    public ValueTask<ulong> CountRankingAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countRankingStatement, Literal_Date(), Literal_RankingTable()));
 
     public ValueTask<ulong> CountTagAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countTagStatement, Literal_Id(), Literal_TagTable()));
 
