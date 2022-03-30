@@ -52,8 +52,8 @@ internal static partial class ArtworkFilterUtility
         return answer;
     }
 
-    [StringLiteral.Utf8(" IN (")]
-    private static partial ReadOnlySpan<byte> Literal_InLeftParen();
+    [StringLiteral.Utf8(" IN (SELECT \"UT\".\"Id\" FROM \"UserTable\" AS \"UT\" WHERE ")]
+    private static partial ReadOnlySpan<byte> Literal_InUserTable();
 
     [StringLiteral.Utf8("\"TotalView\"")]
     private static partial ReadOnlySpan<byte> Literal_TotalView();
@@ -104,14 +104,13 @@ internal static partial class ArtworkFilterUtility
             builder.And(ref and);
             builder.AppendLiteral(origin);
             builder.AppendLiteral(Literal_DotUserId());
-            builder.AppendLiteral(Literal_InLeftParen());
+            builder.AppendLiteral(Literal_InUserTable());
             var userAnd = false;
             filter.UserFilter.Filter(ref builder, ref userAnd, Literal_UT());
             builder.AppendAscii(')');
         }
 
         builder.OrderBy(origin, filter.Order);
-
         if (!filter.ShouldHandleFileExistanceFilter)
         {
             builder.Limit(filter.Count, filter.Offset);
