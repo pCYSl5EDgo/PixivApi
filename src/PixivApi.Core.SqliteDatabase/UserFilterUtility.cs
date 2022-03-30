@@ -16,10 +16,10 @@ internal static class UserFilterUtility
         builder.Filter(ref and, origin, filter.TagFilter, "UserTagCrossTable");
         builder.Filter(ref and, origin, filter.HideFilter);
         builder.Filter(ref and, origin, filter.IsFollowed, nameof(filter.IsFollowed));
-        Filter(ref builder, ref and, origin, filter.NameFilter);
+        builder.Filter(ref and, origin, filter.NameFilter);
     }
 
-    private static void Filter(ref Utf8ValueStringBuilder builder, ref bool and, string origin, TextFilter? filter)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, string origin, TextFilter? filter)
     {
         if (filter is null)
         {
