@@ -159,14 +159,14 @@ internal static class FilterUtility
         if (filter is null)
         {
             builder.And(ref and);
-            builder.Append("\""); builder.Append(origin); builder.Append("\".\"HideFilter\" = 0");
+            builder.Append("\""); builder.Append(origin); builder.Append("\".\"HideReason\" = 0");
         }
         else
         {
             if (filter.AllowedReason is { Count: > 0 } allow)
             {
                 builder.And(ref and);
-                builder.Append("\""); builder.Append(origin); builder.Append("\".\"HideFilter\" IN (");
+                builder.Append("\""); builder.Append(origin); builder.Append("\".\"HideReason\" IN (");
                 using var enumerator = allow.GetEnumerator();
                 if (enumerator.MoveNext())
                 {
@@ -183,7 +183,7 @@ internal static class FilterUtility
             else if (filter.DisallowedReason is { Count: > 0 } disallow)
             {
                 builder.And(ref and);
-                builder.Append("\""); builder.Append(origin); builder.Append("\".\"HideFilter\" NOT IN (");
+                builder.Append("\""); builder.Append(origin); builder.Append("\".\"HideReason\" NOT IN (");
                 using var enumerator = disallow.GetEnumerator();
                 if (enumerator.MoveNext())
                 {
