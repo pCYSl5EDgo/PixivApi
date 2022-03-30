@@ -529,7 +529,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     }
 
     #region Version
-    [StringLiteral.Utf8("SELECT (\"Major\", \"Minor\") FROM \"InfoTable\" ORDER BY \"Major\" DESC, \"Minor\" DESC LIMIT 1")]
+    [StringLiteral.Utf8("SELECT \"Major\", \"Minor\" FROM \"InfoTable\" ORDER BY \"Major\" DESC, \"Minor\" DESC LIMIT 1")]
     private static partial ReadOnlySpan<byte> Literal_Select_Version();
 
     private Version? version;
