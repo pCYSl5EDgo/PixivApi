@@ -30,7 +30,33 @@ public sealed class ArtworkFilter : IFilter<Artwork>
 
     public bool HasSlowFilter => FileExistanceFilter is not null || UserFilter is not null;
 
-    public bool ShouldHandleFileExistanceFilter => FileExistanceFilter is null or not { Original: null, Thumbnail: null, Ugoira: null };
+    public bool ShouldHandleFileExistanceFilter
+    {
+        get
+        {
+            if (FileExistanceFilter is null)
+            {
+                return false;
+            }
+
+            if (FileExistanceFilter.Original is not null)
+            {
+                return true;
+            }
+
+            if (FileExistanceFilter.Thumbnail is not null)
+            {
+                return true;
+            }
+
+            if (FileExistanceFilter.Ugoira is not null)
+            {
+                return true;
+            }
+
+            return false;
+        }
+    }
 
     public bool FastFilter(Artwork artwork)
     {
