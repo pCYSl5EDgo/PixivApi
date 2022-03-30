@@ -16,7 +16,13 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         System.Console.Error.WriteLine($"Start loading database. Time: {DateTime.Now}");
-        var databaseTask = databaseFactory.RentAsync(token);
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        var transactional = database as ITransactionalDatabase;
+        if (transactional is not null)
+        {
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+        }
+
         var add = 0UL;
         var rankingList = new List<ArtworkResponseContent>(300);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
@@ -29,19 +35,6 @@ public partial class NetworkClient
                 {
                     rankingList.Add(item);
                 }
-            }
-        }
-        catch (TaskCanceledException)
-        {
-            Context.Logger.LogError("Accept cancel. Please wait for writing to the database file.");
-        }
-        finally
-        {
-            var database = await databaseTask.ConfigureAwait(false);
-            var transactional = database as ITransactionalDatabase;
-            if (transactional is not null)
-            {
-                await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
             }
 
             if (rankingList.Count != 0)
@@ -72,12 +65,20 @@ public partial class NetworkClient
                 }
 
                 await database.AddOrUpdateRankingAsync(date ?? DateOnly.FromDateTime(DateTime.Now), ranking, rankingArray, token).ConfigureAwait(false);
-
-                if (!System.Console.IsOutputRedirected)
-                {
-                    var databaseCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
-                    Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
-                }
+            }
+        }
+        catch (Exception e) when (e is not TaskCanceledException)
+        {
+            transactional?.RollbackTransaction();
+            transactional = null;
+            throw;
+        }
+        finally
+        {
+            if (!System.Console.IsOutputRedirected)
+            {
+                var databaseCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
             }
 
             transactional?.EndTransaction();

@@ -39,78 +39,16 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var databaseTask = databaseFactory.RentAsync(token);
-        var database = default(IDatabase);
-        var exteneded = default(IExtenededDatabase);
-        var responseList = default(List<ArtworkResponseContent>);
+        var database = await databaseTask.ConfigureAwait(false);
+        var exteneded = database as IExtenededDatabase;
+        var transactional = database as ITransactionalDatabase;
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         ulong add = 0UL, update = 0UL;
-        var transaction = database as ITransactionalDatabase;
-        if (transaction is not null)
-        {
-            await transaction.BeginTransactionAsync(token).ConfigureAwait(false);
-        }
-
         try
         {
             await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, requestSender.GetAsync).WithCancellation(token))
             {
                 token.ThrowIfCancellationRequested();
-                if (database is null)
-                {
-                    if (!databaseTask.IsCompleted)
-                    {
-                        responseList ??= new List<ArtworkResponseContent>(5010);
-                        foreach (var item in artworkCollection)
-                        {
-                            responseList.Add(item);
-                            if (System.Console.IsOutputRedirected)
-                            {
-                                logger.LogInformation($"{item.Id}");
-                            }
-                            else
-                            {
-                                logger.LogInformation($"{responseList.Count,4}: {item.Id}");
-                            }
-                        }
-
-                        token.ThrowIfCancellationRequested();
-                        continue;
-                    }
-
-                    database = await databaseTask.ConfigureAwait(false);
-                    exteneded = database as IExtenededDatabase;
-                    if (responseList is { Count: > 0 })
-                    {
-                        if (exteneded is null)
-                        {
-                            foreach (var item in responseList)
-                            {
-                                if (await database.AddOrUpdateAsync(
-                                    item.Id,
-                                    token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                                    (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
-                                    token
-                                ).ConfigureAwait(false))
-                                {
-                                    ++add;
-                                }
-                                else
-                                {
-                                    ++update;
-                                }
-                            }
-                        }
-                        else
-                        {
-                            var (_add, _update) = await exteneded.ArtworkAddOrUpdateAsync(responseList, token).ConfigureAwait(false);
-                            add += _add;
-                            update += _update;
-                        }
-
-                        responseList = null;
-                    }
-                }
-
                 var oldAdd = add;
                 if (exteneded is null)
                 {
@@ -155,58 +93,28 @@ public partial class NetworkClient
                 {
                     return;
                 }
-                
+
                 if (!addBehaviour && add == oldAdd)
                 {
                     break;
                 }
             }
         }
+        catch (Exception e) when (e is not TaskCanceledException)
+        {
+            transactional?.RollbackTransaction();
+            transactional = null;
+            throw;
+        }
         finally
         {
-            if (database is null)
-            {
-                database = await databaseTask.ConfigureAwait(false);
-                exteneded = database as IExtenededDatabase;
-                if (responseList is { Count: > 0 })
-                {
-                    if (exteneded is null)
-                    {
-                        foreach (var item in responseList)
-                        {
-                            if (await database.AddOrUpdateAsync(
-                                item.Id,
-                                token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
-                                (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
-                                token
-                            ).ConfigureAwait(false))
-                            {
-                                ++add;
-                            }
-                            else
-                            {
-                                ++update;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        var (_add, _update) = await exteneded.ArtworkAddOrUpdateAsync(responseList, token).ConfigureAwait(false);
-                        add += _add;
-                        update += _update;
-                    }
-
-                    responseList = null;
-                }
-            }
-
             if (!System.Console.IsOutputRedirected)
             {
                 var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
                 logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
             }
 
-            transaction?.EndTransaction();
+            transactional?.EndTransaction();
             databaseFactory.Return(ref database);
         }
     }

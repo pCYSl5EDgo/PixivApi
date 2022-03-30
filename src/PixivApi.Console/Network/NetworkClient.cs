@@ -58,6 +58,12 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 }
             }
         }
+        catch (Exception e) when (e is not TaskCanceledException)
+        {
+            transactional?.RollbackTransaction();
+            transactional = null;
+            throw;
+        }
         finally
         {
             if (!System.Console.IsOutputRedirected)

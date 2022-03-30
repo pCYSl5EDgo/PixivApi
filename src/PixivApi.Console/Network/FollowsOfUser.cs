@@ -95,6 +95,12 @@ public partial class NetworkClient
                 }
             }
         }
+        catch (Exception e) when (e is not TaskCanceledException)
+        {
+            transactional?.RollbackTransaction();
+            transactional = null;
+            throw;
+        }
         finally
         {
             if (!System.Console.IsOutputRedirected)
