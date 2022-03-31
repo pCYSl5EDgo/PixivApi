@@ -25,8 +25,8 @@ public sealed class FileExistanceFilter
                 }
                 else
                 {
-                    var ugoiraValue = !Ugoira.HasValue || finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
-                    return !ugoiraValue;
+                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
+                    return ugoiraValue;
                 }
             }
             else
@@ -34,11 +34,11 @@ public sealed class FileExistanceFilter
                 var thumbnailValue = PrivateFilter(artwork, Thumbnail, finder.IllustThumbnailFinder, finder.MangaThumbnailFinder, finder.UgoiraThumbnailFinder);
                 if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
                 {
-                    return !thumbnailValue;
+                    return thumbnailValue;
                 }
                 else
                 {
-                    var ugoiraValue = !Ugoira.HasValue || finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
+                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
                     return Relationship.Calc_Thumbnail_Ugoira(thumbnailValue, ugoiraValue);
                 }
             }
@@ -50,11 +50,11 @@ public sealed class FileExistanceFilter
             {
                 if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
                 {
-                    return !originalValue;
+                    return originalValue;
                 }
                 else
                 {
-                    var ugoiraValue = !Ugoira.HasValue || finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
+                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
                     return Relationship.Calc_Ogirinal_Ugoira(originalValue, ugoiraValue);
                 }
             }
@@ -67,7 +67,7 @@ public sealed class FileExistanceFilter
                 }
                 else
                 {
-                    var ugoiraValue = !Ugoira.HasValue || finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
+                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
                     return Relationship.Calc_Original_Thumbnail_Ugoira(originalValue, thumbnailValue, ugoiraValue);
                 }
             }
