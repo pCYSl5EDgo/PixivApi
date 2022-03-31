@@ -40,7 +40,6 @@ public partial class NetworkClient
         var token = Context.CancellationToken;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
-        var exteneded = database as IExtenededDatabase;
         var transactional = database as ITransactionalDatabase;
         if (transactional is not null)
         {
@@ -50,11 +49,17 @@ public partial class NetworkClient
         ulong add = 0UL, update = 0UL;
         try
         {
-            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, requestSender.GetAsync).WithCancellation(token))
+            await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 token.ThrowIfCancellationRequested();
                 var oldAdd = add;
-                if (exteneded is null)
+                if (database is IExtenededDatabase exteneded)
+                {
+                    var (_add, _update) = await exteneded.ArtworkAddOrUpdateAsync(artworkCollection, token).ConfigureAwait(false);
+                    add += _add;
+                    update += _update;
+                }
+                else
                 {
                     foreach (var item in artworkCollection)
                     {
@@ -85,12 +90,6 @@ public partial class NetworkClient
                             ++update;
                         }
                     }
-                }
-                else
-                {
-                    var (_add, _update) = await exteneded.ArtworkAddOrUpdateAsync(artworkCollection, token).ConfigureAwait(false);
-                    add += _add;
-                    update += _update;
                 }
 
                 if (token.IsCancellationRequested)

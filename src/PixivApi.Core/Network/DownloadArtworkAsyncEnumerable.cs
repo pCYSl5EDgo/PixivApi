@@ -1,6 +1,8 @@
-﻿using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.ArtworkResponseContent>;
+﻿#pragma warning disable CA2254
+using Artworks = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.ArtworkResponseContent>;
 using Users = System.Collections.Generic.IEnumerable<PixivApi.Core.Network.UserPreviewResponseContent>;
 using QueryWithRetryAndReconnectAsync = System.Func<string, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Net.Http.HttpResponseMessage>>;
+using Microsoft.Extensions.Logging;
 
 namespace PixivApi.Core.Network;
 
@@ -19,28 +21,34 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
 {
     private readonly string initialUrl;
     private readonly QueryWithRetryAndReconnectAsync query;
+    private readonly ILogger logger;
 
-    public DownloadArtworkAsyncEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query)
+    public DownloadArtworkAsyncEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query, ILogger logger)
     {
         this.initialUrl = initialUrl;
         this.query = query;
+        this.logger = logger;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, logger, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
     public sealed class Enumerator : IAsyncEnumerator<Artworks>
     {
         private string? url;
+        private readonly ILogger logger;
+        private readonly bool logTrace;
         private readonly QueryWithRetryAndReconnectAsync query;
         private readonly CancellationToken cancellationToken;
 
         private ArtworkResponseContent[]? array;
 
-        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, ILogger logger, CancellationToken cancellationToken)
         {
             url = initialUrl;
+            this.logger = logger;
+            logTrace = logger.IsEnabled(LogLevel.Trace);
             this.query = query;
             this.cancellationToken = cancellationToken;
         }
@@ -65,6 +73,11 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
             if (responseByteArray.Length == 0)
             {
                 return false;
+            }
+
+            if (logTrace)
+            {
+                logger.LogTrace(System.Text.Encoding.UTF8.GetString(responseByteArray));
             }
 
             var response = IOUtility.JsonDeserialize<IllustsResponseData>(responseByteArray.AsSpan());
@@ -94,29 +107,35 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
 
     private readonly string initialUrl;
     private readonly QueryWithRetryAndReconnectAsync query;
+    private readonly ILogger logger;
 
-    public SearchArtworkAsyncNewToOldEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query)
+    public SearchArtworkAsyncNewToOldEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query, ILogger logger)
     {
         this.initialUrl = initialUrl;
         this.query = query;
+        this.logger = logger;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, logger, cancellationToken);
 
     IAsyncEnumerator<Artworks> IAsyncEnumerable<Artworks>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
     public sealed class Enumerator : IAsyncEnumerator<Artworks>
     {
         private readonly QueryWithRetryAndReconnectAsync query;
+        private readonly ILogger logger;
+        private readonly bool logTrace;
         private readonly CancellationToken cancellationToken;
 
         private string? url;
         private ArtworkResponseContent[]? array;
 
-        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, ILogger logger, CancellationToken cancellationToken)
         {
             url = initialUrl;
             this.query = query;
+            this.logger = logger;
+            logTrace = logger.IsEnabled(LogLevel.Trace);
             this.cancellationToken = cancellationToken;
         }
 
@@ -140,6 +159,11 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
             if (responseByteArray.Length == 0)
             {
                 return false;
+            }
+
+            if (logTrace)
+            {
+                logger.LogTrace(System.Text.Encoding.UTF8.GetString(responseByteArray));
             }
 
             var response = IOUtility.JsonDeserialize<IllustsResponseData>(responseByteArray.AsSpan());
@@ -253,3 +277,4 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
         }
     }
 }
+#pragma warning restore CA2254

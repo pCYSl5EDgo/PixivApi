@@ -159,20 +159,12 @@ public sealed class FileExistanceFilter
 
         public bool Calc_Original_Thumbnail_Ugoira(bool original, bool thumbnail, bool ugoira)
         {
-            bool first_second, third;
-            switch (Order)
+            var (first_second, third) = Order switch
             {
-                case 0:
-                    (first_second, third) = (IsFirstOperatorAnd ? original & thumbnail : original | thumbnail, ugoira);
-                    break;
-                case 1:
-                    (first_second, third) = (IsFirstOperatorAnd ? original & ugoira : original | ugoira, thumbnail);
-                    break;
-                default:
-                    (first_second, third) = (IsFirstOperatorAnd ? thumbnail & ugoira : thumbnail | ugoira, original);
-                    break;
-            }
-
+                0 => (IsFirstOperatorAnd ? original & thumbnail : original | thumbnail, ugoira),
+                1 => (IsFirstOperatorAnd ? original & ugoira : original | ugoira, thumbnail),
+                _ => (IsFirstOperatorAnd ? thumbnail & ugoira : thumbnail | ugoira, original),
+            };
             return IsSecondOperatorAnd ? first_second & third : first_second | third;
         }
     }

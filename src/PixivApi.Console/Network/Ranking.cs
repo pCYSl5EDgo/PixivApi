@@ -29,7 +29,7 @@ public partial class NetworkClient
         var url = GetRankingUrl(date, ranking);
         try
         {
-            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync).WithCancellation(token))
+            await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, Context.Logger).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
                 {

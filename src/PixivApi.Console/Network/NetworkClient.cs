@@ -86,7 +86,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 #pragma warning restore IDE0019
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
             {
                 if (extended is null)
                 {
@@ -151,7 +151,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 #pragma warning restore IDE0019
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
             {
                 if (extended is null)
                 {
@@ -221,7 +221,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -316,7 +316,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
             {
                 if (token.IsCancellationRequested)
                 {
