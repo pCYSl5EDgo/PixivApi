@@ -10,7 +10,17 @@ public static class ToolDatabaseExtensions
         }
 
         var answer = new uint[array.Length];
-        await Parallel.ForEachAsync(Enumerable.Range(0, array.Length), token, async (index, token) => answer[index] = await database.RegisterToolAsync(array[index], token).ConfigureAwait(false)).ConfigureAwait(false);
+        if (database.CanRegisterParallel)
+        {
+            await Parallel.ForEachAsync(Enumerable.Range(0, array.Length), token, async (index, token) => answer[index] = await database.RegisterToolAsync(array[index], token).ConfigureAwait(false)).ConfigureAwait(false);
+        }
+        else
+        {
+            for (var index = 0; index < answer.Length; index++)
+            {
+                answer[index] = await database.RegisterToolAsync(array[index], token).ConfigureAwait(false);
+            }
+        }
         return answer;
     }
 }

@@ -11,4 +11,6 @@ public interface IToolDatabase
     ValueTask<uint?> FindToolAsync(string key, CancellationToken token);
 
     ValueTask<uint> RegisterToolAsync(string value, CancellationToken token);
+
+    bool CanRegisterParallel => false;
 }
