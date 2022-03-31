@@ -31,7 +31,7 @@ public partial class NetworkClient
                 return;
             }
 
-            var artworks = PrepareDownloadFileAsync(database, artworkFilter, configSettings.OriginalFolder, gigaByteCount);
+            var artworks = PrepareDownloadFileAsync(database, artworkFilter, gigaByteCount);
             if (artworks is null)
             {
                 return;
@@ -255,19 +255,11 @@ public partial class NetworkClient
     private IAsyncEnumerable<Artwork>? PrepareDownloadFileAsync(
         IDatabase database,
         ArtworkFilter? filter,
-        string destinationDirectory,
         ulong gigaByteCount
     )
     {
         if (filter is null || gigaByteCount == 0)
         {
-            return null;
-        }
-
-        var logger = Context.Logger;
-        if (!Directory.Exists(destinationDirectory))
-        {
-            logger.LogError($"{VirtualCodes.BrightRedColor}directory does not exist. Path: {destinationDirectory}{VirtualCodes.NormalizeColor}");
             return null;
         }
 
