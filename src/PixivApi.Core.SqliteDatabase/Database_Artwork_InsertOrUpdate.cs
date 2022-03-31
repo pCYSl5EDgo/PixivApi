@@ -382,7 +382,7 @@ internal sealed partial class Database
                 var id = await RegisterTagAsync(answer.Tags[i].Name, token).ConfigureAwait(false);
                 if (id == 0)
                 {
-                    Console.WriteLine($"{id} : {answer.Tags[i]}");
+                    logger.LogError($"{id} : {answer.Tags[i].Name}");
                 }
 
                 Bind(statetment, i + 2, id);
@@ -400,7 +400,7 @@ internal sealed partial class Database
                 var id = await RegisterToolAsync(answer.Tools[i], token).ConfigureAwait(false);
                 if (id == 0)
                 {
-                    Console.WriteLine($"{id} : {answer.Tools[i]}");
+                    logger.LogError($"{id} : {answer.Tools[i]}");
                 }
 
                 Bind(statetment, i + 2, id);
