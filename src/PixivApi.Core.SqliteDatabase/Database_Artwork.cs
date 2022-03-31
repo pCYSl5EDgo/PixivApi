@@ -347,7 +347,7 @@ internal sealed partial class Database
                 };
 
                 await ColumnArtworkAsync(answer, statement, 1, token).ConfigureAwait(false);
-                if (filter.HasSlowFilter && !await filter.SlowFilter(answer, token).ConfigureAwait(false))
+                if (filter.ShouldHandleFileExistanceFilter && !filter.FileExistanceFilter.Filter(answer))
                 {
                     continue;
                 }

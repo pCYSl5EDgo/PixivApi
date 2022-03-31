@@ -30,6 +30,7 @@ public sealed class ArtworkFilter : IFilter<Artwork>
 
     public bool HasSlowFilter => FileExistanceFilter is not null || UserFilter is not null;
 
+    [MemberNotNullWhen(true, nameof(FileExistanceFilter))]
     public bool ShouldHandleFileExistanceFilter
     {
         get
