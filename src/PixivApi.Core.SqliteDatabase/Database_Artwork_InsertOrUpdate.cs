@@ -330,9 +330,6 @@ internal sealed partial class Database
     [StringLiteral.Utf8("), (?1, ?")]
     private static partial ReadOnlySpan<byte> Literal_Update_TagOrTool_Parts_0();
 
-    [StringLiteral.Utf8(") RETURNING \"Id\"")]
-    private static partial ReadOnlySpan<byte> Literal_ReturningId();
-
     [StringLiteral.Utf8(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1")]
     private static partial ReadOnlySpan<byte> Literal_OnConflictIdTagId();
 
@@ -358,7 +355,7 @@ internal sealed partial class Database
                         builder.Append(i + 2);
                     }
 
-                    builder.AppendAscii(')');
+                    builder.AppendLiteral(Literal_OnConflictIdTagId());
                     statement = Prepare(ref builder, true, out _);
                     builder.Dispose();
                 }
