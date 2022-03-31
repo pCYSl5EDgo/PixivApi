@@ -83,9 +83,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private sqlite3_stmt Prepare(ReadOnlySpan<byte> query, bool persistent, out int code)
     {
+        sqlite3_stmt statement;
         lock (database)
         {
-            code = sqlite3_prepare_v3(database, query, persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out var statement);
+            code = sqlite3_prepare_v3(database, query, persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out statement);
         }
 
         if (logTrace)
@@ -104,9 +105,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private sqlite3_stmt Prepare(ref Utf8ValueStringBuilder query, bool persistent, out int code)
     {
+        sqlite3_stmt statement;
         lock (database)
         {
-            code = sqlite3_prepare_v3(database, query.AsSpan(), persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out var statment);
+            code = sqlite3_prepare_v3(database, query.AsSpan(), persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out statement);
         }
 
         if (logTrace)
@@ -119,7 +121,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
             logger.LogError($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
         }
 
-        return statment;
+        return statement;
     }
     #endregion
 
