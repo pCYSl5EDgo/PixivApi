@@ -79,7 +79,16 @@ internal sealed partial class Database
             return id.Value;
         }
 
-        return await RegisterTagOrToolAsync(registerTagStatement ??= Prepare(Literal_InsertIntoTagTableReturningId(), true, out _), value, token).ConfigureAwait(false);
+        if (registerTagStatement is null)
+        {
+            var statement = Prepare(Literal_InsertIntoTagTableReturningId(), true, out _);
+            if (Interlocked.CompareExchange(ref registerTagStatement, statement, null) != null)
+            {
+                statement.manual_close();
+            }
+        }
+
+        return await RegisterTagOrToolAsync(registerTagStatement, value, token).ConfigureAwait(false);
     }
 
     public async ValueTask<uint> RegisterToolAsync(string value, CancellationToken token)
@@ -90,7 +99,16 @@ internal sealed partial class Database
             return id.Value;
         }
 
-        return await RegisterTagOrToolAsync(registerToolStatement ??= Prepare(Literal_InsertIntoToolTableReturningId(), true, out _), value, token).ConfigureAwait(false);
+        if (registerToolStatement is null)
+        {
+            var statement = Prepare(Literal_InsertIntoToolTableReturningId(), true, out _);
+            if (Interlocked.CompareExchange(ref registerToolStatement, statement, null) != null)
+            {
+                statement.manual_close();
+            }
+        }
+
+        return await RegisterTagOrToolAsync(registerToolStatement, value, token).ConfigureAwait(false);
     }
 
     [StringLiteral.Utf8("SELECT \"Value\", \"Id\" FROM \"TagTable\"")]
