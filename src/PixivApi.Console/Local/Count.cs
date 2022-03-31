@@ -52,13 +52,21 @@ public partial class LocalClient
 
             var count = 0UL;
             var mask = (1UL << maskPowerOf2) - 1UL;
-            await foreach (var artwork in database.FilterAsync(artworkFilter, token))
+
+            if (artworkFilter.ShouldHandleFileExistanceFilter)
             {
-                var c = ++count;
-                if (errorNotRedirected && (c & mask) == 0)
+                await foreach (var artwork in database.FilterAsync(artworkFilter, token))
                 {
-                    System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Collecting Count: {c}");
+                    var c = ++count;
+                    if (errorNotRedirected && (c & mask) == 0)
+                    {
+                        System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Collecting Count: {c}");
+                    }
                 }
+            }
+            else
+            {
+                count = await database.CountArtworkAsync(artworkFilter, token).ConfigureAwait(false);
             }
 
             if (errorNotRedirected)
