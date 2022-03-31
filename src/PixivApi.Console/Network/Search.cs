@@ -38,8 +38,7 @@ public partial class NetworkClient
         }
 
         var token = Context.CancellationToken;
-        var databaseTask = databaseFactory.RentAsync(token);
-        var database = await databaseTask.ConfigureAwait(false);
+        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         var exteneded = database as IExtenededDatabase;
         var transactional = database as ITransactionalDatabase;
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();

@@ -342,7 +342,7 @@ internal sealed partial class Database
     [StringLiteral.Utf8("), (?1, ?")]
     private static partial ReadOnlySpan<byte> Literal_Update_TagOrTool_Parts_0();
 
-    [StringLiteral.Utf8(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1")]
+    [StringLiteral.Utf8(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1 END")]
     private static partial ReadOnlySpan<byte> Literal_OnConflictIdTagId();
 
     public async ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent answer, CancellationToken token)
