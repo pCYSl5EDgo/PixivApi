@@ -8,7 +8,7 @@ internal sealed partial class Database
     private sqlite3_stmt? countToolStatement;
     private sqlite3_stmt? countRankingStatement;
 
-    [StringLiteral.Utf8("SELECT COUNT(")] private static partial ReadOnlySpan<byte> Literal_SelectCountFrom_0();
+    [StringLiteral.Utf8("SELECT count(")] private static partial ReadOnlySpan<byte> Literal_SelectCountFrom_0();
 
     [StringLiteral.Utf8(") FROM ")] private static partial ReadOnlySpan<byte> Literal_SelectCountFrom_1();
 
@@ -41,6 +41,8 @@ internal sealed partial class Database
     public ValueTask<ulong> CountUserAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countUserStatement, Literal_Id(), Literal_UserTable()));
 
     [StringLiteral.Utf8(" AS \"Origin\" WHERE ")] private static partial ReadOnlySpan<byte> Literal_AsOriginWhere();
+    
+    [StringLiteral.Utf8("\"Origin\".")] private static partial ReadOnlySpan<byte> Literal_OriginDot();
 
     /// <summary>
     /// Ignore Count, Offset and FileExistanceFilter when FileExistanceFilter exists.
@@ -52,6 +54,7 @@ internal sealed partial class Database
     {
         var builder = ZString.CreateUtf8StringBuilder();
         builder.AppendLiteral(Literal_SelectCountFrom_0());
+        builder.AppendLiteral(Literal_OriginDot());
         builder.AppendLiteral(Literal_Id());
         builder.AppendLiteral(Literal_SelectCountFrom_1());
         builder.AppendLiteral(Literal_ArtworkTable());
