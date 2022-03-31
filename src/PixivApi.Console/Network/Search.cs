@@ -39,9 +39,14 @@ public partial class NetworkClient
 
         var token = Context.CancellationToken;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         var exteneded = database as IExtenededDatabase;
         var transactional = database as ITransactionalDatabase;
-        var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
+        if (transactional is not null)
+        {
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+        }
+
         ulong add = 0UL, update = 0UL;
         try
         {
