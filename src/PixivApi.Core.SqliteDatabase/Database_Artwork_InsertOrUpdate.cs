@@ -225,31 +225,37 @@ internal sealed partial class Database
     [StringLiteral.Utf8("), (?1, ?")]
     private static partial ReadOnlySpan<byte> Literal_Insert_TagOrTool_Parts_1();
 
-    private ValueTask InsertTagsOfArtworkAsync(ulong id, Dictionary<uint, uint> dictionary, CancellationToken token)
+    private async ValueTask InsertTagsOfArtworkAsync(ulong id, Dictionary<uint, uint> dictionary, CancellationToken token)
     {
         if (dictionary.Count == 0)
         {
-            return ValueTask.CompletedTask;
+            return;
         }
 
-        ref var statement = ref At(ref insertTagsOfArtworkStatementArray, dictionary.Count);
-        if (statement is null)
+        sqlite3_stmt PrepareStatement()
         {
-            var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_Insert_TagsOfArtwork_Parts_0());
-            for (int i = 1, length = dictionary.Count, index = 3; i < length; i++)
+            ref var statement = ref At(ref insertTagsOfArtworkStatementArray, dictionary.Count);
+            if (statement is null)
             {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
-                builder.Append(++index);
-                builder.AppendLiteral(Literal_Comma_Question());
-                builder.Append(++index);
+                var builder = ZString.CreateUtf8StringBuilder();
+                builder.AppendLiteral(Literal_Insert_TagsOfArtwork_Parts_0());
+                for (int i = 1, length = dictionary.Count, index = 3; i < length; i++)
+                {
+                    builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
+                    builder.Append(++index);
+                    builder.AppendLiteral(Literal_Comma_Question());
+                    builder.Append(++index);
+                }
+
+                builder.AppendAscii(')');
+                statement = Prepare(ref builder, true, out _);
+                builder.Dispose();
             }
 
-            builder.AppendAscii(')');
-            statement = Prepare(ref builder, true, out _);
-            builder.Dispose();
+            return statement;
         }
 
+        var statement = PrepareStatement();
         Bind(statement, 1, id);
         var offset = 1;
         foreach (var (tagId, valueKind) in dictionary)
@@ -258,7 +264,7 @@ internal sealed partial class Database
             Bind(statement, ++offset, valueKind);
         }
 
-        return ExecuteAsync(statement, token);
+        await ExecuteAsync(statement, token).ConfigureAwait(false);
     }
 
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTable\"" +

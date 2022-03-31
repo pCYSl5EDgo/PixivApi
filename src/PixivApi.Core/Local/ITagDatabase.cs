@@ -13,4 +13,6 @@ public interface ITagDatabase
     ValueTask<uint> RegisterTagAsync(string value, CancellationToken token);
 
     IAsyncEnumerable<uint> EnumeratePartialMatchTagAsync(string key, CancellationToken token);
+
+    bool CanRegisterParallel => false;
 }

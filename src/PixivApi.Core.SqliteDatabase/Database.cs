@@ -221,6 +221,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} UTF16: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -233,6 +237,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Bool: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -245,6 +253,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} ArtworkType: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -257,6 +269,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} HideReason: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -269,6 +285,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} FileExtensionKind: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -281,6 +301,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} RankingKind: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -293,6 +317,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Int64: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -305,6 +333,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Int32: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -317,6 +349,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} UInt64: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -332,6 +368,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Date: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
@@ -347,6 +387,10 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} DateTime: {value}");
+            if (code == SQLITE_MISUSE)
+            {
+                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+            }
         }
 
         return code;
