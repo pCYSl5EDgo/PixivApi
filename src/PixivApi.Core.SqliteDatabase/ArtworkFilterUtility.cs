@@ -47,7 +47,7 @@ internal static partial class ArtworkFilterUtility
     public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter)
     {
         var and = false;
-        Filter(filter, ref builder, ref and, Literal_Origin());
+        builder.Filter(filter, ref and, Literal_Origin());
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
         return answer;
     }
@@ -75,6 +75,9 @@ internal static partial class ArtworkFilterUtility
 
     [StringLiteral.Utf8("\"IsOfficiallyRemoved\"")]
     private static partial ReadOnlySpan<byte> Literal_IsOfficiallyRemoved();
+    
+    [StringLiteral.Utf8("\"IsBookmarked\"")]
+    private static partial ReadOnlySpan<byte> Literal_IsBookmarked();
 
     [StringLiteral.Utf8("\"IsVisible\"")]
     private static partial ReadOnlySpan<byte> Literal_IsVisible();
@@ -82,12 +85,13 @@ internal static partial class ArtworkFilterUtility
     [StringLiteral.Utf8("\"IsMuted\"")]
     private static partial ReadOnlySpan<byte> Literal_IsMuted();
 
-    public static void Filter(ArtworkFilter filter, ref Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin)
+    private static void Filter(this ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool and, ReadOnlySpan<byte> origin)
     {
         builder.Filter(ref and, origin, filter.IdFilter);
         builder.Filter(ref and, origin, filter.TagFilter, Literal_ArtworkTagCrossTable());
         builder.Filter(ref and, origin, filter.HideFilter);
         builder.Filter(ref and, origin, filter.IsOfficiallyRemoved, Literal_IsOfficiallyRemoved());
+        builder.Filter(ref and, origin, filter.IsBookmark, Literal_IsBookmarked());
         builder.Filter(ref and, origin, filter.IsVisible, Literal_IsVisible());
         builder.Filter(ref and, origin, filter.IsMuted, Literal_IsMuted());
         builder.Filter(ref and, origin, filter.TotalView, Literal_TotalView());
