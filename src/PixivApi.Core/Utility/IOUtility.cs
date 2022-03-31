@@ -95,6 +95,7 @@ public static class IOUtility
         {
             Local.Artwork.Converter.Instance,
             Local.FileExistanceInnerFilterConverter.Instance,
+            Local.FileExistanceRelationConverter.Instance,
             Local.ArtworkOrderKindConverter.Instance,
             Local.HideReasonConverter.Instance,
             Network.ChromeLogJson.Converter.Instance,
@@ -111,6 +112,7 @@ public static class IOUtility
         {
             Local.Artwork.Converter.Instance,
             Local.FileExistanceInnerFilterConverter.Instance,
+            Local.FileExistanceRelationConverter.Instance,
             Local.ArtworkOrderKindConverter.Instance,
             Local.HideReasonConverter.Instance,
             Network.ChromeLogJson.Converter.Instance,

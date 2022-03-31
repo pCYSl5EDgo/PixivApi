@@ -51,6 +51,22 @@
             }
           }
         },
+        "relation": {
+          "enum": [
+            "and",
+            "or",
+            "&",
+            "|",
+            "o&t&u",
+            "o&t|u",
+            "o|t&u",
+            "o|t|u",
+            "o&u|t",
+            "o|u&t",
+            "t&u|o",
+            "t|u&o"
+          ]
+        },
         "thumbnail": {
           "$ref": "#/properties/file-filter/properties/original"
         },
