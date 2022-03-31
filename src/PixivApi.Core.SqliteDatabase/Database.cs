@@ -23,7 +23,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         CloseStatement(ref enumerateArtworkStatement);
         CloseStatement(ref officiallyRemoveArtworkStatement);
         CloseStatement(ref insertUserStatement);
-        CloseStatement(ref insertUser_UserDetailResponse_Statement);
+        CloseStatement(ref insertUser_UserResponse_Statement);
         CloseStatement(ref insertUser_UserPreviewResponse_Statement);
         CloseStatement(ref insertUserDetailStatement);
         CloseStatement(ref insertTagsOfUserStatementArray);

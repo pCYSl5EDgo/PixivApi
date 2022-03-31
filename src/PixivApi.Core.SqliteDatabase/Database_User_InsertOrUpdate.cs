@@ -3,7 +3,7 @@
 internal sealed partial class Database
 {
     private sqlite3_stmt? insertUserStatement;
-    private sqlite3_stmt? insertUser_UserDetailResponse_Statement;
+    private sqlite3_stmt? insertUser_UserResponse_Statement;
     private sqlite3_stmt? insertUser_UserPreviewResponse_Statement;
     private sqlite3_stmt? insertUserDetailStatement;
     private sqlite3_stmt?[]? insertTagsOfUserStatementArray;
@@ -94,17 +94,19 @@ internal sealed partial class Database
     [StringLiteral.Utf8("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, 0, 0, 0, ?5, ?6, NULL, 1) ON CONFLICT (\"Id\") DO UPDATE SET " +
         "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\"," +
         "\"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\", \"HasDetail\" = 1")]
-    private static partial ReadOnlySpan<byte> Literal_InsertUser_UserDetailResponse();
+    private static partial ReadOnlySpan<byte> Literal_InsertUser_UserResponse();
 
-    private ValueTask InsertOrUpdateUserAsync(in UserDetailResponseData user, CancellationToken token)
+    private ValueTask InsertOrUpdateUserAsync(in UserDetailResponseData user, CancellationToken token) => InsertOrUpdateUserAsync(user.User, token);
+
+    private ValueTask InsertOrUpdateUserAsync(in UserResponse user, CancellationToken token)
     {
-        var statement = insertUser_UserDetailResponse_Statement ??= Prepare(Literal_InsertUser_UserDetailResponse(), true, out _);
-        Bind(statement, 1, user.User.Id);
-        Bind(statement, 2, user.User.Name);
-        Bind(statement, 3, user.User.Account);
-        Bind(statement, 4, user.User.IsFollowed);
-        Bind(statement, 5, user.User.ProfileImageUrls.Medium);
-        Bind(statement, 6, user.User.Comment);
+        var statement = insertUser_UserResponse_Statement ??= Prepare(Literal_InsertUser_UserResponse(), true, out _);
+        Bind(statement, 1, user.Id);
+        Bind(statement, 2, user.Name);
+        Bind(statement, 3, user.Account);
+        Bind(statement, 4, user.IsFollowed);
+        Bind(statement, 5, user.ProfileImageUrls.Medium);
+        Bind(statement, 6, user.Comment);
         return ExecuteAsync(statement, token);
     }
 

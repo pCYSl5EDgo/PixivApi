@@ -347,6 +347,7 @@ internal sealed partial class Database
 
     public async ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent answer, CancellationToken token)
     {
+        await InsertOrUpdateUserAsync(answer.User, token).ConfigureAwait(false);
         await InsertOrUpdateArtworkAsync(answer, token).ConfigureAwait(false);
         var rowId = GetLastInsertRowId();
         await DeleteTagsOfArtworkWhereValueKindEquals1StatementAsync(answer.Id, token).ConfigureAwait(false);
@@ -410,7 +411,6 @@ internal sealed partial class Database
         }
 
         return rowId == answer.Id;
-
     }
 
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTable\" VALUES " +
