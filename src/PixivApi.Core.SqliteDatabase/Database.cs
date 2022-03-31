@@ -170,6 +170,11 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
                     break;
                 default:
                     logger.LogError($"Error: {sqlite3_errmsg(database).utf8_to_string()} - {sqlite3_sql(statement).utf8_to_string()}");
+                    if (logTrace)
+                    {
+                        logger.LogTrace(Environment.StackTrace);
+                    }
+
                     break;
             }
         }
