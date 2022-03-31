@@ -71,9 +71,27 @@ internal sealed partial class Database
         }
     }
 
-    public ValueTask<uint> RegisterTagAsync(string value, CancellationToken token) => RegisterTagOrToolAsync(registerTagStatement ??= Prepare(Literal_InsertIntoTagTableReturningId(), true, out _), value, token);
+    public async ValueTask<uint> RegisterTagAsync(string value, CancellationToken token)
+    {
+        var id = await FindTagAsync(value, token).ConfigureAwait(false);
+        if (id.HasValue)
+        {
+            return id.Value;
+        }
 
-    public ValueTask<uint> RegisterToolAsync(string value, CancellationToken token) => RegisterTagOrToolAsync(registerToolStatement ??= Prepare(Literal_InsertIntoToolTableReturningId(), true, out _), value, token);
+        return await RegisterTagOrToolAsync(registerTagStatement ??= Prepare(Literal_InsertIntoTagTableReturningId(), true, out _), value, token).ConfigureAwait(false);
+    }
+
+    public async ValueTask<uint> RegisterToolAsync(string value, CancellationToken token)
+    {
+        var id = await FindToolAsync(value, token).ConfigureAwait(false);
+        if (id.HasValue)
+        {
+            return id.Value;
+        }
+
+        return await RegisterTagOrToolAsync(registerToolStatement ??= Prepare(Literal_InsertIntoToolTableReturningId(), true, out _), value, token).ConfigureAwait(false);
+    }
 
     [StringLiteral.Utf8("SELECT \"Value\", \"Id\" FROM \"TagTable\"")]
     private static partial ReadOnlySpan<byte> Literal_SelectValueId_FromTagTable();
@@ -174,7 +192,7 @@ internal sealed partial class Database
     }
 
     [StringLiteral.Utf8("SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" = ?")] private static partial ReadOnlySpan<byte> Literal_FindTag();
-    
+
     [StringLiteral.Utf8("SELECT \"Id\" FROM \"ToolTable\" WHERE \"Value\" = ?")] private static partial ReadOnlySpan<byte> Literal_FindTool();
 
     private async ValueTask<uint?> FindTagOrToolAsync(sqlite3_stmt statement, string key, CancellationToken token)

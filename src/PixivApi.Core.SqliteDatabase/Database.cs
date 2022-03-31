@@ -46,10 +46,8 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         CloseStatement(ref insertHidesStatementArray);
         CloseStatement(ref insertToolsOfArtworkStatementArray);
         CloseStatement(ref insertTagsOfArtworkStatementArray);
-        CloseStatement(ref insertToolsOfArtworkReturningIdStatementArray);
-        CloseStatement(ref insertTagsOfArtworkReturningIdStatementArray);
-        CloseStatement(ref updateToolsOfArtworkReturningIdStatementArray);
-        CloseStatement(ref updateTagsOfArtworkReturningIdStatementArray);
+        CloseStatement(ref insertArtworkToolCrossTableStatementArray);
+        CloseStatement(ref insertArtworkTagCrossTableStatementArray);
         CloseStatement(ref getTagStatement);
         CloseStatement(ref getToolStatement);
         CloseStatement(ref registerTagStatement);
@@ -196,7 +194,17 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
                     continue;
                 }
 
-                break;
+                if (code == SQLITE_DONE)
+                {
+                    break;
+                }
+
+                if (code == SQLITE_ROW)
+                {
+                    continue;
+                }
+
+                throw new InvalidOperationException($"Error: {code} - {sqlite3_errmsg(database).utf8_to_string()}");
             } while (!token.IsCancellationRequested);
         }
         finally

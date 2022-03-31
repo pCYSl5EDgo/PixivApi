@@ -11,10 +11,8 @@ internal sealed partial class Database
     private sqlite3_stmt?[]? insertHidesStatementArray;
     private sqlite3_stmt?[]? insertToolsOfArtworkStatementArray;
     private sqlite3_stmt?[]? insertTagsOfArtworkStatementArray;
-    private sqlite3_stmt?[]? insertToolsOfArtworkReturningIdStatementArray;
-    private sqlite3_stmt?[]? insertTagsOfArtworkReturningIdStatementArray;
-    private sqlite3_stmt?[]? updateToolsOfArtworkReturningIdStatementArray;
-    private sqlite3_stmt?[]? updateTagsOfArtworkReturningIdStatementArray;
+    private sqlite3_stmt?[]? insertArtworkToolCrossTableStatementArray;
+    private sqlite3_stmt?[]? insertArtworkTagCrossTableStatementArray;
 
     private async ValueTask InsertAsync(Artwork answer, CancellationToken token)
     {
@@ -323,14 +321,14 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"TagTable\" (\"Value\") VALUES (?1")]
-    private static partial ReadOnlySpan<byte> Literal_InsertTagReturningId_Parts_0();
+    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
+    private static partial ReadOnlySpan<byte> Literal_Update_Tag_Parts_0();
 
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?")]
-    private static partial ReadOnlySpan<byte> Literal_UpdateTagReturningId_Parts_0();
+    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2")]
+    private static partial ReadOnlySpan<byte> Literal_Update_Tool_Parts_0();
 
-    [StringLiteral.Utf8("), (?")]
-    private static partial ReadOnlySpan<byte> Literal_Insert_TagOrTool_Parts_0();
+    [StringLiteral.Utf8("), (?1, ?")]
+    private static partial ReadOnlySpan<byte> Literal_Update_TagOrTool_Parts_0();
 
     [StringLiteral.Utf8(") RETURNING \"Id\"")]
     private static partial ReadOnlySpan<byte> Literal_ReturningId();
@@ -338,142 +336,81 @@ internal sealed partial class Database
     [StringLiteral.Utf8(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1")]
     private static partial ReadOnlySpan<byte> Literal_OnConflictIdTagId();
 
-    private ValueTask EnumerateInsertTagAsync(Tag[]? array, CancellationToken token)
-    {
-        if (array is not { Length: > 0 })
-        {
-            return ValueTask.CompletedTask;
-        }
-
-        ref var statement = ref At(ref insertTagsOfArtworkReturningIdStatementArray, array.Length);
-        if (statement is null)
-        {
-            var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_InsertTagReturningId_Parts_0());
-            for (var i = 1; i < array.Length; i++)
-            {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_0());
-                builder.Append(i);
-            }
-
-            builder.AppendLiteral(Literal_ReturningId());
-            statement = Prepare(ref builder, true, out _);
-            builder.Dispose();
-        }
-
-        for (var i = 0; i < array.Length; i++)
-        {
-            Bind(statement, i + 1, array[i].Name);
-        }
-
-        ref var bindTo = ref At(ref updateTagsOfArtworkReturningIdStatementArray, array.Length);
-        if (bindTo is null)
-        {
-            var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_UpdateTagReturningId_Parts_0());
-            for (var i = 1; i < array.Length; i++)
-            {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
-                builder.Append(i);
-            }
-
-            builder.AppendLiteral(Literal_OnConflictIdTagId());
-            bindTo = Prepare(ref builder, true, out _);
-            builder.Dispose();
-        }
-
-        return EnumerateInsertTagOrToolAsync(statement, bindTo, 2, token);
-    }
-
-    [StringLiteral.Utf8("INSERT INTO \"ToolTable\" (\"Value\") VALUES (?1")]
-    private static partial ReadOnlySpan<byte> Literal_Insert_ToolReturningId_Parts_0();
-
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkToolCrossTable\" VALUES (?1, ?")]
-    private static partial ReadOnlySpan<byte> Literal_Update_ToolReturningId_Parts_0();
-
-    private ValueTask EnumerateInsertToolAsync(string[]? array, CancellationToken token)
-    {
-        if (array is not { Length: > 0 })
-        {
-            return ValueTask.CompletedTask;
-        }
-
-        ref var statement = ref At(ref insertToolsOfArtworkReturningIdStatementArray, array.Length);
-        if (statement is null)
-        {
-            var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_Insert_ToolReturningId_Parts_0());
-            for (var i = 1; i < array.Length; i++)
-            {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_0());
-                builder.Append(i);
-            }
-
-            builder.AppendLiteral(Literal_ReturningId());
-            statement = Prepare(ref builder, true, out _);
-            builder.Dispose();
-        }
-
-        for (var i = 0; i < array.Length; i++)
-        {
-            Bind(statement, i + 1, array[i]);
-        }
-
-        ref var bindTo = ref At(ref updateToolsOfArtworkReturningIdStatementArray, array.Length);
-        if (bindTo is null)
-        {
-            var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_Update_ToolReturningId_Parts_0());
-            for (var i = 1; i < array.Length; i++)
-            {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
-                builder.Append(i);
-            }
-
-            builder.AppendAscii(')');
-            bindTo = Prepare(ref builder, true, out _);
-            builder.Dispose();
-        }
-
-        return EnumerateInsertTagOrToolAsync(statement, bindTo, 2, token);
-    }
-
-    private async ValueTask EnumerateInsertTagOrToolAsync(sqlite3_stmt statement, sqlite3_stmt bindTo, int bintToOffset, CancellationToken token)
-    {
-        try
-        {
-            do
-            {
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
-
-                if (code == SQLITE_DONE)
-                {
-                    await ExecuteAsync(bindTo, token).ConfigureAwait(false);
-                    break;
-                }
-
-                Bind(bindTo, bintToOffset++, CU32(statement, 0));
-            } while (!token.IsCancellationRequested);
-        }
-        finally
-        {
-            Reset(statement);
-        }
-    }
-
     public async ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent answer, CancellationToken token)
     {
         await InsertOrUpdateArtworkAsync(answer, token).ConfigureAwait(false);
         var rowId = GetLastInsertRowId();
         await DeleteTagsOfArtworkWhereValueKindEquals1StatementAsync(answer.Id, token).ConfigureAwait(false);
         await DeleteToolsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
-        await EnumerateInsertTagAsync(answer.Tags, token).ConfigureAwait(false);
-        await EnumerateInsertToolAsync(answer.Tools, token).ConfigureAwait(false);
+
+        if (answer.Tags is { Length: > 0 })
+        {
+            sqlite3_stmt PrepareStatement(int length)
+            {
+                ref var statement = ref At(ref insertArtworkTagCrossTableStatementArray, length);
+                if (statement is null)
+                {
+                    var builder = ZString.CreateUtf8StringBuilder();
+                    builder.AppendLiteral(Literal_Update_Tag_Parts_0());
+                    for (var i = 1; i < length; i++)
+                    {
+                        builder.AppendLiteral(Literal_Update_TagOrTool_Parts_0());
+                        builder.Append(i + 2);
+                    }
+
+                    builder.AppendAscii(')');
+                    statement = Prepare(ref builder, true, out _);
+                    builder.Dispose();
+                }
+
+                return statement;
+            }
+
+            var statetment = PrepareStatement(answer.Tags.Length);
+            Bind(statetment, 1, answer.Id);
+            for (var i = 0; i < answer.Tags.Length; i++)
+            {
+                var id = await RegisterTagAsync(answer.Tags[i].Name, token).ConfigureAwait(false);
+                Bind(statetment, i + 2, id);
+            }
+
+            await ExecuteAsync(statetment, token).ConfigureAwait(false);
+        }
+
+        if (answer.Tools is { Length: > 0 })
+        {
+            sqlite3_stmt PrepareStatement(int length)
+            {
+                ref var statement = ref At(ref insertArtworkToolCrossTableStatementArray, length);
+                if (statement is null)
+                {
+                    var builder = ZString.CreateUtf8StringBuilder();
+                    builder.AppendLiteral(Literal_Update_Tool_Parts_0());
+                    for (var i = 1; i < length; i++)
+                    {
+                        builder.AppendLiteral(Literal_Update_TagOrTool_Parts_0());
+                        builder.Append(i + 2);
+                    }
+
+                    builder.AppendAscii(')');
+                    statement = Prepare(ref builder, true, out _);
+                    builder.Dispose();
+                }
+
+                return statement;
+            }
+
+            var statetment = PrepareStatement(answer.Tools.Length);
+            Bind(statetment, 1, answer.Id);
+            for (var i = 0; i < answer.Tools.Length; i++)
+            {
+                var id = await RegisterToolAsync(answer.Tools[i], token).ConfigureAwait(false);
+                Bind(statetment, i + 2, id);
+            }
+
+            await ExecuteAsync(statetment, token).ConfigureAwait(false);
+        }
+
         return rowId == answer.Id;
 
     }
