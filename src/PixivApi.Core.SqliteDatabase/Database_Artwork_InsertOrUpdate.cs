@@ -9,7 +9,6 @@ internal sealed partial class Database
     private sqlite3_stmt? insertOrUpdateArtwork_ArtworkResponseContent_Statement;
     private sqlite3_stmt?[]? insertUgoiraFramesStatementArray;
     private sqlite3_stmt?[]? insertHidesStatementArray;
-    private sqlite3_stmt?[]? insertToolsOfArtworkStatementArray;
     private sqlite3_stmt?[]? insertTagsOfArtworkStatementArray;
     private sqlite3_stmt?[]? insertArtworkToolCrossTableStatementArray;
     private sqlite3_stmt?[]? insertArtworkTagCrossTableStatementArray;
@@ -182,23 +181,14 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2")]
-    private static partial ReadOnlySpan<byte> Literal_Insert_ToolsOfArtwork_Parts_0();
-
-    private ValueTask InsertToolsOfArtworkAsync(ulong id, uint[] array, CancellationToken token)
+    private sqlite3_stmt PrepareInsertToolsStatement(int length)
     {
-        if (array.Length == 0)
-        {
-            return ValueTask.CompletedTask;
-        }
-
-        ref var statement = ref At(ref insertToolsOfArtworkStatementArray, array.Length);
+        ref var statement = ref At(ref insertArtworkToolCrossTableStatementArray, length);
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_Insert_ToolsOfArtwork_Parts_0());
-            for (int i = 1, index = 2; i < array.Length; i++)
+            builder.AppendLiteral(Literal_Update_Tool_Parts_0());
+            for (int i = 1, index = 2; i < length; i++)
             {
                 builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
                 builder.Append(++index);
@@ -209,14 +199,30 @@ internal sealed partial class Database
             builder.Dispose();
         }
 
-        Bind(statement, 1, id);
-        var offset = 1;
-        foreach (var item in array)
+        return statement;
+    }
+
+    private async ValueTask InsertToolsOfArtworkAsync(ulong id, uint[] array, CancellationToken token)
+    {
+        if (array.Length == 0)
         {
-            Bind(statement, ++offset, item);
+            return;
         }
 
-        return ExecuteAsync(statement, token);
+        var statement = PrepareInsertToolsStatement(array.Length);
+        Bind(statement, 1, id);
+        for (var i = 0; i < array.Length; i++)
+        {
+            var vid = array[i];
+            if (vid == 0)
+            {
+                Console.WriteLine("vid");
+            }
+
+            Bind(statement, i + 2, vid);
+        }
+
+        await ExecuteAsync(statement, token).ConfigureAwait(false);
     }
 
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTagCrossTable\" VALUES (?1, ?2, ?3")]
@@ -330,7 +336,7 @@ internal sealed partial class Database
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
     private static partial ReadOnlySpan<byte> Literal_Update_Tag_Parts_0();
 
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2")]
+    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2")]
     private static partial ReadOnlySpan<byte> Literal_Update_Tool_Parts_0();
 
     [StringLiteral.Utf8("), (?1, ?")]
@@ -374,6 +380,11 @@ internal sealed partial class Database
             for (var i = 0; i < answer.Tags.Length; i++)
             {
                 var id = await RegisterTagAsync(answer.Tags[i].Name, token).ConfigureAwait(false);
+                if (id == 0)
+                {
+                    Console.WriteLine($"{id} : {answer.Tags[i]}");
+                }
+
                 Bind(statetment, i + 2, id);
             }
 
@@ -382,32 +393,16 @@ internal sealed partial class Database
 
         if (answer.Tools is { Length: > 0 })
         {
-            sqlite3_stmt PrepareStatement(int length)
-            {
-                ref var statement = ref At(ref insertArtworkToolCrossTableStatementArray, length);
-                if (statement is null)
-                {
-                    var builder = ZString.CreateUtf8StringBuilder();
-                    builder.AppendLiteral(Literal_Update_Tool_Parts_0());
-                    for (var i = 1; i < length; i++)
-                    {
-                        builder.AppendLiteral(Literal_Update_TagOrTool_Parts_0());
-                        builder.Append(i + 2);
-                    }
-
-                    builder.AppendAscii(')');
-                    statement = Prepare(ref builder, true, out _);
-                    builder.Dispose();
-                }
-
-                return statement;
-            }
-
-            var statetment = PrepareStatement(answer.Tools.Length);
+            var statetment = PrepareInsertToolsStatement(answer.Tools.Length);
             Bind(statetment, 1, answer.Id);
             for (var i = 0; i < answer.Tools.Length; i++)
             {
                 var id = await RegisterToolAsync(answer.Tools[i], token).ConfigureAwait(false);
+                if (id == 0)
+                {
+                    Console.WriteLine($"{id} : {answer.Tools[i]}");
+                }
+
                 Bind(statetment, i + 2, id);
             }
 

@@ -44,7 +44,6 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         CloseStatement(ref insertOrUpdateArtwork_ArtworkResponseContent_Statement);
         CloseStatement(ref insertUgoiraFramesStatementArray);
         CloseStatement(ref insertHidesStatementArray);
-        CloseStatement(ref insertToolsOfArtworkStatementArray);
         CloseStatement(ref insertTagsOfArtworkStatementArray);
         CloseStatement(ref insertArtworkToolCrossTableStatementArray);
         CloseStatement(ref insertArtworkTagCrossTableStatementArray);

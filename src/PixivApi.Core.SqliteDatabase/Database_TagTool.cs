@@ -49,9 +49,6 @@ internal sealed partial class Database
 
     public ValueTask<string?> GetToolAsync(uint id, CancellationToken token) => GetTagOrToolAsync(getToolStatement ??= Prepare(Literal_SelectValueFromToolTableWhereId(), true, out _), id, token);
 
-    [StringLiteral.Utf8("INSERT INTO \"TagTable\" (\"Value\") VALUES (?) ON CONFLICT (\"Value\") DO NOTHING RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoTagTableReturningId();
-    [StringLiteral.Utf8("INSERT INTO \"ToolTable\" (\"Value\") VALUES (?) ON CONFLICT (\"Value\") DO NOTHING RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoToolTableReturningId();
-
     private async ValueTask<uint> RegisterTagOrToolAsync(sqlite3_stmt statement, string value, CancellationToken token)
     {
         Bind(statement, 1, value);
@@ -63,13 +60,25 @@ internal sealed partial class Database
                 await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
             }
 
-            return code == SQLITE_ROW ? CU32(statement, 0) : 0;
+            if (code == SQLITE_ROW)
+            {
+                return CU32(statement, 0);
+            }
+
+            if (logError)
+            {
+                logger.LogError($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
+            }
+
+            throw new InvalidOperationException();
         }
         finally
         {
             Reset(statement);
         }
     }
+
+    [StringLiteral.Utf8("INSERT INTO \"TagTable\" (\"Value\") VALUES (?) RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoTagTableReturningId();
 
     public async ValueTask<uint> RegisterTagAsync(string value, CancellationToken token)
     {
@@ -90,6 +99,8 @@ internal sealed partial class Database
 
         return await RegisterTagOrToolAsync(registerTagStatement, value, token).ConfigureAwait(false);
     }
+    
+    [StringLiteral.Utf8("INSERT INTO \"ToolTable\" (\"Value\") VALUES (?) RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoToolTableReturningId();
 
     public async ValueTask<uint> RegisterToolAsync(string value, CancellationToken token)
     {
