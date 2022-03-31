@@ -321,10 +321,10 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
+    [StringLiteral.Utf8("INSERT INTO \"ArtworkTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
     private static partial ReadOnlySpan<byte> Literal_Update_Tag_Parts_0();
 
-    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2")]
+    [StringLiteral.Utf8("INSERT INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2")]
     private static partial ReadOnlySpan<byte> Literal_Update_Tool_Parts_0();
 
     [StringLiteral.Utf8("), (?1, ?")]
