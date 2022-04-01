@@ -14,13 +14,12 @@ public partial class NetworkClient
             return;
         }
 
-        var token = Context.CancellationToken;
         System.Console.Error.WriteLine($"Start loading database. Time: {DateTime.Now}");
-        var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        var database = await databaseFactory.RentAsync(Context.CancellationToken).ConfigureAwait(false);
         var transactional = database as ITransactionalDatabase;
         if (transactional is not null)
         {
-            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+            await transactional.BeginTransactionAsync(Context.CancellationToken).ConfigureAwait(false);
         }
 
         var add = 0UL;
@@ -29,6 +28,7 @@ public partial class NetworkClient
         var url = GetRankingUrl(date, ranking);
         try
         {
+            var token = Context.CancellationToken;
             await foreach (var artworkCollection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, Context.Logger).WithCancellation(token))
             {
                 foreach (var item in artworkCollection)
