@@ -166,7 +166,7 @@ internal sealed partial class Database
 
     public IAsyncEnumerable<(string, uint)> EnumerateToolAsync(CancellationToken token) => EnumerateTagToolAsync(enumerateToolStatement ??= Prepare(Literal_SelectValueId_FromToolTable(), true, out _), token);
 
-    [StringLiteral.Utf8("SELECT \"Id\" FROM \"TagTextTable\" (?)")]
+    [StringLiteral.Utf8("SELECT \"rowid\" FROM \"TagTextTable\" (?)")]
     private static partial ReadOnlySpan<byte> Literal_SelectId_FromTagTextTable_Match();
 
     [StringLiteral.Utf8("SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" LIKE ('%' || ? || '%')")]

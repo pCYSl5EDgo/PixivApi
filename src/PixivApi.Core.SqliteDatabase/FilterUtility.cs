@@ -53,23 +53,32 @@ internal static partial class FilterUtility
         }
     }
 
+    [StringLiteral.Utf8("), (")]
+    private static partial ReadOnlySpan<byte> Literal_ParenCommaParen();
+
     public static void AppendValues(ref this Utf8ValueStringBuilder builder, IEnumerable<uint> values)
     {
-        builder.AppendAscii('(');
         var enumerator = values.GetEnumerator();
         if (!enumerator.MoveNext())
         {
-            goto RETURN;
+            return;
         }
 
+        builder.AppendAscii('(');
         builder.Append(enumerator.Current);
-        while (enumerator.MoveNext())
+
+        if (!enumerator.MoveNext())
         {
-            builder.AppendAscii(',');
-            builder.Append(enumerator.Current);
+            goto END;
         }
 
-    RETURN:
+        do
+        {
+            builder.AppendLiteral(Literal_ParenCommaParen());
+            builder.Append(enumerator.Current);
+        } while (enumerator.MoveNext());
+
+    END:
         builder.AppendAscii(')');
     }
 
