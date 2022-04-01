@@ -51,7 +51,11 @@ public partial class NetworkClient
         {
             await foreach (var artworkCollection in new SearchArtworkAsyncNewToOldEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
-                token.ThrowIfCancellationRequested();
+                if (token.IsCancellationRequested)
+                {
+                    return;
+                }
+
                 var oldAdd = add;
                 if (database is IExtenededDatabase exteneded)
                 {
@@ -92,20 +96,15 @@ public partial class NetworkClient
                     }
                 }
 
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-
                 if (!addBehaviour && add == oldAdd)
                 {
                     break;
                 }
             }
         }
-        catch (Exception e) when (e is not TaskCanceledException && e is not OperationCanceledException)
+        catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            transactional?.RollbackTransaction();
+            transactional.RollbackTransaction();
             transactional = null;
             throw;
         }
@@ -113,7 +112,7 @@ public partial class NetworkClient
         {
             if (!System.Console.IsOutputRedirected)
             {
-                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                var artworkCount = await database.CountArtworkAsync(CancellationToken.None).ConfigureAwait(false);
                 logger.LogInformation($"Total: {artworkCount} Add: {add} Update: {update}");
             }
 

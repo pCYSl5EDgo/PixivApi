@@ -67,9 +67,9 @@ public partial class NetworkClient
                 await database.AddOrUpdateRankingAsync(date ?? DateOnly.FromDateTime(DateTime.Now), ranking, rankingArray, token).ConfigureAwait(false);
             }
         }
-        catch (Exception e) when (e is not TaskCanceledException && e is not OperationCanceledException)
+        catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            transactional?.RollbackTransaction();
+            transactional.RollbackTransaction();
             transactional = null;
             throw;
         }
@@ -77,7 +77,7 @@ public partial class NetworkClient
         {
             if (!System.Console.IsOutputRedirected)
             {
-                var databaseCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                var databaseCount = await database.CountArtworkAsync(CancellationToken.None).ConfigureAwait(false);
                 Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
             }
 

@@ -95,9 +95,9 @@ public partial class NetworkClient
                 }
             }
         }
-        catch (Exception e) when (e is not TaskCanceledException && e is not OperationCanceledException)
+        catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            transactional?.RollbackTransaction();
+            transactional.RollbackTransaction();
             transactional = null;
             throw;
         }
@@ -105,8 +105,8 @@ public partial class NetworkClient
         {
             if (!System.Console.IsOutputRedirected)
             {
-                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
-                var userCount = await database.CountUserAsync(token).ConfigureAwait(false);
+                var artworkCount = await database.CountArtworkAsync(CancellationToken.None).ConfigureAwait(false);
+                var userCount = await database.CountUserAsync(CancellationToken.None).ConfigureAwait(false);
                 logger.LogInformation($"User Total: {userCount} Add: {add} Update: {update}    Artwork Total: {artworkCount} Add: {addArtwork} Update: {updateArtwork} Download: {downloadCount} Transfer: {ByteAmountUtility.ToDisplayable(transferByteCount)}");
             }
 

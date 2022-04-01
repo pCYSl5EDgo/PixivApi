@@ -8,20 +8,9 @@ internal sealed partial class Database
 
     public async ValueTask BeginTransactionAsync(CancellationToken token)
     {
+        logger.LogDebug("Begin Transaction");
         beginTransactionStatement ??= Prepare(Literal_Begin_Transaction(), true, out _);
-        try
-        {
-            int code;
-            while ((code = Step(beginTransactionStatement)) == SQLITE_BUSY)
-            {
-                token.ThrowIfCancellationRequested();
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            Reset(beginTransactionStatement);
-        }
+        await ExecuteAsync(beginTransactionStatement, token).ConfigureAwait(false);
     }
 
     [StringLiteral.Utf8("BEGIN IMMEDIATE TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
@@ -30,6 +19,7 @@ internal sealed partial class Database
 
     public void EndTransaction()
     {
+        logger.LogDebug("End Transaction");
         endTransactionStatement ??= Prepare(Literal_End_Transaction(), true, out _);
         Step(endTransactionStatement);
         Reset(endTransactionStatement);
@@ -37,6 +27,7 @@ internal sealed partial class Database
 
     public void RollbackTransaction()
     {
+        logger.LogDebug("Rollback Transaction");
         rollbackTransactionStatement ??= Prepare(Literal_Rollback_Transaction(), true, out _);
         Step(rollbackTransactionStatement);
         Reset(rollbackTransactionStatement);

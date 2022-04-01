@@ -58,9 +58,9 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 }
             }
         }
-        catch (Exception e) when (e is not TaskCanceledException && e is not OperationCanceledException)
+        catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            transactional?.RollbackTransaction();
+            transactional.RollbackTransaction();
             transactional = null;
             throw;
         }
@@ -68,7 +68,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         {
             if (!System.Console.IsOutputRedirected)
             {
-                var artworkCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+                var artworkCount = await database.CountArtworkAsync(CancellationToken.None).ConfigureAwait(false);
                 logger.LogInformation($"Total: {artworkCount} Add: {addCount} Update: {updateCount} Download: {downloadCount} Transfer: {ByteAmountUtility.ToDisplayable(transferByteCount)}");
             }
 
