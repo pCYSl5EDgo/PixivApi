@@ -16,32 +16,58 @@ internal sealed partial class Database
 
     [StringLiteral.Utf8("\"Date\"")] private static partial ReadOnlySpan<byte> Literal_Date();
 
-    private ulong Count([NotNull] ref sqlite3_stmt? statement, ReadOnlySpan<byte> column, ReadOnlySpan<byte> table)
+    private sqlite3_stmt PrepareCountStatement(ReadOnlySpan<byte> column, ReadOnlySpan<byte> table)
     {
         var builder = ZString.CreateUtf8StringBuilder();
         builder.AppendLiteral(Literal_SelectCountFrom_0());
         builder.AppendLiteral(column);
         builder.AppendLiteral(Literal_SelectCountFrom_1());
         builder.AppendLiteral(table);
-        statement ??= Prepare(ref builder, true, out _);
+        var statement = Prepare(ref builder, true, out _);
         builder.Dispose();
-        var answer = Step(statement) == SQLITE_ROW ? (ulong)sqlite3_column_int64(statement, 0) : 0;
-        Reset(statement);
-        return answer;
+        return statement;
     }
 
-    public ValueTask<ulong> CountArtworkAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countArtworkStatement, Literal_Id(), Literal_ArtworkTable()));
+    private async ValueTask<ulong> CountAsync(sqlite3_stmt statement, CancellationToken token)
+    {
+        try
+        {
+            do
+            {
+                token.ThrowIfCancellationRequested();
+                var code = Step(statement);
+                if (code == SQLITE_BUSY)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                    continue;
+                }
 
-    public ValueTask<ulong> CountRankingAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countRankingStatement, Literal_Date(), Literal_RankingTable()));
+                if (code == SQLITE_ROW)
+                {
+                    return CU64(statement, 0);
+                }
 
-    public ValueTask<ulong> CountTagAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countTagStatement, Literal_Id(), Literal_TagTable()));
+                throw new InvalidOperationException($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
+            } while (true);
+        }
+        finally
+        {
+            Reset(statement);
+        }
+    }
 
-    public ValueTask<ulong> CountToolAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countToolStatement, Literal_Id(), Literal_ToolTable()));
+    public ValueTask<ulong> CountArtworkAsync(CancellationToken token) => CountAsync(countArtworkStatement ??= PrepareCountStatement(Literal_Id(), Literal_ArtworkTable()), token);
 
-    public ValueTask<ulong> CountUserAsync(CancellationToken token) => ValueTask.FromResult(Count(ref countUserStatement, Literal_Id(), Literal_UserTable()));
+    public ValueTask<ulong> CountRankingAsync(CancellationToken token) => CountAsync(countRankingStatement ??= PrepareCountStatement(Literal_Date(), Literal_RankingTable()), token);
+
+    public ValueTask<ulong> CountTagAsync(CancellationToken token) => CountAsync(countTagStatement ??= PrepareCountStatement(Literal_Id(), Literal_TagTable()), token);
+
+    public ValueTask<ulong> CountToolAsync(CancellationToken token) => CountAsync(countToolStatement ??= PrepareCountStatement(Literal_Id(), Literal_ToolTable()), token);
+
+    public ValueTask<ulong> CountUserAsync(CancellationToken token) => CountAsync(countUserStatement ??= PrepareCountStatement(Literal_Id(), Literal_UserTable()), token);
 
     [StringLiteral.Utf8(" AS \"Origin\" WHERE ")] private static partial ReadOnlySpan<byte> Literal_AsOriginWhere();
-    
+
     [StringLiteral.Utf8("\"Origin\".")] private static partial ReadOnlySpan<byte> Literal_OriginDot();
 
     /// <summary>
@@ -50,18 +76,46 @@ internal sealed partial class Database
     /// <param name="filter"></param>
     /// <param name="token"></param>
     /// <returns></returns>
-    public ValueTask<ulong> CountArtworkAsync(ArtworkFilter filter, CancellationToken token)
+    public async ValueTask<ulong> CountArtworkAsync(ArtworkFilter filter, CancellationToken token)
     {
-        var builder = ZString.CreateUtf8StringBuilder();
-        builder.AppendLiteral(Literal_SelectCountFrom_0());
-        builder.AppendLiteral(Literal_OriginDot());
-        builder.AppendLiteral(Literal_Id());
-        builder.AppendLiteral(Literal_SelectCountFrom_1());
-        builder.AppendLiteral(Literal_ArtworkTable());
-        builder.AppendLiteral(Literal_AsOriginWhere());
-        var statement = ArtworkFilterUtility.CreateStatement(database, ref builder, filter);
-        var answer = Step(statement) == SQLITE_ROW ? (ulong)sqlite3_column_int64(statement, 0) : 0;
-        statement.manual_close();
-        return ValueTask.FromResult(answer);
+        sqlite3_stmt PrepareStatement()
+        {
+            var builder = ZString.CreateUtf8StringBuilder();
+            builder.AppendLiteral(Literal_SelectCountFrom_0());
+            builder.AppendLiteral(Literal_OriginDot());
+            builder.AppendLiteral(Literal_Id());
+            builder.AppendLiteral(Literal_SelectCountFrom_1());
+            builder.AppendLiteral(Literal_ArtworkTable());
+            builder.AppendLiteral(Literal_AsOriginWhere());
+            var statement = ArtworkFilterUtility.CreateStatement(database, ref builder, filter, logger);
+            builder.Dispose();
+            return statement;
+        }
+
+        var statement = PrepareStatement();
+        try
+        {
+            do
+            {
+                token.ThrowIfCancellationRequested();
+                var code = Step(statement);
+                if (code == SQLITE_BUSY)
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                    continue;
+                }
+
+                if (code == SQLITE_ROW)
+                {
+                    return CU64(statement, 0);
+                }
+
+                throw new InvalidOperationException($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
+            } while (true);
+        }
+        finally
+        {
+            statement.manual_close();
+        }
     }
 }

@@ -58,7 +58,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 }
             }
         }
-        catch (Exception e) when (e is not TaskCanceledException)
+        catch (Exception e) when (e is not TaskCanceledException && e is not OperationCanceledException)
         {
             transactional?.RollbackTransaction();
             transactional = null;

@@ -134,13 +134,13 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8(" = ")]
     public static partial ReadOnlySpan<byte> Literal_Equal();
 
-    [StringLiteral.Utf8("EXISTS ((SELECT \"TagTable\".\"TagId\" FROM ")]
+    [StringLiteral.Utf8("EXISTS (SELECT \"TagTable\".\"TagId\" FROM ")]
     private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts0();
 
     [StringLiteral.Utf8(" AS \"TagTable\" WHERE \"TagTable\"")]
     private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts1();
 
-    [StringLiteral.Utf8("\"TagTable\".\"ValueKind\" > 0) INTERSECT VALUES ")]
+    [StringLiteral.Utf8("\"TagTable\".\"ValueKind\" > 0 INTERSECT VALUES ")]
     private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts2();
 
     [StringLiteral.Utf8("EXISTS (VALUES ")]

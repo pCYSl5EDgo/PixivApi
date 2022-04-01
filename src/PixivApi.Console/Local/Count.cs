@@ -32,6 +32,7 @@ public partial class LocalClient
             }
 
             var allCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
+            logger.LogTrace($"All Count: {allCount}");
             if (artworkFilter is null)
             {
                 logger.LogInformation($"{allCount}");

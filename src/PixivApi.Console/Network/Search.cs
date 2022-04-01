@@ -103,7 +103,7 @@ public partial class NetworkClient
                 }
             }
         }
-        catch (Exception e) when (e is not TaskCanceledException)
+        catch (Exception e) when (e is not TaskCanceledException && e is not OperationCanceledException)
         {
             transactional?.RollbackTransaction();
             transactional = null;

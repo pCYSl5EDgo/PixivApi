@@ -44,11 +44,18 @@ internal static partial class ArtworkFilterUtility
     [StringLiteral.Utf8("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = ")]
     private static partial ReadOnlySpan<byte> Literal_ExistsTextTableRowId();
 
-    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter)
+    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ILogger logger)
     {
         var and = false;
         builder.Filter(filter, ref and, Literal_Origin());
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
+        if (logger.IsEnabled(LogLevel.Trace))
+        {
+#pragma warning disable CA2254
+            logger.LogTrace($"Query: {builder}");
+#pragma warning restore CA2254
+        }
+
         return answer;
     }
 

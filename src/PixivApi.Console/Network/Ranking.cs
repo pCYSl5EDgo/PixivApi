@@ -67,7 +67,7 @@ public partial class NetworkClient
                 await database.AddOrUpdateRankingAsync(date ?? DateOnly.FromDateTime(DateTime.Now), ranking, rankingArray, token).ConfigureAwait(false);
             }
         }
-        catch (Exception e) when (e is not TaskCanceledException)
+        catch (Exception e) when (e is not TaskCanceledException && e is not OperationCanceledException)
         {
             transactional?.RollbackTransaction();
             transactional = null;
