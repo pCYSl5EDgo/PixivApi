@@ -87,7 +87,7 @@ internal sealed partial class Database
             builder.AppendLiteral(Literal_SelectCountFrom_1());
             builder.AppendLiteral(Literal_ArtworkTable());
             builder.AppendLiteral(Literal_AsOriginWhere());
-            var statement = ArtworkFilterUtility.CreateStatement(database, ref builder, filter, logger);
+            var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger);
             builder.Dispose();
             return statement;
         }

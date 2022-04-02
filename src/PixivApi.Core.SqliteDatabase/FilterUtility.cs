@@ -143,59 +143,6 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8(" = ")]
     public static partial ReadOnlySpan<byte> Literal_Equal();
 
-    [StringLiteral.Utf8("EXISTS (SELECT \"TagTable\".\"TagId\" FROM ")]
-    private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts0();
-
-    [StringLiteral.Utf8(" AS \"TagTable\" WHERE \"TagTable\"")]
-    private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts1();
-
-    [StringLiteral.Utf8("\"TagTable\".\"ValueKind\" > 0 INTERSECT VALUES ")]
-    private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts2();
-
-    [StringLiteral.Utf8("EXISTS (VALUES ")]
-    private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts3();
-
-    [StringLiteral.Utf8(" EXCEPT (SELECT \"TagTable\".\"TagId\" FROM ")]
-    private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts4();
-
-    [StringLiteral.Utf8(" AS \"TagTable\" WHERE \"TagTable\"")]
-    private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts5();
-
-    [StringLiteral.Utf8("\"TagTable\".\"ValueKind\" > 0))")]
-    private static partial ReadOnlySpan<byte> Literal_TagFilter_Parts6();
-
-    private static void TagFilter(ref this Utf8ValueStringBuilder builder, ReadOnlySpan<byte> origin, ReadOnlySpan<byte> table, IEnumerable<uint> values, bool or)
-    {
-        if (or)
-        {
-            builder.AppendLiteral(Literal_TagFilter_Parts0());
-            builder.AppendLiteral(table);
-            builder.AppendLiteral(Literal_TagFilter_Parts1());
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_Equal());
-            builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_And());
-            builder.AppendLiteral(Literal_TagFilter_Parts2());
-            builder.AppendValues(values);
-            builder.AppendAscii(')');
-        }
-        else
-        {
-            builder.AppendLiteral(Literal_TagFilter_Parts3());
-            builder.AppendValues(values);
-            builder.AppendLiteral(Literal_TagFilter_Parts4());
-            builder.AppendLiteral(table);
-            builder.AppendLiteral(Literal_TagFilter_Parts5());
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_Equal());
-            builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_And());
-            builder.AppendLiteral(Literal_TagFilter_Parts6());
-        }
-    }
-
     public static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TagFilter? filter, ReadOnlySpan<byte> table)
     {
         if (filter is null)

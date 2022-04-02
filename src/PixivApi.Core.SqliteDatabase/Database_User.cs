@@ -276,7 +276,7 @@ internal sealed partial class Database
             var builder = ZString.CreateUtf8StringBuilder();
             builder.AppendLiteral(Literal_EnumerateUser());
             builder.AppendLiteral(Literal_Where());
-            var statement = UserFilterUtility.CreateStatement(database, ref builder, filter);
+            var statement = FilterUtility.CreateStatement(database, ref builder, filter);
             builder.Dispose();
             return statement;
         }

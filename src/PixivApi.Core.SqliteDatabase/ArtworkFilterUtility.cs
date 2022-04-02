@@ -1,6 +1,6 @@
 ﻿namespace PixivApi.Core.SqliteDatabase;
 
-internal static partial class ArtworkFilterUtility
+internal static partial class FilterUtility
 {
     [StringLiteral.Utf8("\"Origin\"")]
     private static partial ReadOnlySpan<byte> Literal_Origin();
@@ -226,15 +226,15 @@ internal static partial class ArtworkFilterUtility
             builder.And(ref and);
             builder.AppendLiteral(Literal_ExistsTextTableRowId());
             builder.AppendLiteral(origin);
-            builder.AppendLiteral(FilterUtility.Literal_DotId());
-            builder.AppendLiteral(FilterUtility.Literal_And());
+            builder.AppendLiteral(Literal_DotId());
+            builder.AppendLiteral(Literal_And());
             builder.AppendAscii('(');
             builder.TextPartial(filter.Partials, filter.PartialOr);
             builder.AppendLiteral(Literal_RRParen());
 
             if (filter.IgnorePartials is { Length: > 0 })
             {
-                builder.AppendLiteral(FilterUtility.Literal_And());
+                builder.AppendLiteral(Literal_And());
                 builder.AppendLiteral(Literal_NotLeftParen());
                 builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
                 builder.AppendLiteral(Literal_RRParen());
@@ -247,8 +247,8 @@ internal static partial class ArtworkFilterUtility
                 builder.And(ref and);
                 builder.AppendLiteral(Literal_ExistsTextTableRowId());
                 builder.AppendLiteral(origin);
-                builder.AppendLiteral(FilterUtility.Literal_DotId());
-                builder.AppendLiteral(FilterUtility.Literal_And());
+                builder.AppendLiteral(Literal_DotId());
+                builder.AppendLiteral(Literal_And());
                 builder.AppendLiteral(Literal_NotLeftParen());
                 builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
                 builder.AppendLiteral(Literal_RRParen());
@@ -276,17 +276,17 @@ internal static partial class ArtworkFilterUtility
     {
         builder.AppendLiteral(origin);
         builder.AppendLiteral(Literal_DotTitle());
-        builder.AppendLiteral(FilterUtility.Literal_Equal());
+        builder.AppendLiteral(Literal_Equal());
         builder.AddSingleQuoteText(text);
-        builder.AppendLiteral(FilterUtility.Literal_Or());
+        builder.AppendLiteral(Literal_Or());
         builder.AppendLiteral(origin);
         builder.AppendLiteral(Literal_DotCaption());
-        builder.AppendLiteral(FilterUtility.Literal_Equal());
+        builder.AppendLiteral(Literal_Equal());
         builder.AddSingleQuoteText(text);
-        builder.AppendLiteral(FilterUtility.Literal_Or());
+        builder.AppendLiteral(Literal_Or());
         builder.AppendLiteral(origin);
         builder.AppendLiteral(Literal_DotMemo());
-        builder.AppendLiteral(FilterUtility.Literal_Equal());
+        builder.AppendLiteral(Literal_Equal());
         builder.AddSingleQuoteText(text);
     }
 
@@ -299,7 +299,7 @@ internal static partial class ArtworkFilterUtility
 
             if (oneOrTwo is not null)
             {
-                builder.AppendLiteral(or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
+                builder.AppendLiteral(or ? Literal_Or() : Literal_And());
                 builder.TextLike(or, oneOrTwo.AsSpan(0, oneOrTwoCount));
                 ArrayPool<string>.Shared.Return(oneOrTwo);
                 ArrayPool<string>.Shared.Return(threeOrMore);
@@ -317,7 +317,7 @@ internal static partial class ArtworkFilterUtility
         builder.TextLike(or, span[0]);
         foreach (var item in span[1..])
         {
-            builder.AppendLiteral(FilterUtility.Literal_Or());
+            builder.AppendLiteral(Literal_Or());
             builder.TextLike(or, item);
         }
 
@@ -339,14 +339,14 @@ internal static partial class ArtworkFilterUtility
         builder.AddSingleQuoteTextWithoutQuote(first);
 
         builder.AppendLiteral(Literal_PercentQuote());
-        builder.AppendLiteral(or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
+        builder.AppendLiteral(or ? Literal_Or() : Literal_And());
         builder.AppendLiteral(Literal_TextTable());
         builder.AppendLiteral(Literal_DotCaption());
         builder.AppendLiteral(Literal_LikeQuotePercent());
 
         builder.AddSingleQuoteTextWithoutQuote(first);
         builder.AppendLiteral(Literal_PercentQuote());
-        builder.AppendLiteral(or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
+        builder.AppendLiteral(or ? Literal_Or() : Literal_And());
         builder.AppendLiteral(Literal_TextTable());
         builder.AppendLiteral(Literal_DotMemo());
         builder.AppendLiteral(Literal_LikeQuotePercent());
@@ -371,7 +371,7 @@ internal static partial class ArtworkFilterUtility
         {
             builder.AppendAscii('\'');
             builder.AddDoubleQuoteText(span[0]);
-            var orOrAnd = or ? FilterUtility.Literal_Or() : FilterUtility.Literal_And();
+            var orOrAnd = or ? Literal_Or() : Literal_And();
             foreach (var item in span[1..])
             {
                 builder.AppendLiteral(orOrAnd);
@@ -417,7 +417,7 @@ internal static partial class ArtworkFilterUtility
                 builder.AppendAscii(')');
                 builder.AppendLiteral(Literal_Between());
                 builder.Append(unixEpochSinceSeconds);
-                builder.AppendLiteral(FilterUtility.Literal_And());
+                builder.AppendLiteral(Literal_And());
                 builder.Append(unixEpochUntilSeconds);
             }
             else
@@ -460,7 +460,7 @@ internal static partial class ArtworkFilterUtility
         builder.And(ref and);
         builder.AppendLiteral(origin);
         builder.AppendLiteral(Literal_DotType());
-        builder.AppendLiteral(FilterUtility.Literal_Equal());
+        builder.AppendLiteral(Literal_Equal());
         builder.Append((byte)value.Value);
     }
 
@@ -482,7 +482,7 @@ internal static partial class ArtworkFilterUtility
                     builder.AddName(origin, name);
                     builder.AppendLiteral(Literal_Between());
                     builder.Append(filter.Min.Value);
-                    builder.AppendLiteral(FilterUtility.Literal_And());
+                    builder.AppendLiteral(Literal_And());
                     builder.Append(maxValue);
                 }
                 else
@@ -526,7 +526,7 @@ internal static partial class ArtworkFilterUtility
         builder.AppendLiteral(origin);
         var orderKind = order switch
         {
-            ArtworkOrderKind.Id or ArtworkOrderKind.ReverseId => FilterUtility.Literal_DotId(),
+            ArtworkOrderKind.Id or ArtworkOrderKind.ReverseId => Literal_DotId(),
             ArtworkOrderKind.View or ArtworkOrderKind.ReverseView => Literal_DotTotalView(),
             ArtworkOrderKind.Bookmarks or ArtworkOrderKind.ReverseBookmarks => Literal_DotTotalBookmarks(),
             ArtworkOrderKind.UserId or ArtworkOrderKind.ReverseUserId => Literal_DotUserId(),

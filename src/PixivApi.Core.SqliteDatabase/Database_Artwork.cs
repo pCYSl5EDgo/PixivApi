@@ -313,7 +313,7 @@ internal sealed partial class Database
             var builder = ZString.CreateUtf8StringBuilder();
             builder.AppendLiteral(Literal_EnumerateArtwork());
             builder.AppendLiteral(Literal_Where());
-            var statement = ArtworkFilterUtility.CreateStatement(database, ref builder, filter, logger);
+            var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger);
             builder.Dispose();
             return statement;
         }

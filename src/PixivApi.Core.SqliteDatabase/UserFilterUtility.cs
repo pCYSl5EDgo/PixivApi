@@ -1,10 +1,7 @@
 ﻿namespace PixivApi.Core.SqliteDatabase;
 
-internal static partial class UserFilterUtility
+internal static partial class FilterUtility
 {
-    [StringLiteral.Utf8("\"Origin\"")]
-    private static partial ReadOnlySpan<byte> Literal_Origin();
-
     [StringLiteral.Utf8("\"UserTagCrossTable\"")]
     private static partial ReadOnlySpan<byte> Literal_UserTagCrossTable();
 
@@ -28,14 +25,8 @@ internal static partial class UserFilterUtility
         builder.Filter(ref and, origin, filter.TagFilter, Literal_UserTagCrossTable());
         builder.Filter(ref and, origin, filter.HideFilter);
         builder.Filter(ref and, origin, filter.IsFollowed, Literal_IsFollowed());
-        builder.Filter(ref and, origin, filter.NameFilter);
+        builder.TextFilterOfUser(ref and, origin, filter.NameFilter);
     }
-
-    [StringLiteral.Utf8(" LIKE '%")]
-    private static partial ReadOnlySpan<byte> Literal_LikeQuotePercent();
-
-    [StringLiteral.Utf8("%'")]
-    private static partial ReadOnlySpan<byte> Literal_PercentQuote();
 
     [StringLiteral.Utf8(" = '")]
     private static partial ReadOnlySpan<byte> Literal_EqualQuote();
@@ -43,10 +34,7 @@ internal static partial class UserFilterUtility
     [StringLiteral.Utf8(" <> '")]
     private static partial ReadOnlySpan<byte> Literal_NotEqualQuote();
 
-    [StringLiteral.Utf8(" NOT (")]
-    private static partial ReadOnlySpan<byte> Literal_NotLeftParen();
-
-    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TextFilter? filter)
+    private static void TextFilterOfUser(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TextFilter? filter)
     {
         if (filter is null)
         {
@@ -85,7 +73,7 @@ internal static partial class UserFilterUtility
 
             foreach (var item in filter.Partials.AsSpan(1))
             {
-                builder.AppendLiteral(filter.PartialOr ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
+                builder.AppendLiteral(filter.PartialOr ? Literal_Or() : Literal_And());
                 builder.AppendLiteral(origin);
                 builder.AppendLiteral(Literal_DotName());
                 builder.AppendLiteral(Literal_LikeQuotePercent());
@@ -108,7 +96,7 @@ internal static partial class UserFilterUtility
 
             foreach (var item in filter.IgnorePartials.AsSpan(1))
             {
-                builder.AppendLiteral(filter.IgnorePartialOr ? FilterUtility.Literal_Or() : FilterUtility.Literal_And());
+                builder.AppendLiteral(filter.IgnorePartialOr ? Literal_Or() : Literal_And());
                 builder.AppendLiteral(origin);
                 builder.AppendLiteral(Literal_DotName());
                 builder.AppendLiteral(Literal_LikeQuotePercent());
