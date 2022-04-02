@@ -4,6 +4,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
 {
     private readonly ILogger logger;
     private readonly bool logTrace;
+    private readonly bool logDebug;
     private readonly bool logError;
 
     internal readonly sqlite3 database;
@@ -74,6 +75,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
 
         this.logger = logger;
         logTrace = logger.IsEnabled(LogLevel.Trace);
+        logDebug = logger.IsEnabled(LogLevel.Debug);
         logError = logger.IsEnabled(LogLevel.Error);
     }
 
@@ -88,9 +90,9 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
             code = sqlite3_prepare_v3(database, query, persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out statement);
         }
 
-        if (logTrace)
+        if (logDebug)
         {
-            logger.LogTrace($"Query: {System.Text.Encoding.UTF8.GetString(query)}\nCode: {code}");
+            logger.LogDebug($"Query: {System.Text.Encoding.UTF8.GetString(query)}\nCode: {code}");
         }
 
         if (logError && code == SQLITE_ERROR)
@@ -110,9 +112,9 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
             code = sqlite3_prepare_v3(database, query.AsSpan(), persistent ? SQLITE_PREPARE_PERSISTENT : 0U, out statement);
         }
 
-        if (logTrace)
+        if (logDebug)
         {
-            logger.LogTrace($"Query: {query}\nCode: {code}");
+            logger.LogDebug($"Query: {query}\nCode: {code}");
         }
 
         if (logError && code == SQLITE_ERROR)
