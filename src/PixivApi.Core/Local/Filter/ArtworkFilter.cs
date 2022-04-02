@@ -142,11 +142,6 @@ public sealed class ArtworkFilter : IFilter<Artwork>
             return false;
         }
 
-        if (TagFilter is not null && !TagFilter.Filter(artwork.CalculateTags()))
-        {
-            return false;
-        }
-
         if (TitleFilter is not null)
         {
             var (Title, _) = (artwork.Title, artwork.Caption);
@@ -171,24 +166,21 @@ public sealed class ArtworkFilter : IFilter<Artwork>
         _ => artwork.Id,
     };
 
-    public async ValueTask InitializeAsync(IDatabase database, Func<FinderFacade> finderFacadeFunc, CancellationToken cancellationToken)
+    public void Initialize(IDatabase database, Func<FinderFacade> finderFacadeFunc)
     {
         this.database = database;
         FileExistanceFilter?.Initialize(finderFacadeFunc());
-
-        if (TagFilter is not null)
-        {
-            await TagFilter.InitializeAsync(database, cancellationToken).ConfigureAwait(false);
-        }
-
-        if (UserFilter is not null)
-        {
-            await UserFilter.InitializeAsync(database, cancellationToken).ConfigureAwait(false);
-        }
+        TagFilter?.Initialize(database);
+        UserFilter?.Initialize(database);
     }
 
     public async ValueTask<bool> SlowFilter(Artwork artwork, CancellationToken token)
     {
+        if (TagFilter is not null && !await TagFilter.FilterAsync(artwork.CalculateTags(), token).ConfigureAwait(false))
+        {
+            return false;
+        }
+
         if (UserFilter is not null)
         {
             var user = await database.GetUserAsync(artwork.UserId, token).ConfigureAwait(false);

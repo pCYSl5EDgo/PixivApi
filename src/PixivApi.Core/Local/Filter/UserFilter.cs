@@ -11,13 +11,7 @@ public sealed class UserFilter : IFilter<User>
 
     public bool HasSlowFilter => false;
 
-    public async ValueTask InitializeAsync(IDatabase database, CancellationToken token)
-    {
-        if (TagFilter is not null)
-        {
-            await TagFilter.InitializeAsync(database, token).ConfigureAwait(false);
-        }
-    }
+    public void Initialize(IDatabase database) => TagFilter?.Initialize(database);
 
     public bool FastFilter(User user)
     {
@@ -53,13 +47,16 @@ public sealed class UserFilter : IFilter<User>
             return false;
         }
 
-        if (TagFilter is not null && !TagFilter.Filter(user.ExtraTags?.ToDictionary(_ => 1U) ?? new()))
+        return true;
+    }
+
+    public async ValueTask<bool> SlowFilter(User user, CancellationToken token)
+    {
+        if (TagFilter is not null && !await TagFilter.FilterAsync(user.ExtraTags?.ToDictionary(_ => 1U) ?? new(), token).ConfigureAwait(false))
         {
             return false;
         }
 
         return true;
     }
-
-    public ValueTask<bool> SlowFilter(User value, CancellationToken token) => ValueTask.FromResult(true);
 }

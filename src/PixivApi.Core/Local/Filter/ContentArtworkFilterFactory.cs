@@ -12,6 +12,7 @@ public sealed class ContentArtworkFilterFactory : IArtworkFilterFactory<ReadOnly
         this.provider = provider;
     }
 
+#pragma warning disable CS1998
     public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, ReadOnlyMemory<byte> source, CancellationToken token)
     {
         if (source.Length == 0)
@@ -25,7 +26,7 @@ public sealed class ContentArtworkFilterFactory : IArtworkFilterFactory<ReadOnly
             return null;
         }
 
-        await filter.InitializeAsync(database, provider.GetRequiredService<FinderFacade>, token).ConfigureAwait(false);
+        filter.Initialize(database, provider.GetRequiredService<FinderFacade>);
         return filter;
     }
 
@@ -42,7 +43,8 @@ public sealed class ContentArtworkFilterFactory : IArtworkFilterFactory<ReadOnly
             return null;
         }
 
-        await filter.InitializeAsync(database, provider.GetRequiredService<FinderFacade>, token).ConfigureAwait(false);
+        filter.Initialize(database, provider.GetRequiredService<FinderFacade>);
         return filter;
     }
+#pragma warning restore CS1998
 }

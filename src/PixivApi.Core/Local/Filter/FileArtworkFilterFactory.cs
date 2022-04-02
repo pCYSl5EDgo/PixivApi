@@ -25,7 +25,7 @@ public sealed class FileArtworkFilterFactory : IArtworkFilterFactory<FileInfo>
             return null;
         }
 
-        await filter.InitializeAsync(database, provider.GetRequiredService<FinderFacade>, token).ConfigureAwait(false);
+        filter.Initialize(database, provider.GetRequiredService<FinderFacade>);
         return filter;
     }
 }
