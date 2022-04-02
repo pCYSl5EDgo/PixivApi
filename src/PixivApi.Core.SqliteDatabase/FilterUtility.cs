@@ -203,18 +203,7 @@ internal static partial class FilterUtility
             return;
         }
 
-        if (filter.ExceptSet is { Count: > 0 } except)
-        {
-            builder.And(ref and);
-            builder.AppendLiteral(Literal_Not());
-            builder.TagFilter(origin, table, except, filter.IgnoreOr);
-        }
-
-        if (filter.IntersectSet is { Count: > 0 } intersect)
-        {
-            builder.And(ref and);
-            builder.TagFilter(origin, table, intersect, filter.Or);
-        }
+        throw new NotImplementedException();
     }
 
     [StringLiteral.Utf8(".\"HideReason\"")]

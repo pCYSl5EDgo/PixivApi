@@ -53,7 +53,7 @@ public sealed class UserFilter : IFilter<User>
             return false;
         }
 
-        if (TagFilter is not null && !TagFilter.Filter(Array.Empty<uint>(), user.ExtraTags, null))
+        if (TagFilter is not null && !TagFilter.Filter(user.ExtraTags?.ToDictionary(_ => 1U) ?? new()))
         {
             return false;
         }

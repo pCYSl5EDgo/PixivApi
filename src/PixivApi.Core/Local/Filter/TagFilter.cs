@@ -7,190 +7,186 @@ public sealed class TagFilter
     [JsonPropertyName("ignore-exact")] public string[]? IgnoreExacts;
     [JsonPropertyName("ignore-partial")] public string[]? IgnorePartials;
 
-    [JsonPropertyName("or")] public bool Or = true;
+    [JsonPropertyName("or")] public bool Or = false;
     [JsonPropertyName("ignore-or")] public bool IgnoreOr = true;
 
-    [JsonIgnore] public HashSet<uint>? IntersectSet;
-    [JsonIgnore] public HashSet<uint>? ExceptSet;
+    [JsonIgnore] public bool AlwaysFailIntersect;
+    [JsonIgnore] public bool AlwaysFailExcept;
+    [JsonIgnore] public uint[] IntersectArray = Array.Empty<uint>();
+    [JsonIgnore] public uint[] ExceptArray = Array.Empty<uint>();
+    [JsonIgnore] public uint[][] IntersectArrayArray = Array.Empty<uint[]>();
+    [JsonIgnore] public uint[][] ExceptArrayArray = Array.Empty<uint[]>();
 
     public async ValueTask InitializeAsync(ITagDatabase database, CancellationToken token)
     {
-        IntersectSet = await CreatePartialAsync(database, Partials, token).ConfigureAwait(false);
-        ExceptSet = await CreatePartialAsync(database, IgnorePartials, token).ConfigureAwait(false);
-
-        if (Exacts is { Length: > 0 })
+        if (Or)
         {
-            foreach (var item in Exacts)
-            {
-                var number = await database.FindTagAsync(item, token).ConfigureAwait(false);
-                if (number > 0)
-                {
-                    (IntersectSet ??= new()).Add(number.Value);
-                }
-            }
-        }
-
-        if (IgnoreExacts is { Length: > 0 })
-        {
-            foreach (var item in IgnoreExacts)
-            {
-                var number = await database.FindTagAsync(item, token).ConfigureAwait(false);
-                if (number > 0)
-                {
-                    (ExceptSet ??= new()).Add(number.Value);
-                }
-            }
-        }
-    }
-
-    private static async ValueTask<HashSet<uint>?> CreatePartialAsync(ITagDatabase database, string[]? array, CancellationToken token)
-    {
-        if (array is not { Length: > 0 })
-        {
-            return null;
-        }
-
-        var answer = new HashSet<uint>(array.Length);
-        foreach (var item in array)
-        {
-            token.ThrowIfCancellationRequested();
-            await foreach (var tag in database.EnumeratePartialMatchTagAsync(item, token))
-            {
-                answer.Add(tag);
-            }
-        }
-
-        return answer.Count == 0 ? null : answer;
-    }
-
-    private static (bool, IEnumerable<uint>) CalculateHash(uint[] tags, uint[]? adds, uint[]? removes)
-    {
-        if (removes is { Length: > 0 })
-        {
-            if (adds is { Length: > 0 })
-            {
-                Array.Sort(removes);
-                Array.Sort(adds);
-                if (adds.SequenceEqual(removes))
-                {
-                    return (tags.Length != 0, tags);
-                }
-                else
-                {
-                    var set = new HashSet<uint>(tags);
-                    foreach (var item in adds)
-                    {
-                        set.Add(item);
-                    }
-
-                    foreach (var item in removes)
-                    {
-                        set.Remove(item);
-                    }
-
-                    return (set.Count != 0, set);
-                }
-            }
-            else
-            {
-                var set = new HashSet<uint>(tags);
-                foreach (var item in removes)
-                {
-                    set.Remove(item);
-                }
-
-                return (set.Count != 0, set);
-            }
+            IntersectArrayArray = await CalculateSetsAsync(database, Partials, Exacts, token).ConfigureAwait(false);
         }
         else
         {
-            if (adds is { Length: > 0 })
-            {
-                var set = new HashSet<uint>(tags);
-                foreach (var item in adds)
-                {
-                    set.Add(item);
-                }
+            (AlwaysFailIntersect, IntersectArray) = await CalculateArrayAsync(database, Exacts, token).ConfigureAwait(false);
+            IntersectArrayArray = await CalculateSetsAsync(database, Partials, token).ConfigureAwait(false);
+        }
 
-                return (set.Count != 0, set);
-            }
-            else
-            {
-                return (tags.Length != 0, tags);
-            }
+        if (IgnoreOr)
+        {
+            ExceptArrayArray = await CalculateSetsAsync(database, IgnorePartials, IgnoreExacts, token).ConfigureAwait(false);
+        }
+        else
+        {
+            (AlwaysFailExcept, ExceptArray) = await CalculateArrayAsync(database, IgnoreExacts, token).ConfigureAwait(false);
+            ExceptArrayArray = await CalculateSetsAsync(database, IgnorePartials, token).ConfigureAwait(false);
         }
     }
 
-    private static bool ContainsAll(HashSet<uint> set, IEnumerable<uint> tags)
+    private static async ValueTask<(bool, uint[])> CalculateArrayAsync(ITagDatabase database, string[]? exacts, CancellationToken token)
     {
-        foreach (var tag in tags)
+        if (exacts is not { Length: > 0 })
         {
-            if (!set.Contains(tag))
+            return (false, Array.Empty<uint>());
+        }
+
+        var rental = ArrayPool<uint>.Shared.Rent(exacts.Length);
+        try
+        {
+            var answerCount = 0;
+            for (var i = 0; i < exacts.Length; i++)
+            {
+                token.ThrowIfCancellationRequested();
+                var item = await database.FindTagAsync(exacts[i], token).ConfigureAwait(false);
+                if (!item.HasValue)
+                {
+                    return (true, Array.Empty<uint>());
+                }
+
+                rental[answerCount++] = item.Value;
+            }
+
+            var answer = new uint[answerCount];
+            Array.Copy(rental, answer, answerCount);
+            return (false, answer);
+        }
+        finally
+        {
+            ArrayPool<uint>.Shared.Return(rental);
+        }
+    }
+
+    private static async ValueTask<uint[][]> CalculateSetsAsync(ITagDatabase database, string[]? partials, string[]? exacts, CancellationToken token)
+    {
+        if (exacts is not { Length: > 0 } && partials is not { Length: > 0 })
+        {
+            return Array.Empty<uint[]>();
+        }
+
+        var answer = new uint[1][];
+        var set = new HashSet<uint>();
+        if (exacts is { Length: > 0 })
+        {
+            foreach (var item in exacts)
+            {
+                token.ThrowIfCancellationRequested();
+                var found = await database.FindTagAsync(item, token).ConfigureAwait(false);
+                if (found.HasValue)
+                {
+                    set.Add(found.Value);
+                }
+            }
+        }
+
+        if (partials is { Length: > 0 })
+        {
+            foreach (var item in partials)
+            {
+                token.ThrowIfCancellationRequested();
+                await foreach (var found in database.EnumeratePartialMatchTagAsync(item, token))
+                {
+                    set.Add(found);
+                }
+            }
+        }
+
+        answer[0] = set.ToArray();
+        return answer;
+    }
+
+    private static async ValueTask<uint[][]> CalculateSetsAsync(ITagDatabase database, string[]? partials, CancellationToken token)
+    {
+        if (partials is not { Length: > 0 })
+        {
+            return Array.Empty<uint[]>();
+        }
+
+        var answer = new uint[partials.Length][];
+        for (var i = 0; i < answer.Length; i++)
+        {
+            token.ThrowIfCancellationRequested();
+
+            var item = partials[i];
+            answer[i] = await database.EnumeratePartialMatchTagAsync(item, token).ToArrayAsync(token).ConfigureAwait(false);
+        }
+
+        return answer;
+    }
+
+    public bool Filter(Dictionary<uint, uint> dictionary)
+    {
+        if (AlwaysFailIntersect)
+        {
+            return false;
+        }
+
+        foreach (var item in IntersectArray)
+        {
+            if (!dictionary.TryGetValue(item, out var kind) || kind == 0)
             {
                 return false;
             }
         }
 
-        return true;
-    }
-
-    private static bool ContainsAny(HashSet<uint> set, IEnumerable<uint> tags)
-    {
-        foreach (var tag in tags)
+        foreach (var array in IntersectArrayArray)
         {
-            if (set.Contains(tag))
+            foreach (var item in array)
             {
-                return true;
+                if (dictionary.TryGetValue(item, out var kind) && kind != 0)
+                {
+                    goto OK;
+                }
             }
+
+            return false;
+        OK:;
         }
 
-        return false;
-    }
-
-    public bool Filter(uint[] tags, uint[]? adds, uint[]? removes)
-    {
-        var (notEmpty, enumerable) = CalculateHash(tags, adds, removes);
-        if (IntersectSet is { Count: > 0 })
+        if (!AlwaysFailExcept)
         {
-            if (!notEmpty)
+            foreach (var item in ExceptArray)
             {
-                return false;
+                if (!dictionary.TryGetValue(item, out var kind) || kind == 0)
+                {
+                    goto OK_Except;
+                }
             }
 
-            if (Or)
+            foreach (var array in ExceptArrayArray)
             {
-                if (!ContainsAny(IntersectSet, enumerable))
+                foreach (var item in array)
                 {
-                    return false;
+                    if (dictionary.TryGetValue(item, out var kind) && kind != 0)
+                    {
+                        goto NG;
+                    }
                 }
+
+                goto OK_Except;
+            NG:;
             }
-            else
-            {
-                if (!ContainsAll(IntersectSet, enumerable))
-                {
-                    return false;
-                }
-            }
+
+            return false;
         }
 
-        if (ExceptSet is { Count: > 0 } && notEmpty)
-        {
-            if (IgnoreOr)
-            {
-                if (ContainsAny(ExceptSet, enumerable))
-                {
-                    return false;
-                }
-            }
-            else
-            {
-                if (ContainsAll(ExceptSet, enumerable))
-                {
-                    return false;
-                }
-            }
-        }
-
+    OK_Except:
         return true;
     }
 }

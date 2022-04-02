@@ -142,7 +142,7 @@ public sealed class ArtworkFilter : IFilter<Artwork>
             return false;
         }
 
-        if (TagFilter is not null && !TagFilter.Filter(artwork.Tags, artwork.ExtraTags, artwork.ExtraFakeTags))
+        if (TagFilter is not null && !TagFilter.Filter(artwork.CalculateTags()))
         {
             return false;
         }
