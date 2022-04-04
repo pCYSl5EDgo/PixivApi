@@ -31,6 +31,11 @@ public partial class LocalClient
                 System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Load database.");
             }
 
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+
             var allCount = await database.CountArtworkAsync(token).ConfigureAwait(false);
             logger.LogTrace($"All Count: {allCount}");
             if (artworkFilter is null)
@@ -50,14 +55,19 @@ public partial class LocalClient
             {
                 System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Start collecting.");
             }
-
+            
+            if (token.IsCancellationRequested)
+            {
+                return;
+            }
+            
             var count = 0UL;
             var mask = (1UL << maskPowerOf2) - 1UL;
-
             if (artworkFilter.ShouldHandleFileExistanceFilter)
             {
                 await foreach (var artwork in database.FilterAsync(artworkFilter, token))
                 {
+                    token.ThrowIfCancellationRequested();
                     var c = ++count;
                     if (errorNotRedirected && (c & mask) == 0)
                     {
