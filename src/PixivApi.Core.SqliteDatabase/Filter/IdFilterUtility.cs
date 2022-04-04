@@ -59,33 +59,49 @@ internal static partial class FilterUtility
             return;
         }
 
-        static void Add(ref Utf8ValueStringBuilder builder, ref bool first, ref int index, ulong[] ids, byte alias)
+        if (filter.Ids is { Length: > 0 } intersects)
         {
             builder.WithOrComma(ref first);
-            builder.Add(alias, ++index);
+            builder.Add(intersectAlias, ++intersect);
             builder.AppendLiteral(Literal_ParenIdParenAs());
             builder.AppendLiteral(Literal_Values());
             builder.AppendAscii('(');
-            builder.Append(ids[0]);
-            for (var i = 1; i < ids.Length; i++)
+            builder.Append(intersects[0]);
+            for (var i = 1; i < intersects.Length; i++)
             {
                 builder.AppendLiteral(Literal_ParenCommaParen());
-                builder.Append(ids[i]);
+                builder.Append(intersects[i]);
             }
 
-            builder.AppendLiteral(Literal_RRParen());
-        }
+            builder.AppendAscii(')');
 
-        if (filter.Ids is { Length: > 0 })
-        {
-            Add(ref builder, ref first, ref intersect, filter.Ids, intersectAlias);
+            if (except >= 0)
+            {
+                builder.AppendLiteral(Literal_Except());
+                builder.AppendLiteral(Literal_SelectIdFrom());
+                builder.Add(exceptAlias, except);
+            }
+
+            builder.AppendAscii(')');
         }
 
         if (filter.IgnoreIds is { Length: > 0 } excepts)
         {
             if (intersect == -1)
             {
-                Add(ref builder, ref first, ref except, filter.IgnoreIds, exceptAlias);
+                builder.WithOrComma(ref first);
+                builder.Add(exceptAlias, ++except);
+                builder.AppendLiteral(Literal_ParenIdParenAs());
+                builder.AppendLiteral(Literal_Values());
+                builder.AppendAscii('(');
+                builder.Append(excepts[0]);
+                for (var i = 1; i < excepts.Length; i++)
+                {
+                    builder.AppendLiteral(Literal_ParenCommaParen());
+                    builder.Append(excepts[i]);
+                }
+
+                builder.AppendLiteral(Literal_RRParen());
             }
             else
             {
