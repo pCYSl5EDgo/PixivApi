@@ -34,27 +34,29 @@ internal sealed partial class Database
 
     private async ValueTask<bool> ExistsArtworkAsync(ulong id, CancellationToken token)
     {
-        var statement = existsArtworkStatement ??= Prepare(Literal_ExistsArtwork(), true, out _);
-        Bind(statement, 1, id);
-        try
+        if (existsArtworkStatement is null)
         {
-            do
-            {
-                token.ThrowIfCancellationRequested();
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+            existsArtworkStatement = Prepare(Literal_ExistsArtwork(), true, out _);
+        }
+        else
+        {
+            Reset(existsArtworkStatement);
+        }
 
-                return code == SQLITE_ROW;
-            } while (true);
-        }
-        finally
+        var statement = existsArtworkStatement;
+        Bind(statement, 1, id);
+        do
         {
-            Reset(statement);
-        }
+            token.ThrowIfCancellationRequested();
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
+
+            return code == SQLITE_ROW;
+        } while (true);
     }
 
     public async IAsyncEnumerable<bool> AddOrUpdateAsync(IEnumerable<Artwork> collection, [EnumeratorCancellation] CancellationToken token)
@@ -177,7 +179,16 @@ internal sealed partial class Database
 
     private ValueTask DeleteHidesAsync(ulong id, CancellationToken token)
     {
-        var statement = deleteHidesStatement ??= Prepare(Literal_DeleteHides(), true, out _);
+        if (deleteHidesStatement is null)
+        {
+            deleteHidesStatement = Prepare(Literal_DeleteHides(), true, out _);
+        }
+        else
+        {
+            Reset(deleteHidesStatement);
+        }
+
+        var statement = deleteHidesStatement;
         Bind(statement, 1, id);
         return ExecuteAsync(statement, token);
     }
@@ -285,7 +296,16 @@ internal sealed partial class Database
 
     private ValueTask InsertArtworkAsync(Artwork answer, CancellationToken token)
     {
-        var statement = insertArtworkStatement ??= Prepare(Literal_InsertArtwork_Parts_0(), true, out _);
+        if (insertArtworkStatement is null)
+        {
+            insertArtworkStatement = Prepare(Literal_InsertArtwork_Parts_0(), true, out _);
+        }
+        else
+        {
+            Reset(insertArtworkStatement);
+        }
+
+        var statement = insertArtworkStatement;
         Bind(statement, 0x01, answer.Id);
         Bind(statement, 0x02, answer.UserId);
         Bind(statement, 0x03, answer.PageCount);
@@ -317,7 +337,16 @@ internal sealed partial class Database
 
     private ValueTask UpdateArtworkAsync(Artwork answer, CancellationToken token)
     {
-        var statement = updateArtworkStatement ??= Prepare(Literal_Update_Artwowrk(), true, out _);
+        if (updateArtworkStatement is null)
+        {
+            updateArtworkStatement = Prepare(Literal_Update_Artwowrk(), true, out _);
+        }
+        else
+        {
+            Reset(updateArtworkStatement);
+        }
+
+        var statement = updateArtworkStatement;
         Bind(statement, 0x1, answer.Id);
         Bind(statement, 0x2, answer.IsVisible);
         Bind(statement, 0x3, answer.IsMuted);
@@ -425,7 +454,16 @@ internal sealed partial class Database
 
     private ValueTask InsertOrUpdateArtworkAsync(ArtworkResponseContent answer, CancellationToken token)
     {
-        var statement = insertOrUpdateArtwork_ArtworkResponseContent_Statement ??= Prepare(Literal_Update_Artwowrk_ArtworkResponseContent(), true, out _);
+        if (insertOrUpdateArtwork_ArtworkResponseContent_Statement is null)
+        {
+            insertOrUpdateArtwork_ArtworkResponseContent_Statement = Prepare(Literal_Update_Artwowrk_ArtworkResponseContent(), true, out _);
+        }
+        else
+        {
+            Reset(insertOrUpdateArtwork_ArtworkResponseContent_Statement);
+        }
+
+        var statement = insertOrUpdateArtwork_ArtworkResponseContent_Statement;
         Bind(statement, 0x01, answer.Id);
         Bind(statement, 0x02, answer.User.Id);
         Bind(statement, 0x03, answer.PageCount);

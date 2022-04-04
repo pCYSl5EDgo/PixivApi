@@ -20,16 +20,30 @@ internal sealed partial class Database
     public void EndTransaction()
     {
         logger.LogDebug("End Transaction");
-        endTransactionStatement ??= Prepare(Literal_End_Transaction(), true, out _);
+        if (endTransactionStatement is null)
+        {
+            endTransactionStatement = Prepare(Literal_End_Transaction(), true, out _);
+        }
+        else
+        {
+            Reset(endTransactionStatement);
+        }
+
         Step(endTransactionStatement);
-        Reset(endTransactionStatement);
     }
 
     public void RollbackTransaction()
     {
         logger.LogDebug("Rollback Transaction");
-        rollbackTransactionStatement ??= Prepare(Literal_Rollback_Transaction(), true, out _);
+        if (rollbackTransactionStatement is null)
+        {
+            rollbackTransactionStatement = Prepare(Literal_Rollback_Transaction(), true, out _);
+        }
+        else
+        {
+            Reset(rollbackTransactionStatement);
+        }
+
         Step(rollbackTransactionStatement);
-        Reset(rollbackTransactionStatement);
     }
 }

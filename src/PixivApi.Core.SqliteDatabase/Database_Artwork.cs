@@ -26,63 +26,67 @@ internal sealed partial class Database
 
     private async ValueTask ColumnTagsAsync(Artwork artwork, CancellationToken token)
     {
-        var statement = getTagsOfArtworkStatement ??= Prepare(Literal_SelectTagId_FromArtworkTagCrossTable_WhereId(), true, out _);
+        if (getTagsOfArtworkStatement is null)
+        {
+            getTagsOfArtworkStatement = Prepare(Literal_SelectTagId_FromArtworkTagCrossTable_WhereId(), true, out _);
+        }
+        else
+        {
+            Reset(getTagsOfArtworkStatement);
+        }
+
+        var statement = getTagsOfArtworkStatement;
         Bind(statement, 1, artwork.Id);
-        try
+        do
         {
-            do
+            var code = Step(statement);
+            while (code == SQLITE_BUSY)
             {
-                var code = Step(statement);
-                while (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    code = Step(statement);
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                code = Step(statement);
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    return;
-                }
+            if (code == SQLITE_DONE)
+            {
+                return;
+            }
 
-                var tagId = CU32(statement, 0);
-                var kind = CU32(statement, 1);
-                switch (kind)
-                {
-                    case 0:
-                        Array.Resize(ref artwork.ExtraFakeTags, (artwork.ExtraFakeTags?.Length ?? 0) + 1);
-                        artwork.ExtraFakeTags[^1] = tagId;
-                        break;
-                    case 1:
-                        Array.Resize(ref artwork.Tags, artwork.Tags.Length + 1);
-                        artwork.Tags[^1] = tagId;
-                        break;
-                    case 2:
-                        Array.Resize(ref artwork.ExtraTags, (artwork.ExtraTags?.Length ?? 0) + 1);
-                        artwork.ExtraTags[^1] = tagId;
-                        break;
-                    default:
-                        break;
-                }
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            var tagId = CU32(statement, 0);
+            var kind = CU32(statement, 1);
+            switch (kind)
+            {
+                case 0:
+                    Array.Resize(ref artwork.ExtraFakeTags, (artwork.ExtraFakeTags?.Length ?? 0) + 1);
+                    artwork.ExtraFakeTags[^1] = tagId;
+                    break;
+                case 1:
+                    Array.Resize(ref artwork.Tags, artwork.Tags.Length + 1);
+                    artwork.Tags[^1] = tagId;
+                    break;
+                case 2:
+                    Array.Resize(ref artwork.ExtraTags, (artwork.ExtraTags?.Length ?? 0) + 1);
+                    artwork.ExtraTags[^1] = tagId;
+                    break;
+                default:
+                    break;
+            }
+        } while (true);
     }
 
     private async ValueTask ColumnToolsAsync(Artwork answer, CancellationToken token)
     {
-        var statement = getToolsOfArtworkStatement ??= Prepare(Literal_SelectToolId_FromArtworkToolCrossTable_WhereId(), true, out _);
+        if (getToolsOfArtworkStatement is null)
+        {
+            getToolsOfArtworkStatement = Prepare(Literal_SelectToolId_FromArtworkToolCrossTable_WhereId(), true, out _);
+        }
+        else
+        {
+            Reset(getToolsOfArtworkStatement);
+        }
+
+        var statement = getToolsOfArtworkStatement;
         Bind(statement, 1, answer.Id);
-        try
-        {
-            answer.Tools = await CU32ArrayAsync(statement, token).ConfigureAwait(false);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+        answer.Tools = await CU32ArrayAsync(statement, token).ConfigureAwait(false);
     }
 
     public async ValueTask<Artwork?> GetArtworkAsync(ulong id, CancellationToken token)
@@ -92,38 +96,40 @@ internal sealed partial class Database
             return null;
         }
 
-        var statement = getArtworkStatement ??= Prepare(Literal_SelectArtwork_FromArtworkTable_WhereId(), true, out _);
+        if (getArtworkStatement is null)
+        {
+            getArtworkStatement = Prepare(Literal_SelectArtwork_FromArtworkTable_WhereId(), true, out _);
+        }
+        else
+        {
+            Reset(getArtworkStatement);
+        }
+
+        var statement = getArtworkStatement;
         Bind(statement, 1, id);
-        try
+        do
         {
-            do
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    return null;
-                }
+            if (code == SQLITE_DONE)
+            {
+                return null;
+            }
 
 
-                var answer = new Artwork()
-                {
-                    Id = id,
-                };
+            var answer = new Artwork()
+            {
+                Id = id,
+            };
 
-                await ColumnArtworkAsync(answer, statement, 0, token).ConfigureAwait(false);
-                return answer;
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            await ColumnArtworkAsync(answer, statement, 0, token).ConfigureAwait(false);
+            return answer;
+        } while (true);
     }
 
     private async ValueTask ColumnArtworkAsync(Artwork answer, sqlite3_stmt statement, int offset, CancellationToken token)
@@ -172,19 +178,21 @@ internal sealed partial class Database
 
     private async ValueTask ColumnUgoiraFramesAsync(Artwork answer, CancellationToken token)
     {
-        var statement = getUgoiraFramesStatement ??= Prepare(Literal_SelectUgoiraFrames(), true, out _);
-        Bind(statement, 1, answer.Id);
-        try
+        if (getUgoiraFramesStatement is null)
         {
-            answer.UgoiraFrames = await CU16ArrayAsync(statement, token).ConfigureAwait(false);
-            if (answer.UgoiraFrames.Length == 0)
-            {
-                answer.UgoiraFrames = null;
-            }
+            getUgoiraFramesStatement = Prepare(Literal_SelectUgoiraFrames(), true, out _);
         }
-        finally
+        else
         {
-            Reset(statement);
+            Reset(getUgoiraFramesStatement);
+        }
+
+        var statement = getUgoiraFramesStatement;
+        Bind(statement, 1, answer.Id);
+        answer.UgoiraFrames = await CU16ArrayAsync(statement, token).ConfigureAwait(false);
+        if (answer.UgoiraFrames.Length == 0)
+        {
+            answer.UgoiraFrames = null;
         }
     }
 
@@ -193,33 +201,35 @@ internal sealed partial class Database
 
     private async ValueTask ColumnHideReasonsAsync(Artwork answer, CancellationToken token)
     {
-        var statement = getHideReasonsStatement ??= Prepare(Literal_SelectHideReasons(), true, out _);
+        if (getHideReasonsStatement is null)
+        {
+            getHideReasonsStatement = Prepare(Literal_SelectHideReasons(), true, out _);
+        }
+        else
+        {
+            Reset(getHideReasonsStatement);
+        }
+
+        var statement = getHideReasonsStatement;
         Bind(statement, 1, answer.Id);
-        try
+        do
         {
-            do
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    break;
-                }
+            if (code == SQLITE_DONE)
+            {
+                break;
+            }
 
-                var index = CU32(statement, 0);
-                var reason = (HideReason)(byte)CI32(statement, 1);
-                (answer.ExtraPageHideReasonDictionary ??= new())[index] = reason;
-            } while (!token.IsCancellationRequested);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            var index = CU32(statement, 0);
+            var reason = (HideReason)(byte)CI32(statement, 1);
+            (answer.ExtraPageHideReasonDictionary ??= new())[index] = reason;
+        } while (!token.IsCancellationRequested);
     }
 
     private const string EnumerateArtworkQuery = "SELECT \"Origin\".\"Id\", \"Origin\".\"UserId\", \"Origin\".\"PageCount\", \"Origin\".\"Width\", \"Origin\".\"Height\", \"Origin\".\"Type\", \"Origin\".\"Extension\", \"Origin\".\"IsXRestricted\", \"Origin\".\"IsVisible\", \"Origin\".\"IsMuted\", \"Origin\".\"CreateDate\", \"Origin\".\"FileDate\", \"Origin\".\"TotalView\", \"Origin\".\"TotalBookmarks\", \"Origin\".\"HideReason\", \"Origin\".\"IsOfficiallyRemoved\", \"Origin\".\"IsBookmarked\", \"Origin\".\"Title\", \"Origin\".\"Caption\", \"Origin\".\"Memo\" FROM \"ArtworkTable\" AS \"Origin\"";
@@ -229,42 +239,44 @@ internal sealed partial class Database
 
     public async IAsyncEnumerable<Artwork> EnumerateArtworkAsync([EnumeratorCancellation] CancellationToken token)
     {
-        var statement = enumerateArtworkStatement ??= Prepare(Literal_EnumerateArtwork(), true, out _);
-        try
+        if (enumerateArtworkStatement is null)
         {
-            do
+            enumerateArtworkStatement = Prepare(Literal_EnumerateArtwork(), true, out _);
+        }
+        else
+        {
+            Reset(enumerateArtworkStatement);
+        }
+
+        var statement = enumerateArtworkStatement;
+        do
+        {
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    yield break;
-                }
+            if (code == SQLITE_DONE)
+            {
+                yield break;
+            }
 
-                var id = CU64(statement, 0);
-                if (id == 0)
-                {
-                    continue;
-                }
+            var id = CU64(statement, 0);
+            if (id == 0)
+            {
+                continue;
+            }
 
-                var answer = new Artwork
-                {
-                    Id = id,
-                };
+            var answer = new Artwork
+            {
+                Id = id,
+            };
 
-                await ColumnArtworkAsync(answer, statement, 1, token).ConfigureAwait(false);
-                yield return answer;
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            await ColumnArtworkAsync(answer, statement, 1, token).ConfigureAwait(false);
+            yield return answer;
+        } while (true);
     }
 
     [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkRemoveTable\" VALUES (?)")]
@@ -272,25 +284,27 @@ internal sealed partial class Database
 
     public async ValueTask OfficiallyRemoveArtwork(ulong id, CancellationToken token)
     {
-        var statement = officiallyRemoveArtworkStatement ??= Prepare(Literal_Remove_Artwork(), true, out _);
-        Bind(statement, 1, id);
-        try
+        if (officiallyRemoveArtworkStatement is null)
         {
-            do
-            {
-                var code = Step(statement);
-                if (code != SQLITE_BUSY)
-                {
-                    break;
-                }
+            officiallyRemoveArtworkStatement = Prepare(Literal_Remove_Artwork(), true, out _);
+        }
+        else
+        {
+            Reset(officiallyRemoveArtworkStatement);
+        }
 
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-            } while (!token.IsCancellationRequested);
-        }
-        finally
+        var statement = officiallyRemoveArtworkStatement;
+        Bind(statement, 1, id);
+        do
         {
-            Reset(statement);
-        }
+            var code = Step(statement);
+            if (code != SQLITE_BUSY)
+            {
+                break;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+        } while (!token.IsCancellationRequested);
     }
 
     [StringLiteral.Utf8("SELECT \"Index\" FROM \"HidePageTable\" WHERE \"Id\" = ? AND \"HideReason\" <> 0 ORDER BY \"Index\" ASC")]

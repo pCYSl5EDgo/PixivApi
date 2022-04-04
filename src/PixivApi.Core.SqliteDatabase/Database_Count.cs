@@ -30,30 +30,23 @@ internal sealed partial class Database
 
     private async ValueTask<ulong> CountAsync(sqlite3_stmt statement, CancellationToken token)
     {
-        try
+        do
         {
-            do
+            token.ThrowIfCancellationRequested();
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
-                token.ThrowIfCancellationRequested();
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_ROW)
-                {
-                    return CU64(statement, 0);
-                }
+            if (code == SQLITE_ROW)
+            {
+                return CU64(statement, 0);
+            }
 
-                throw new InvalidOperationException($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            throw new InvalidOperationException($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
+        } while (true);
     }
 
     public ValueTask<ulong> CountArtworkAsync(CancellationToken token) => CountAsync(countArtworkStatement ??= PrepareCountStatement(Literal_Id(), Literal_ArtworkTable()), token);

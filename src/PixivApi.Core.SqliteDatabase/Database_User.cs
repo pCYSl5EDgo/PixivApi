@@ -16,59 +16,62 @@ internal sealed partial class Database
 
     public async ValueTask<User?> GetUserAsync(ulong id, CancellationToken token)
     {
-        var statement = getUserStatement ??= Prepare(Literal_SelectUser_FromUserTable_WhereId(), true, out _);
-        Bind(statement, 1, id);
-
-        try
+        if (getUserStatement is null)
         {
-            do
-            {
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    token.ThrowIfCancellationRequested();
-                    continue;
-                }
-
-                if (code == SQLITE_DONE)
-                {
-                    return null;
-                }
-
-                var answer = new User()
-                {
-                    Id = id,
-                };
-
-                var hasDetail = ColumnUser(answer, getUserStatement, 0);
-                if (hasDetail)
-                {
-                    await ColumnUserDetailAsync(answer, token).ConfigureAwait(false);
-                }
-
-                await ColumnTagsAsync(answer, token).ConfigureAwait(false);
-                return answer;
-            } while (true);
+            getUserStatement = Prepare(Literal_SelectUser_FromUserTable_WhereId(), true, out _);
         }
-        finally
+        else
         {
             Reset(getUserStatement);
         }
+
+        var statement = getUserStatement;
+        Bind(statement, 1, id);
+        do
+        {
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                continue;
+            }
+
+            if (code == SQLITE_DONE)
+            {
+                return null;
+            }
+
+            var answer = new User()
+            {
+                Id = id,
+            };
+
+            var hasDetail = ColumnUser(answer, getUserStatement, 0);
+            if (hasDetail)
+            {
+                await ColumnUserDetailAsync(answer, token).ConfigureAwait(false);
+            }
+
+            await ColumnTagsAsync(answer, token).ConfigureAwait(false);
+            return answer;
+        } while (true);
     }
 
     private async ValueTask ColumnTagsAsync(User user, CancellationToken token)
     {
-        var statement = getTagsOfUserStatement ??= Prepare(Literal_SelectTagId_FromUserTagCrossTable_WhereId(), true, out _);
+        if (getTagsOfUserStatement is null)
+        {
+            getTagsOfUserStatement = Prepare(Literal_SelectTagId_FromUserTagCrossTable_WhereId(), true, out _);
+        }
+        else
+        {
+            Reset(getTagsOfUserStatement);
+        }
+
+        var statement = getTagsOfUserStatement;
         Bind(statement, 1, user.Id);
-        try
-        {
-            user.ExtraTags = await CU32ArrayAsync(statement, token).ConfigureAwait(false);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+        user.ExtraTags = await CU32ArrayAsync(statement, token).ConfigureAwait(false);
     }
 
     private static bool ColumnUser(User user, sqlite3_stmt statement, int offset)
@@ -99,7 +102,16 @@ internal sealed partial class Database
 
     private async ValueTask ColumnUserDetailAsync(User user, CancellationToken token)
     {
-        var statement = getUserDetailStatement ??= Prepare(Literal_GetUserDetail(), true, out _);
+        if (getUserDetailStatement is null)
+        {
+            getUserDetailStatement = Prepare(Literal_GetUserDetail(), true, out _);
+        }
+        else
+        {
+            Reset(getUserDetailStatement);
+        }
+
+        var statement = getUserDetailStatement;
         Bind(statement, 1, user.Id);
 
         static void ColumnProfile(sqlite3_stmt statement, [NotNull] ref User.DetailProfile? profile)
@@ -159,24 +171,17 @@ internal sealed partial class Database
             workspace.WorkspaceImageUrl = CStr(statement, 41);
         }
 
-        try
+        int code;
+        while ((code = Step(statement)) == SQLITE_BUSY)
         {
-            int code;
-            while ((code = Step(statement)) == SQLITE_BUSY)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-            }
-
-            if (code == SQLITE_ROW)
-            {
-                ColumnProfile(statement, ref user.Profile);
-                ColumnPublicity(statement, ref user.ProfilePublicity);
-                ColumnWorkspace(statement, ref user.Workspace);
-            }
+            await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
         }
-        finally
+
+        if (code == SQLITE_ROW)
         {
-            Reset(statement);
+            ColumnProfile(statement, ref user.Profile);
+            ColumnPublicity(statement, ref user.ProfilePublicity);
+            ColumnWorkspace(statement, ref user.Workspace);
         }
     }
 
@@ -190,52 +195,54 @@ internal sealed partial class Database
 
     public async IAsyncEnumerable<User> EnumerateUserAsync([EnumeratorCancellation] CancellationToken token)
     {
-        var statement = enumerateUserStatement ??= Prepare(Literal_EnumerateUser(), true, out _);
-        try
+        if (enumerateUserStatement is null)
         {
-            do
+            enumerateUserStatement = Prepare(Literal_EnumerateUser(), true, out _);
+        }
+        else
+        {
+            Reset(enumerateUserStatement);
+        }
+
+        var statement = enumerateUserStatement;
+        do
+        {
+            if (token.IsCancellationRequested)
             {
-                if (token.IsCancellationRequested)
-                {
-                    yield break;
-                }
+                yield break;
+            }
 
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    break;
-                }
+            if (code == SQLITE_DONE)
+            {
+                break;
+            }
 
-                var id = CU64(enumerateUserStatement, 0);
-                if (id == 0)
-                {
-                    continue;
-                }
+            var id = CU64(enumerateUserStatement, 0);
+            if (id == 0)
+            {
+                continue;
+            }
 
-                var answer = new User
-                {
-                    Id = id,
-                };
+            var answer = new User
+            {
+                Id = id,
+            };
 
-                await ColumnTagsAsync(answer, token).ConfigureAwait(false);
-                var hasDetail = ColumnUser(answer, enumerateUserStatement, 1);
-                if (hasDetail)
-                {
-                    await ColumnUserDetailAsync(answer, token).ConfigureAwait(false);
-                }
-                yield return answer;
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            await ColumnTagsAsync(answer, token).ConfigureAwait(false);
+            var hasDetail = ColumnUser(answer, enumerateUserStatement, 1);
+            if (hasDetail)
+            {
+                await ColumnUserDetailAsync(answer, token).ConfigureAwait(false);
+            }
+            yield return answer;
+        } while (true);
     }
 
     [StringLiteral.Utf8("INSERT OR IGNORE INTO \"UserRemoveTable\" VALUES (?)")]
@@ -243,25 +250,27 @@ internal sealed partial class Database
 
     public async ValueTask OfficiallyRemoveUser(ulong id, CancellationToken token)
     {
-        var statement = officiallyRemoveUserStatement ??= Prepare(Literal_Remove_User(), true, out _);
-        Bind(statement, 1, id);
-        try
+        if (officiallyRemoveUserStatement is null)
         {
-            do
-            {
-                var code = Step(statement);
-                if (code != SQLITE_BUSY)
-                {
-                    break;
-                }
+            officiallyRemoveUserStatement = Prepare(Literal_Remove_User(), true, out _);
+        }
+        else
+        {
+            Reset(officiallyRemoveUserStatement);
+        }
 
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-            } while (!token.IsCancellationRequested);
-        }
-        finally
+        var statement = officiallyRemoveUserStatement;
+        Bind(statement, 1, id);
+        do
         {
-            Reset(statement);
-        }
+            var code = Step(statement);
+            if (code != SQLITE_BUSY)
+            {
+                break;
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+        } while (!token.IsCancellationRequested);
     }
 
     public async IAsyncEnumerable<User> FilterAsync(UserFilter filter, [EnumeratorCancellation] CancellationToken token)

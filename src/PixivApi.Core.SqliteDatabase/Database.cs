@@ -200,34 +200,27 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
 
     private async ValueTask ExecuteAsync(sqlite3_stmt statement, CancellationToken token)
     {
-        try
+        do
         {
-            do
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    break;
-                }
+            if (code == SQLITE_DONE)
+            {
+                break;
+            }
 
-                if (code == SQLITE_ROW)
-                {
-                    continue;
-                }
+            if (code == SQLITE_ROW)
+            {
+                continue;
+            }
 
-                throw new InvalidOperationException($"Error: {code} - {sqlite3_errmsg(database).utf8_to_string()}");
-            } while (!token.IsCancellationRequested);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            throw new InvalidOperationException($"Error: {code} - {sqlite3_errmsg(database).utf8_to_string()}");
+        } while (!token.IsCancellationRequested);
     }
 
     #region Bind

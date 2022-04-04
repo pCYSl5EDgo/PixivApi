@@ -10,18 +10,20 @@ internal sealed partial class Database
 
     public async ValueTask<ulong[]?> GetRankingAsync(DateOnly date, RankingKind kind, CancellationToken token)
     {
-        var statement = getRankingStatement ??= Prepare(Literal_GetRanking(), true, out _);
+        if (getRankingStatement is null)
+        {
+            getRankingStatement = Prepare(Literal_GetRanking(), true, out _);
+        }
+        else
+        {
+            Reset(getRankingStatement);
+        }
+
+        var statement = getRankingStatement;
         Bind(statement, 1, date);
         Bind(statement, 2, kind);
-        try
-        {
-            var answer = await CU64ArrayAsync(statement, token).ConfigureAwait(false);
-            return answer.Length == 0 ? null : answer;
-        }
-        finally
-        {
-            Reset(statement);
-        }
+        var answer = await CU64ArrayAsync(statement, token).ConfigureAwait(false);
+        return answer.Length == 0 ? null : answer;
     }
 
     [StringLiteral.Utf8("INSERT INTO \"RankingTable\" VALUES (?1, ?2, ?3, ?4")]
@@ -62,6 +64,10 @@ internal sealed partial class Database
                 statement = Prepare(ref builder, true, out _);
                 builder.Dispose();
             }
+            else
+            {
+                Reset(statement);
+            }
 
             return statement;
         }
@@ -75,16 +81,9 @@ internal sealed partial class Database
             Bind(statement, ++offset, values[i]);
         }
 
-        try
+        while (Step(statement) == SQLITE_BUSY && !token.IsCancellationRequested)
         {
-            while (Step(statement) == SQLITE_BUSY && !token.IsCancellationRequested)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            Reset(statement);
+            await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
         }
     }
 

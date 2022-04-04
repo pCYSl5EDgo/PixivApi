@@ -22,60 +22,73 @@ internal sealed partial class Database
     private async ValueTask<string?> GetTagOrToolAsync(sqlite3_stmt statement, uint id, CancellationToken token)
     {
         Bind(statement, 1, id);
-        try
+        do
         {
-            int code;
-            while ((code = Step(statement)) == SQLITE_BUSY)
+            token.ThrowIfCancellationRequested();
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
             }
 
             if (code == SQLITE_ROW)
             {
                 return CStr(statement, 0);
             }
-            else
-            {
-                return null;
-            }
-        }
-        finally
-        {
-            Reset(statement);
-        }
+
+            return null;
+        } while (true);
     }
 
-    public ValueTask<string?> GetTagAsync(uint id, CancellationToken token) => GetTagOrToolAsync(getTagStatement ??= Prepare(Literal_SelectValueFromTagTableWhereId(), true, out _), id, token);
+    public ValueTask<string?> GetTagAsync(uint id, CancellationToken token)
+    {
+        if (getTagStatement is null)
+        {
+            getTagStatement = Prepare(Literal_SelectValueFromTagTableWhereId(), true, out _);
+        }
+        else
+        {
+            Reset(getTagStatement);
+        }
 
-    public ValueTask<string?> GetToolAsync(uint id, CancellationToken token) => GetTagOrToolAsync(getToolStatement ??= Prepare(Literal_SelectValueFromToolTableWhereId(), true, out _), id, token);
+        return GetTagOrToolAsync(getTagStatement, id, token);
+    }
+
+    public ValueTask<string?> GetToolAsync(uint id, CancellationToken token)
+    {
+        if (getToolStatement is null)
+        {
+            getToolStatement = Prepare(Literal_SelectValueFromToolTableWhereId(), true, out _);
+        }
+        else
+        {
+            Reset(getToolStatement);
+        }
+
+        return GetTagOrToolAsync(getToolStatement, id, token);
+    }
 
     private async ValueTask<uint> RegisterTagOrToolAsync(sqlite3_stmt statement, string value, CancellationToken token)
     {
         Bind(statement, 1, value);
-        try
+        int code;
+        while ((code = Step(statement)) == SQLITE_BUSY)
         {
-            int code;
-            while ((code = Step(statement)) == SQLITE_BUSY)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-            }
-
-            if (code == SQLITE_ROW)
-            {
-                return CU32(statement, 0);
-            }
-
-            if (logError)
-            {
-                logger.LogError($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
-            }
-
-            throw new InvalidOperationException();
+            await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
         }
-        finally
+
+        if (code == SQLITE_ROW)
         {
-            Reset(statement);
+            return CU32(statement, 0);
         }
+
+        if (logError)
+        {
+            logger.LogError($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
+        }
+
+        throw new InvalidOperationException();
     }
 
     [StringLiteral.Utf8("INSERT INTO \"TagTable\" (\"Value\") VALUES (?) RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoTagTableReturningId();
@@ -96,10 +109,14 @@ internal sealed partial class Database
                 statement.manual_close();
             }
         }
+        else
+        {
+            Reset(registerTagStatement);
+        }
 
         return await RegisterTagOrToolAsync(registerTagStatement, value, token).ConfigureAwait(false);
     }
-    
+
     [StringLiteral.Utf8("INSERT INTO \"ToolTable\" (\"Value\") VALUES (?) RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoToolTableReturningId();
 
     public async ValueTask<uint> RegisterToolAsync(string value, CancellationToken token)
@@ -118,6 +135,10 @@ internal sealed partial class Database
                 statement.manual_close();
             }
         }
+        else
+        {
+            Reset(registerToolStatement);
+        }
 
         return await RegisterTagOrToolAsync(registerToolStatement, value, token).ConfigureAwait(false);
     }
@@ -130,41 +151,57 @@ internal sealed partial class Database
 
     private async IAsyncEnumerable<(string, uint)> EnumerateTagToolAsync(sqlite3_stmt statement, [EnumeratorCancellation] CancellationToken token)
     {
-        try
+        do
         {
-            int code;
-            do
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
-                code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_ROW)
-                {
-                    yield return (CStr(statement, 0)!, CU32(statement, 1));
-                    continue;
-                }
+            if (code == SQLITE_ROW)
+            {
+                yield return (CStr(statement, 0)!, CU32(statement, 1));
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    break;
-                }
+            if (code == SQLITE_DONE)
+            {
+                break;
+            }
 
-                throw new Exception(code.ToString());
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            throw new Exception(code.ToString());
+        } while (true);
     }
 
-    public IAsyncEnumerable<(string, uint)> EnumerateTagAsync(CancellationToken token) => EnumerateTagToolAsync(enumerateTagStatement ??= Prepare(Literal_SelectValueId_FromTagTable(), true, out _), token);
+    public IAsyncEnumerable<(string, uint)> EnumerateTagAsync(CancellationToken token)
+    {
+        if (enumerateTagStatement is null)
+        {
+            enumerateTagStatement = Prepare(Literal_SelectValueId_FromTagTable(), true, out _);
+        }
+        else
+        {
+            Reset(enumerateTagStatement);
+        }
 
-    public IAsyncEnumerable<(string, uint)> EnumerateToolAsync(CancellationToken token) => EnumerateTagToolAsync(enumerateToolStatement ??= Prepare(Literal_SelectValueId_FromToolTable(), true, out _), token);
+        return EnumerateTagToolAsync(enumerateTagStatement, token);
+    }
+
+    public IAsyncEnumerable<(string, uint)> EnumerateToolAsync(CancellationToken token)
+    {
+        if (enumerateToolStatement is null)
+        {
+            enumerateToolStatement = Prepare(Literal_SelectValueId_FromToolTable(), true, out _);
+        }
+        else
+        {
+            Reset(enumerateToolStatement);
+        }
+
+        return EnumerateTagToolAsync(enumerateToolStatement, token);
+    }
 
     [StringLiteral.Utf8("SELECT \"rowid\" FROM \"TagTextTable\" (?)")]
     private static partial ReadOnlySpan<byte> Literal_SelectId_FromTagTextTable_Match();
@@ -182,42 +219,53 @@ internal sealed partial class Database
         sqlite3_stmt statement;
         if (key.Length >= 3)
         {
-            statement = selectIdFromTagTextTableMatch ??= Prepare(Literal_SelectId_FromTagTextTable_Match(), true, out _);
+            if (selectIdFromTagTextTableMatch is null)
+            {
+                selectIdFromTagTextTableMatch = Prepare(Literal_SelectId_FromTagTextTable_Match(), true, out _);
+            }
+            else
+            {
+                Reset(selectIdFromTagTextTableMatch);
+            }
+
+            statement = selectIdFromTagTextTableMatch;
         }
         else
         {
-            statement = selectIdFromTagTextTableLike ??= Prepare(Literal_SelectId_FromTagTable_Like(), true, out _);
+            if (selectIdFromTagTextTableLike is null)
+            {
+                selectIdFromTagTextTableLike = Prepare(Literal_SelectId_FromTagTable_Like(), true, out _);
+            }
+            else
+            {
+                Reset(selectIdFromTagTextTableLike);
+            }
+
+            statement = selectIdFromTagTextTableLike;
         }
 
         Bind(statement, 1, key);
-        try
+        do
         {
-            do
+            if (token.IsCancellationRequested)
             {
-                if (token.IsCancellationRequested)
-                {
-                    yield break;
-                }
+                yield break;
+            }
 
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    yield break;
-                }
+            if (code == SQLITE_DONE)
+            {
+                yield break;
+            }
 
-                yield return CU32(statement, 0);
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            yield return CU32(statement, 0);
+        } while (true);
     }
 
     [StringLiteral.Utf8("SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" = ?")] private static partial ReadOnlySpan<byte> Literal_FindTag();
@@ -227,34 +275,51 @@ internal sealed partial class Database
     private async ValueTask<uint?> FindTagOrToolAsync(sqlite3_stmt statement, string key, CancellationToken token)
     {
         Bind(statement, 1, key);
-        try
+        do
         {
-            do
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
             {
-                var code = Step(statement);
-                if (code == SQLITE_BUSY)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                    continue;
-                }
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-                if (code == SQLITE_DONE)
-                {
-                    return null;
-                }
+            if (code == SQLITE_DONE)
+            {
+                return null;
+            }
 
-                return CU32(statement, 0);
-            } while (true);
-        }
-        finally
-        {
-            Reset(statement);
-        }
+            return CU32(statement, 0);
+        } while (true);
     }
 
-    public ValueTask<uint?> FindTagAsync(string key, CancellationToken token) => FindTagOrToolAsync(findTagStatement ??= Prepare(Literal_FindTag(), true, out _), key, token);
+    public ValueTask<uint?> FindTagAsync(string key, CancellationToken token)
+    {
+        if (findTagStatement is null)
+        {
+            findTagStatement = Prepare(Literal_FindTag(), true, out _);
+        }
+        else
+        {
+            Reset(findTagStatement);
+        }
 
-    public ValueTask<uint?> FindToolAsync(string key, CancellationToken token) => FindTagOrToolAsync(findToolStatement ??= Prepare(Literal_FindTool(), true, out _), key, token);
+        return FindTagOrToolAsync(findTagStatement, key, token);
+    }
+
+    public ValueTask<uint?> FindToolAsync(string key, CancellationToken token)
+    {
+        if (findToolStatement is null)
+        {
+            findToolStatement = Prepare(Literal_FindTool(), true, out _);
+        }
+        else
+        {
+            Reset(findToolStatement);
+        }
+
+        return FindTagOrToolAsync(findToolStatement, key, token);
+    }
 
     [StringLiteral.Utf8("DELETE FROM \"ArtworkTagCrossTable\" WHERE \"Id\" = ?")]
     private static partial ReadOnlySpan<byte> Literal_Delete_From_ArtworkTagCrossTable();
@@ -270,28 +335,64 @@ internal sealed partial class Database
 
     private ValueTask DeleteTagsOfArtworkStatementAsync(ulong id, CancellationToken token)
     {
-        var statement = deleteTagsOfArtworkStatement ??= Prepare(Literal_Delete_From_ArtworkTagCrossTable(), true, out _);
+        if (deleteTagsOfArtworkStatement is null)
+        {
+            deleteTagsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkTagCrossTable(), true, out _);
+        }
+        else
+        {
+            Reset(deleteTagsOfArtworkStatement);
+        }
+
+        var statement = deleteTagsOfArtworkStatement;
         Bind(statement, 0x01, id);
         return ExecuteAsync(statement, token);
     }
 
     private ValueTask DeleteTagsOfArtworkWhereValueKindEquals1StatementAsync(ulong id, CancellationToken token)
     {
-        var statement = deleteTagsOfArtworkStatement ??= Prepare(Literal_Delete_From_ArtworkTagCrossTable_Where_ValueKind_Equals_1(), true, out _);
+        if (deleteTagsOfArtworkStatement is null)
+        {
+            deleteTagsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkTagCrossTable_Where_ValueKind_Equals_1(), true, out _);
+        }
+        else
+        {
+            Reset(deleteTagsOfArtworkStatement);
+        }
+
+        var statement = deleteTagsOfArtworkStatement;
         Bind(statement, 0x01, id);
         return ExecuteAsync(statement, token);
     }
 
     private ValueTask DeleteTagsOfUserStatementAsync(ulong id, CancellationToken token)
     {
-        var statement = deleteTagsOfUserStatement ??= Prepare(Literal_Delete_From_UserTagCrossTable(), true, out _);
+        if (deleteTagsOfUserStatement is null)
+        {
+            deleteTagsOfUserStatement = Prepare(Literal_Delete_From_UserTagCrossTable(), true, out _);
+        }
+        else
+        {
+            Reset(deleteTagsOfUserStatement);
+        }
+
+        var statement = deleteTagsOfUserStatement;
         Bind(statement, 0x01, id);
         return ExecuteAsync(statement, token);
     }
 
     private ValueTask DeleteToolsOfArtworkStatementAsync(ulong id, CancellationToken token)
     {
-        var statement = deleteToolsOfArtworkStatement ??= Prepare(Literal_Delete_From_ArtworkToolCrossTable(), true, out _);
+        if (deleteToolsOfArtworkStatement is null)
+        {
+            deleteToolsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkToolCrossTable(), true, out _);
+        }
+        else
+        {
+            Reset(deleteToolsOfArtworkStatement);
+        }
+
+        var statement = deleteToolsOfArtworkStatement;
         Bind(statement, 0x01, id);
         return ExecuteAsync(statement, token);
     }

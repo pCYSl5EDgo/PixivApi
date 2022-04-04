@@ -63,7 +63,16 @@ internal sealed partial class Database
 
     private ValueTask InsertOrUpdateUserAsync(User user, CancellationToken token)
     {
-        var statement = insertUserStatement ??= Prepare(Literal_InsertUser(), true, out _);
+        if (insertUserStatement is null)
+        {
+            insertUserStatement = Prepare(Literal_InsertUser(), true, out _);
+        }
+        else
+        {
+            Reset(insertUserStatement);
+        }
+
+        var statement = insertUserStatement;
         Bind(statement, 0x01, user.Id);
         Bind(statement, 0x02, user.Name);
         Bind(statement, 0x03, user.Account);
@@ -86,7 +95,16 @@ internal sealed partial class Database
             return ValueTask.CompletedTask;
         }
 
-        var statement = insertUserDetailStatement ??= Prepare(Literal_InsertUserDetail(), true, out _);
+        if (insertUserDetailStatement is null)
+        {
+            insertUserDetailStatement = Prepare(Literal_InsertUserDetail(), true, out _);
+        }
+        else
+        {
+            Reset(insertUserDetailStatement);
+        }
+
+        var statement = insertUserDetailStatement;
         BindUserDetail(statement, user);
         return ExecuteAsync(statement, token);
     }
@@ -100,7 +118,16 @@ internal sealed partial class Database
 
     private ValueTask InsertOrUpdateUserAsync(in UserResponse user, CancellationToken token)
     {
-        var statement = insertUser_UserResponse_Statement ??= Prepare(Literal_InsertUser_UserResponse(), true, out _);
+        if (insertUser_UserResponse_Statement is null)
+        {
+            insertUser_UserResponse_Statement = Prepare(Literal_InsertUser_UserResponse(), true, out _);
+        }
+        else
+        {
+            Reset(insertUser_UserResponse_Statement);
+        }
+
+        var statement = insertUser_UserResponse_Statement;
         Bind(statement, 1, user.Id);
         Bind(statement, 2, user.Name);
         Bind(statement, 3, user.Account);
@@ -117,7 +144,16 @@ internal sealed partial class Database
 
     private ValueTask InsertOrUpdateUserAsync(in UserPreviewResponseContent user, CancellationToken token)
     {
-        var statement = insertUser_UserPreviewResponse_Statement ??= Prepare(Literal_InsertUser(), true, out _);
+        if (insertUser_UserPreviewResponse_Statement is null)
+        {
+            insertUser_UserPreviewResponse_Statement = Prepare(Literal_InsertUser(), true, out _);
+        }
+        else
+        {
+            Reset(insertUser_UserPreviewResponse_Statement);
+        }
+
+        var statement = insertUser_UserPreviewResponse_Statement;
         Bind(statement, 1, user.User.Id);
         Bind(statement, 2, user.User.Name);
         Bind(statement, 3, user.User.Account);
@@ -138,7 +174,16 @@ internal sealed partial class Database
 
     private ValueTask InsertOrUpdateUserDetailAsync(UserDetailResponseData user, CancellationToken token)
     {
-        var statement = insertUserDetailStatement ??= Prepare(Literal_InsertUserDetail(), true, out _);
+        if (insertUserDetailStatement is null)
+        {
+            insertUserDetailStatement = Prepare(Literal_InsertUserDetail(), true, out _);
+        }
+        else
+        {
+            Reset(insertUserDetailStatement);
+        }
+
+        var statement = insertUserDetailStatement;
         Bind(statement, 1, user.User.Id);
         if (user.Profile.HasValue)
         {
