@@ -29,17 +29,17 @@ internal static partial class FilterUtility
         return (answer, longerThan2);
     }
 
-    private static void PreprocessArtwork(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, bool or, string[]? exacts, string[]? partials)
+    private static void Preprocess(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, bool or, string[]? exacts, string[]? partials, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         if (exacts is { Length: > 0 })
         {
             if (or)
             {
-                builder.PreprocessArtworkOr(ref first, alias, ref index, exacts);
+                builder.PreprocessArtworkOr(ref first, alias, ref index, exacts, parts0, parts1);
             }
             else
             {
-                builder.PreprocessArtworkAnd(ref first, alias, ref index, exacts);
+                builder.PreprocessArtworkAnd(ref first, alias, ref index, exacts, parts0, parts1);
             }
         }
 
@@ -48,33 +48,33 @@ internal static partial class FilterUtility
             var (array, longerThan2) = SplitLongerThan2(partials);
             if (or)
             {
-                builder.PreprocessArtworkOr(ref first, alias, ref index, array.AsSpan(0, longerThan2), array.AsSpan(longerThan2, partials.Length - longerThan2));
+                builder.PreprocessArtworkOr(ref first, alias, ref index, array.AsSpan(0, longerThan2), array.AsSpan(longerThan2, partials.Length - longerThan2), parts0, parts1);
             }
             else
             {
-                builder.PreprocessArtworkAnd(ref first, alias, ref index, array.AsSpan(0, longerThan2), array.AsSpan(longerThan2, partials.Length - longerThan2));
+                builder.PreprocessArtworkAnd(ref first, alias, ref index, array.AsSpan(0, longerThan2), array.AsSpan(longerThan2, partials.Length - longerThan2), parts0, parts1);
             }
 
             ArrayPool<string>.Shared.Return(array);
         }
     }
 
-    private static void PreprocessArtwork(ref this Utf8ValueStringBuilder builder, TagFilter? filter, ref bool first, ref int intersect, ref int except)
+    private static void Preprocess(ref this Utf8ValueStringBuilder builder, TagFilter? filter, byte intersectAlias, byte exceptAlias, ref bool first, ref int intersect, ref int except, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         if (filter is null)
         {
             return;
         }
 
-        builder.PreprocessArtwork(ref first, I, ref intersect, filter.Or, filter.Exacts, filter.Partials);
+        builder.Preprocess(ref first, intersectAlias, ref intersect, filter.Or, filter.Exacts, filter.Partials, parts0, parts1);
 
         if (intersect == -1)
         {
-            builder.PreprocessArtwork(ref first, E, ref except, filter.IgnoreOr, filter.IgnoreExacts, filter.IgnorePartials);
+            builder.Preprocess(ref first, exceptAlias, ref except, filter.IgnoreOr, filter.IgnoreExacts, filter.IgnorePartials, parts0, parts1);
         }
         else
         {
-            builder.PreprocessArtworkExcept(ref first, ref intersect, ref except, filter.IgnoreOr, filter.IgnoreExacts, filter.IgnorePartials);
+            builder.PreprocessExcept(intersectAlias, exceptAlias, ref first, ref intersect, ref except, filter.IgnoreOr, filter.IgnoreExacts, filter.IgnorePartials, parts0, parts1);
         }
     }
 
@@ -96,7 +96,7 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\"")]
     private static partial ReadOnlySpan<byte> Literal_InnerJoinTagTableAsTTOnTagId();
 
-    private static void PreprocessArtworkAnd(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, string[] exacts)
+    private static void PreprocessArtworkAnd(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, string[] exacts, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         foreach (var item in exacts)
         {
@@ -104,9 +104,9 @@ internal static partial class FilterUtility
             builder.Add(alias, ++index);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+            builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts1);
             if (index != 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
@@ -122,15 +122,15 @@ internal static partial class FilterUtility
         }
     }
 
-    private static void PreprocessArtworkOr(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, string[] exacts)
+    private static void PreprocessArtworkOr(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, string[] exacts, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         builder.WithOrComma(ref first);
         builder.Add(alias, ++index);
         builder.AppendLiteral(Literal_ParenIdParenAs());
 
-        builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+        builder.AppendLiteral(parts0);
         builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-        builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+        builder.AppendLiteral(parts1);
         if (index != 0)
         {
             builder.AppendLiteral(Literal_CTDotIdIn());
@@ -157,16 +157,13 @@ internal static partial class FilterUtility
 
     private static int StringLengthReverseCompare(string x, string y) => y.Length.CompareTo(x.Length);
 
-    [StringLiteral.Utf8(" \"TT\" MATCH '")]
-    private static partial ReadOnlySpan<byte> Literal_TTMatch();
-
     [StringLiteral.Utf8("(\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('")]
     private static partial ReadOnlySpan<byte> Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch();
 
     [StringLiteral.Utf8("')), ")]
     private static partial ReadOnlySpan<byte> Literal_QuoteRRParenCommaSpace();
 
-    private static void PreprocessArtworkAnd(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, Span<string> match, Span<string> like)
+    private static void PreprocessArtworkAnd(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, Span<string> match, Span<string> like, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         match.Sort(StringLengthReverseCompare);
         foreach (var item in match)
@@ -182,8 +179,8 @@ internal static partial class FilterUtility
             builder.Add(alias, index);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts0);
+            builder.AppendLiteral(parts1);
             if (index != 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
@@ -204,9 +201,9 @@ internal static partial class FilterUtility
             builder.Add(alias, ++index);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+            builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts1);
             if (index != 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
@@ -227,7 +224,7 @@ internal static partial class FilterUtility
         }
     }
 
-    private static void PreprocessArtworkOr(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, Span<string> match, Span<string> like)
+    private static void PreprocessArtworkOr(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, Span<string> match, Span<string> like, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         if (match.Length > 0)
         {
@@ -249,8 +246,8 @@ internal static partial class FilterUtility
             builder.Add(alias, index);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts0);
+            builder.AppendLiteral(parts1);
             if (index != 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
@@ -271,9 +268,9 @@ internal static partial class FilterUtility
             builder.Add(alias, ++index);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+            builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts1);
             if (index != 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
@@ -304,19 +301,19 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8(" INTERSECT ")]
     private static partial ReadOnlySpan<byte> Literal_Intersect();
 
-    private static void PreprocessArtworkExcept(ref this Utf8ValueStringBuilder builder, ref bool first, ref int intersect, ref int except, bool ignoreOr, string[]? ignoreExacts, string[]? ignorePartials)
+    private static void PreprocessExcept(ref this Utf8ValueStringBuilder builder, byte intersectAlias, byte exceptAlias, ref bool first, ref int intersect, ref int except, bool ignoreOr, string[]? ignoreExacts, string[]? ignorePartials, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         if (ignoreOr)
         {
             if (ignoreExacts is { Length: > 0 })
             {
-                PreprocessArtworkExceptOr(ref builder, ref first, ref intersect, ignoreExacts);
+                PreprocessExceptOr(ref builder, intersectAlias, ref first, ref intersect, ignoreExacts, parts0, parts1);
             }
 
             if (ignorePartials is { Length: > 0 })
             {
                 var (array, longerThan2) = SplitLongerThan2(ignorePartials);
-                PreprocessArtworkExceptOr(ref builder, ref first, ref intersect, ignorePartials.AsSpan(0, longerThan2), ignorePartials.AsSpan(longerThan2, ignorePartials.Length - longerThan2));
+                PreprocessExceptOr(ref builder, intersectAlias, ref first, ref intersect, ignorePartials.AsSpan(0, longerThan2), ignorePartials.AsSpan(longerThan2, ignorePartials.Length - longerThan2), parts0, parts1);
                 ArrayPool<string>.Shared.Return(array);
             }
         }
@@ -325,13 +322,13 @@ internal static partial class FilterUtility
             var oldExcept = except;
             if (ignoreExacts is { Length: > 0 })
             {
-                PreprocessArtworkExceptAnd(ref builder, ref first, intersect, ref except, ignoreExacts);
+                PreprocessExceptAnd(ref builder, intersectAlias, exceptAlias, ref first, intersect, ref except, ignoreExacts, parts0, parts1);
             }
 
             if (ignorePartials is { Length: > 0 })
             {
                 var (array, longerThan2) = SplitLongerThan2(ignorePartials);
-                PreprocessArtworkExceptAnd(ref builder, ref first, intersect, ref except, ignorePartials.AsSpan(0, longerThan2), ignorePartials.AsSpan(longerThan2, ignorePartials.Length - longerThan2));
+                PreprocessExceptAnd(ref builder, intersectAlias, exceptAlias, ref first, intersect, ref except, ignorePartials.AsSpan(0, longerThan2), ignorePartials.AsSpan(longerThan2, ignorePartials.Length - longerThan2), parts0, parts1);
                 ArrayPool<string>.Shared.Return(array);
             }
 
@@ -343,13 +340,13 @@ internal static partial class FilterUtility
                     break;
                 default:
                     builder.WithOrComma(ref first);
-                    builder.Add(E, except + 1);
+                    builder.Add(exceptAlias, except + 1);
                     builder.AppendLiteral(Literal_ParenIdParenAs());
-                    builder.Add(E, oldExcept + 1);
+                    builder.Add(exceptAlias, oldExcept + 1);
                     for (var i = oldExcept + 2; i <= except; i++)
                     {
                         builder.AppendLiteral(Literal_Intersect());
-                        builder.Add(E, i);
+                        builder.Add(exceptAlias, i);
                     }
 
                     builder.AppendAscii(')');
@@ -358,30 +355,30 @@ internal static partial class FilterUtility
             }
 
             builder.WithOrComma(ref first);
-            builder.Add(I, ++intersect);
+            builder.Add(intersectAlias, ++intersect);
             builder.AppendLiteral(Literal_ParenIdParenAs());
             builder.AppendLiteral(Literal_SelectIdFrom());
-            builder.Add(I, intersect - 1);
+            builder.Add(intersectAlias, intersect - 1);
             builder.AppendLiteral(Literal_Except());
             builder.AppendLiteral(Literal_SelectIdFrom());
-            builder.Add(E, except);
+            builder.Add(exceptAlias, except);
             builder.AppendAscii(')');
         }
     }
 
-    private static void PreprocessArtworkExceptAnd(ref Utf8ValueStringBuilder builder, ref bool first, int intersect, ref int except, string[] exacts)
+    private static void PreprocessExceptAnd(ref Utf8ValueStringBuilder builder, byte intersectAlias, byte exceptAlias, ref bool first, int intersect, ref int except, string[] exacts, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         foreach (var item in exacts)
         {
             builder.WithOrComma(ref first);
-            builder.Add(E, ++except);
+            builder.Add(exceptAlias, ++except);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+            builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts1);
             builder.AppendLiteral(Literal_CTDotIdIn());
-            builder.Add(I, intersect);
+            builder.Add(intersectAlias, intersect);
             builder.AppendLiteral(Literal_And());
             builder.AppendLiteral(Literal_TTDotValue());
             builder.AppendLiteral(Literal_Equal());
@@ -391,7 +388,7 @@ internal static partial class FilterUtility
         }
     }
 
-    private static void PreprocessArtworkExceptAnd(ref Utf8ValueStringBuilder builder, ref bool first, int intersect, ref int except, Span<string> match, Span<string> like)
+    private static void PreprocessExceptAnd(ref Utf8ValueStringBuilder builder, byte intersectAlias, byte exceptAlias, ref bool first, int intersect, ref int except, Span<string> match, Span<string> like, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         if (match.Length > 0)
         {
@@ -400,22 +397,22 @@ internal static partial class FilterUtility
             {
                 // match
                 builder.WithOrComma(ref first);
-                builder.Add(E, E, ++except);
+                builder.Add(exceptAlias, exceptAlias, ++except);
                 builder.AppendLiteral(Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch());
                 builder.AddDoubleQuoteText(item);
                 builder.AppendLiteral(Literal_QuoteRRParenCommaSpace());
 
                 // main
-                builder.Add(E, except);
+                builder.Add(exceptAlias, except);
                 builder.AppendLiteral(Literal_ParenIdParenAs());
 
-                builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
-                builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+                builder.AppendLiteral(parts0);
+                builder.AppendLiteral(parts1);
                 builder.AppendLiteral(Literal_CTDotIdIn());
-                builder.Add(I, intersect);
+                builder.Add(intersectAlias, intersect);
                 builder.AppendLiteral(Literal_And());
                 builder.AppendLiteral(Literal_CTDotTagIdIn());
-                builder.Add(E, E, except);
+                builder.Add(exceptAlias, exceptAlias, except);
 
                 builder.AppendAscii(')');
             }
@@ -427,14 +424,14 @@ internal static partial class FilterUtility
             foreach (var item in like)
             {
                 builder.WithOrComma(ref first);
-                builder.Add(E, ++except);
+                builder.Add(exceptAlias, ++except);
                 builder.AppendLiteral(Literal_ParenIdParenAs());
 
-                builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+                builder.AppendLiteral(parts0);
                 builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-                builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+                builder.AppendLiteral(parts1);
                 builder.AppendLiteral(Literal_CTDotIdIn());
-                builder.Add(I, intersect);
+                builder.Add(intersectAlias, intersect);
                 builder.AppendLiteral(Literal_And());
                 builder.AppendLiteral(Literal_TTDotValue());
                 builder.AppendLiteral(Literal_LikeQuotePercent());
@@ -452,14 +449,14 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8("SELECT \"Id\" FROM ")]
     private static partial ReadOnlySpan<byte> Literal_SelectIdFrom();
 
-    private static void PreprocessArtworkExceptOr(ref Utf8ValueStringBuilder builder, ref bool first, ref int intersect, Span<string> match, Span<string> like)
+    private static void PreprocessExceptOr(ref Utf8ValueStringBuilder builder, byte alias, ref bool first, ref int intersect, Span<string> match, Span<string> like, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         if (match.Length > 0)
         {
             match.Sort(StringLengthReverseCompare);
             // match temp table
             builder.WithOrComma(ref first);
-            builder.Add(I, I, ++intersect);
+            builder.Add(alias, alias, ++intersect);
             builder.AppendLiteral(Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch());
             builder.AddDoubleQuoteText(match[0]);
             for (var i = 1; i < match.Length; i++)
@@ -471,19 +468,19 @@ internal static partial class FilterUtility
             builder.AppendLiteral(Literal_QuoteRRParenCommaSpace());
 
             // main
-            builder.Add(I, intersect);
+            builder.Add(alias, intersect);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
             builder.AppendLiteral(Literal_SelectIdFrom());
-            builder.Add(I, intersect - 1);
+            builder.Add(alias, intersect - 1);
             builder.AppendLiteral(Literal_Except());
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts0);
+            builder.AppendLiteral(parts1);
             builder.AppendLiteral(Literal_CTDotIdIn());
-            builder.Add(I, intersect - 1);
+            builder.Add(alias, intersect - 1);
             builder.AppendLiteral(Literal_And());
             builder.AppendLiteral(Literal_CTDotTagIdIn());
-            builder.Add(I, I, intersect);
+            builder.Add(alias, alias, intersect);
 
             builder.AppendAscii(')');
         }
@@ -492,17 +489,17 @@ internal static partial class FilterUtility
         {
             like.Sort(StringLengthReverseCompare);
             builder.WithOrComma(ref first);
-            builder.Add(I, ++intersect);
+            builder.Add(alias, ++intersect);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
-            builder.AppendLiteral(Literal_SelectIdFrom()); 
-            builder.Add(I, intersect - 1);
+            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.Add(alias, intersect - 1);
             builder.AppendLiteral(Literal_Except());
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+            builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts1);
             builder.AppendLiteral(Literal_CTDotIdIn());
-            builder.Add(I, intersect - 1);
+            builder.Add(alias, intersect - 1);
             builder.AppendLiteral(Literal_And());
             builder.AppendLiteral(Literal_TTDotValue());
             builder.AppendLiteral(Literal_LikeQuotePercent());
@@ -521,22 +518,22 @@ internal static partial class FilterUtility
         }
     }
 
-    private static void PreprocessArtworkExceptOr(ref Utf8ValueStringBuilder builder, ref bool first, ref int intersect, string[] exacts)
+    private static void PreprocessExceptOr(ref Utf8ValueStringBuilder builder, byte alias, ref bool first, ref int intersect, string[] exacts, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         foreach (var item in exacts)
         {
             builder.WithOrComma(ref first);
-            builder.Add(I, ++intersect);
+            builder.Add(alias, ++intersect);
             builder.AppendLiteral(Literal_ParenIdParenAs());
 
             builder.AppendLiteral(Literal_SelectIdFrom());
-            builder.Add(I, intersect - 1);
+            builder.Add(alias, intersect - 1);
             builder.AppendLiteral(Literal_Except());
-            builder.AppendLiteral(Literal_SelectIdFromArtworkTagCrossTableAsCT());
+            builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
-            builder.AppendLiteral(Literal_WhereCTDotValueKindNotEqual0And());
+            builder.AppendLiteral(parts1);
             builder.AppendLiteral(Literal_CTDotIdIn());
-            builder.Add(I, intersect - 1);
+            builder.Add(alias, intersect - 1);
             builder.AppendLiteral(Literal_And());
             builder.AppendLiteral(Literal_TTDotValue());
             builder.AppendLiteral(Literal_Equal());
@@ -546,13 +543,9 @@ internal static partial class FilterUtility
         }
     }
 
-    private static void PreprocessUser(ref this Utf8ValueStringBuilder builder, TagFilter? filter, ref bool first, ref int intersect, ref int except)
-    {
-        if (filter is null)
-        {
-            return;
-        }
+    [StringLiteral.Utf8("SELECT \"CT\".\"Id\" FROM \"ArtworkTagCrossTable\" AS \"CT\"")]
+    private static partial ReadOnlySpan<byte> Literal_SelectIdFromUserTagCrossTableAsCT();
 
-        throw new NotImplementedException();
-    }
+    [StringLiteral.Utf8(" WHERE ")]
+    private static partial ReadOnlySpan<byte> Literal_Where();
 }

@@ -46,8 +46,8 @@ internal static partial class FilterUtility
 
     public static void Preprocess(ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool first, ref int intersectArtwork, ref int exceptArtwork, ref int intersectUser, ref int exceptUser)
     {
-        PreprocessArtwork(ref builder, filter.TagFilter, ref first, ref intersectArtwork, ref exceptArtwork);
-        PreprocessUser(ref builder, filter.UserFilter?.TagFilter, ref first, ref intersectUser, ref exceptUser);
+        Preprocess(ref builder, filter.TagFilter, I, E, ref first, ref intersectArtwork, ref exceptArtwork, Literal_SelectIdFromArtworkTagCrossTableAsCT(), Literal_WhereCTDotValueKindNotEqual0And());
+        Preprocess(ref builder, filter.UserFilter?.TagFilter, P, Q, ref first, ref intersectUser, ref exceptUser, Literal_SelectIdFromUserTagCrossTableAsCT(), Literal_Where());
     }
 
     public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ILogger logger, int intersectArtwork, int exceptArtwork, int intersectUser, int exceptUser)
