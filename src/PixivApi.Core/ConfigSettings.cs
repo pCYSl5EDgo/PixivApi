@@ -20,6 +20,8 @@ public sealed class ConfigSettings
     public string UgoiraFolder { get; set; } = "Ugoira";
     public ulong UserId { get; set; }
 
+    public string WebFolder { get; set; } = "Web";
+
     public string? DatabasePlugin { get; set; }
 
     public string? UgoiraZipFinderPlugin { get; set; }
