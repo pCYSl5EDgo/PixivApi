@@ -8,21 +8,32 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8(".\"Name\"")]
     private static partial ReadOnlySpan<byte> Literal_DotName();
 
-    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, UserFilter filter)
+    public static void Preprocess(ref Utf8ValueStringBuilder bulder, UserFilter filter, ref bool first, ref int intersect, ref int except) => PreprocessUser(ref bulder, filter.TagFilter, ref first, ref intersect, ref except);
+
+    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, UserFilter filter, ILogger logger, int intersect, int except)
     {
         var and = false;
-        filter.Filter(ref builder, ref and, Literal_Origin());
+        filter.Filter(ref builder, ref and, Literal_Origin(), intersect, except);
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
+        if (logger.IsEnabled(LogLevel.Debug))
+        {
+#pragma warning disable CA2254
+            logger.LogDebug($"Query: {builder}");
+#pragma warning restore CA2254
+        }
+
         return answer;
     }
 
     [StringLiteral.Utf8("\"IsFollowed\"")]
     private static partial ReadOnlySpan<byte> Literal_IsFollowed();
 
-    public static void Filter(this UserFilter filter, ref Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin)
+    private const byte P = (byte)'P';
+    private const byte Q = (byte)'Q';
+
+    public static void Filter(this UserFilter filter, ref Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, int intersect, int except)
     {
-        builder.Filter(ref and, origin, filter.IdFilter);
-        builder.Filter(ref and, origin, filter.TagFilter, Literal_UserTagCrossTable());
+        builder.FilterInOrNotIn(ref and, origin, P, Q, intersect, except);
         builder.Filter(ref and, origin, filter.HideFilter);
         builder.Filter(ref and, origin, filter.IsFollowed, Literal_IsFollowed());
         builder.TextFilterOfUser(ref and, origin, filter.NameFilter);

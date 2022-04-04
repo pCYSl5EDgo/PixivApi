@@ -44,15 +44,21 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = ")]
     private static partial ReadOnlySpan<byte> Literal_ExistsTextTableRowId();
 
-    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ILogger logger)
+    public static void Preprocess(ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool first, ref int intersectArtwork, ref int exceptArtwork, ref int intersectUser, ref int exceptUser)
+    {
+        PreprocessArtwork(ref builder, filter.TagFilter, ref first, ref intersectArtwork, ref exceptArtwork);
+        PreprocessUser(ref builder, filter.UserFilter?.TagFilter, ref first, ref intersectUser, ref exceptUser);
+    }
+
+    public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ILogger logger, int intersectArtwork, int exceptArtwork, int intersectUser, int exceptUser)
     {
         var and = false;
-        builder.Filter(filter, ref and, Literal_Origin());
+        builder.Filter(filter, ref and, Literal_Origin(), intersectArtwork, exceptArtwork, intersectUser, exceptUser);
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
-        if (logger.IsEnabled(LogLevel.Trace))
+        if (logger.IsEnabled(LogLevel.Debug))
         {
 #pragma warning disable CA2254
-            logger.LogTrace($"Query: {builder}");
+            logger.LogDebug($"Query: {builder}");
 #pragma warning restore CA2254
         }
 
@@ -82,7 +88,7 @@ internal static partial class FilterUtility
 
     [StringLiteral.Utf8("\"IsOfficiallyRemoved\"")]
     private static partial ReadOnlySpan<byte> Literal_IsOfficiallyRemoved();
-    
+
     [StringLiteral.Utf8("\"IsBookmarked\"")]
     private static partial ReadOnlySpan<byte> Literal_IsBookmarked();
 
@@ -92,10 +98,9 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8("\"IsMuted\"")]
     private static partial ReadOnlySpan<byte> Literal_IsMuted();
 
-    private static void Filter(this ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool and, ReadOnlySpan<byte> origin)
+    private static void Filter(this ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool and, ReadOnlySpan<byte> origin, int intersectArtwork, int exceptArtwork, int intersectUser, int exceptUser)
     {
-        builder.Filter(ref and, origin, filter.IdFilter);
-        builder.Filter(ref and, origin, filter.TagFilter, Literal_ArtworkTagCrossTable());
+        builder.FilterInOrNotIn(ref and, origin, I, E, intersectArtwork, exceptArtwork);
         builder.Filter(ref and, origin, filter.HideFilter);
         builder.Filter(ref and, origin, filter.IsOfficiallyRemoved, Literal_IsOfficiallyRemoved());
         builder.Filter(ref and, origin, filter.IsBookmark, Literal_IsBookmarked());
@@ -117,7 +122,7 @@ internal static partial class FilterUtility
             builder.AppendLiteral(Literal_DotUserId());
             builder.AppendLiteral(Literal_InUserTable());
             var userAnd = false;
-            filter.UserFilter.Filter(ref builder, ref userAnd, Literal_UT());
+            filter.UserFilter.Filter(ref builder, ref userAnd, Literal_UT(), intersectUser, exceptUser);
             builder.AppendAscii(')');
         }
 
@@ -209,181 +214,6 @@ internal static partial class FilterUtility
 
         return (oneOrTwo, oneOrTwoCount, threeOrMore, threeOrMoreCount);
     }
-
-    #region TextFilter
-    [StringLiteral.Utf8("))")]
-    private static partial ReadOnlySpan<byte> Literal_RRParen();
-
-    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TextFilter? filter)
-    {
-        if (filter is null)
-        {
-            return;
-        }
-
-        if (filter.Partials is { Length: > 0 })
-        {
-            builder.And(ref and);
-            builder.AppendLiteral(Literal_ExistsTextTableRowId());
-            builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_And());
-            builder.AppendAscii('(');
-            builder.TextPartial(filter.Partials, filter.PartialOr);
-            builder.AppendLiteral(Literal_RRParen());
-
-            if (filter.IgnorePartials is { Length: > 0 })
-            {
-                builder.AppendLiteral(Literal_And());
-                builder.AppendLiteral(Literal_NotLeftParen());
-                builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
-                builder.AppendLiteral(Literal_RRParen());
-            }
-        }
-        else
-        {
-            if (filter.IgnorePartials is { Length: > 0 })
-            {
-                builder.And(ref and);
-                builder.AppendLiteral(Literal_ExistsTextTableRowId());
-                builder.AppendLiteral(origin);
-                builder.AppendLiteral(Literal_DotId());
-                builder.AppendLiteral(Literal_And());
-                builder.AppendLiteral(Literal_NotLeftParen());
-                builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
-                builder.AppendLiteral(Literal_RRParen());
-            }
-        }
-
-        if (filter.Exact is { Length: > 0 })
-        {
-            builder.And(ref and);
-            builder.AppendAscii('(');
-            builder.TextExact(origin, filter.Exact);
-            builder.AppendAscii(')');
-        }
-
-        if (filter.IgnoreExact is { Length: > 0 })
-        {
-            builder.And(ref and);
-            builder.AppendLiteral(Literal_NotLeftParen());
-            builder.TextExact(origin, filter.IgnoreExact);
-            builder.AppendAscii(')');
-        }
-    }
-
-    private static void TextExact(ref this Utf8ValueStringBuilder builder, ReadOnlySpan<byte> origin, string text)
-    {
-        builder.AppendLiteral(origin);
-        builder.AppendLiteral(Literal_DotTitle());
-        builder.AppendLiteral(Literal_Equal());
-        builder.AddSingleQuoteText(text);
-        builder.AppendLiteral(Literal_Or());
-        builder.AppendLiteral(origin);
-        builder.AppendLiteral(Literal_DotCaption());
-        builder.AppendLiteral(Literal_Equal());
-        builder.AddSingleQuoteText(text);
-        builder.AppendLiteral(Literal_Or());
-        builder.AppendLiteral(origin);
-        builder.AppendLiteral(Literal_DotMemo());
-        builder.AppendLiteral(Literal_Equal());
-        builder.AddSingleQuoteText(text);
-    }
-
-    private static void TextPartial(ref this Utf8ValueStringBuilder builder, string[] partials, bool or)
-    {
-        var (oneOrTwo, oneOrTwoCount, threeOrMore, threeOrMoreCount) = Divide(partials);
-        if (threeOrMore is not null)
-        {
-            builder.TextMatch(or, threeOrMore.AsSpan(0, threeOrMoreCount));
-
-            if (oneOrTwo is not null)
-            {
-                builder.AppendLiteral(or ? Literal_Or() : Literal_And());
-                builder.TextLike(or, oneOrTwo.AsSpan(0, oneOrTwoCount));
-                ArrayPool<string>.Shared.Return(oneOrTwo);
-                ArrayPool<string>.Shared.Return(threeOrMore);
-            }
-        }
-        else
-        {
-            builder.TextLike(or, (oneOrTwo ?? throw new NullReferenceException()).AsSpan(0, oneOrTwoCount));
-        }
-    }
-
-    private static void TextLike(ref this Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
-    {
-        builder.AppendAscii('(');
-        builder.TextLike(or, span[0]);
-        foreach (var item in span[1..])
-        {
-            builder.AppendLiteral(Literal_Or());
-            builder.TextLike(or, item);
-        }
-
-        builder.AppendAscii(')');
-    }
-
-    [StringLiteral.Utf8(" LIKE '%")]
-    private static partial ReadOnlySpan<byte> Literal_LikeQuotePercent();
-
-    [StringLiteral.Utf8("%'")]
-    private static partial ReadOnlySpan<byte> Literal_PercentQuote();
-
-    private static void TextLike(ref this Utf8ValueStringBuilder builder, bool or, string first)
-    {
-        builder.AppendAscii('(');
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_DotTitle());
-        builder.AppendLiteral(Literal_LikeQuotePercent());
-        builder.AddSingleQuoteTextWithoutQuote(first);
-
-        builder.AppendLiteral(Literal_PercentQuote());
-        builder.AppendLiteral(or ? Literal_Or() : Literal_And());
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_DotCaption());
-        builder.AppendLiteral(Literal_LikeQuotePercent());
-
-        builder.AddSingleQuoteTextWithoutQuote(first);
-        builder.AppendLiteral(Literal_PercentQuote());
-        builder.AppendLiteral(or ? Literal_Or() : Literal_And());
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_DotMemo());
-        builder.AppendLiteral(Literal_LikeQuotePercent());
-
-        builder.AddSingleQuoteTextWithoutQuote(first);
-        builder.AppendLiteral(Literal_PercentQuote());
-    }
-
-    [StringLiteral.Utf8(" MATCH ")]
-    private static partial ReadOnlySpan<byte> Literal_Match();
-
-    private static void TextMatch(ref this Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
-    {
-        builder.AppendAscii('(');
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_Match());
-        if (span.Length == 1)
-        {
-            builder.AddSingleQuoteText(span[0]);
-        }
-        else
-        {
-            builder.AppendAscii('\'');
-            builder.AddDoubleQuoteText(span[0]);
-            var orOrAnd = or ? Literal_Or() : Literal_And();
-            foreach (var item in span[1..])
-            {
-                builder.AppendLiteral(orOrAnd);
-                builder.AddDoubleQuoteText(item);
-            }
-
-            builder.AppendAscii('\'');
-        }
-
-        builder.AppendAscii(')');
-    }
-    #endregion
 
     [StringLiteral.Utf8(" BETWEEN ")]
     private static partial ReadOnlySpan<byte> Literal_Between();

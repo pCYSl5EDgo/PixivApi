@@ -311,9 +311,12 @@ internal sealed partial class Database
         sqlite3_stmt PrepareStatement()
         {
             var builder = ZString.CreateUtf8StringBuilder();
+            var first = true;
+            int intersectArtwork = -1, exceptArtwork = -1, intersectUser = -1, exceptUser = -1;
+            FilterUtility.Preprocess(ref builder, filter, ref first, ref intersectArtwork, ref exceptArtwork, ref intersectUser, ref exceptUser);
             builder.AppendLiteral(Literal_EnumerateArtwork());
             builder.AppendLiteral(Literal_Where());
-            var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger);
+            var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger, intersectArtwork, exceptArtwork, intersectUser, exceptUser);
             builder.Dispose();
             return statement;
         }

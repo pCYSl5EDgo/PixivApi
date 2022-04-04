@@ -274,9 +274,12 @@ internal sealed partial class Database
         sqlite3_stmt PrepareStatement()
         {
             var builder = ZString.CreateUtf8StringBuilder();
+            var first = true;
+            int intersect = -1, except = -1;
+            FilterUtility.Preprocess(ref builder, filter, ref first, ref intersect, ref except);
             builder.AppendLiteral(Literal_EnumerateUser());
             builder.AppendLiteral(Literal_Where());
-            var statement = FilterUtility.CreateStatement(database, ref builder, filter);
+            var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger, intersect, except);
             builder.Dispose();
             return statement;
         }

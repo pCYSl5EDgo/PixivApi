@@ -2,7 +2,7 @@
 
 internal static partial class FilterUtility
 {
-    public static void AddSingleQuoteTextWithoutQuote(ref this Utf8ValueStringBuilder builder, string text)
+    private static void AddSingleQuoteTextWithoutQuote(ref this Utf8ValueStringBuilder builder, string text)
     {
         const byte special = (byte)'\'';
         var enumerator = text.EnumerateRunes();
@@ -28,7 +28,7 @@ internal static partial class FilterUtility
         builder.Advance(1);
     }
 
-    public static void AddName(ref this Utf8ValueStringBuilder builder, ReadOnlySpan<byte> origin, ReadOnlySpan<byte> name)
+    private static void AddName(ref this Utf8ValueStringBuilder builder, ReadOnlySpan<byte> origin, ReadOnlySpan<byte> name)
     {
         builder.AppendLiteral(origin);
         builder.AppendAscii('.');
@@ -36,12 +36,12 @@ internal static partial class FilterUtility
     }
 
     [StringLiteral.Utf8(" AND ")]
-    public static partial ReadOnlySpan<byte> Literal_And();
+    private static partial ReadOnlySpan<byte> Literal_And();
 
     [StringLiteral.Utf8(" OR ")]
-    public static partial ReadOnlySpan<byte> Literal_Or();
+    private static partial ReadOnlySpan<byte> Literal_Or();
 
-    public static void And(ref this Utf8ValueStringBuilder builder, ref bool and)
+    private static void And(ref this Utf8ValueStringBuilder builder, ref bool and)
     {
         if (and)
         {
@@ -56,94 +56,22 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8("), (")]
     private static partial ReadOnlySpan<byte> Literal_ParenCommaParen();
 
-    public static void AppendValues(ref this Utf8ValueStringBuilder builder, IEnumerable<uint> values)
-    {
-        var enumerator = values.GetEnumerator();
-        if (!enumerator.MoveNext())
-        {
-            return;
-        }
-
-        builder.AppendAscii('(');
-        builder.Append(enumerator.Current);
-
-        if (!enumerator.MoveNext())
-        {
-            goto END;
-        }
-
-        do
-        {
-            builder.AppendLiteral(Literal_ParenCommaParen());
-            builder.Append(enumerator.Current);
-        } while (enumerator.MoveNext());
-
-    END:
-        builder.AppendAscii(')');
-    }
-
-    public static void AppendValues(ref this Utf8ValueStringBuilder builder, IEnumerable<ulong> values)
-    {
-        builder.AppendAscii('(');
-        var enumerator = values.GetEnumerator();
-        if (!enumerator.MoveNext())
-        {
-            goto RETURN;
-        }
-
-        builder.Append(enumerator.Current);
-        while (enumerator.MoveNext())
-        {
-            builder.AppendAscii(',');
-            builder.Append(enumerator.Current);
-        }
-
-    RETURN:
-        builder.AppendAscii(')');
-    }
-
     [StringLiteral.Utf8(".\"Id\"")]
-    public static partial ReadOnlySpan<byte> Literal_DotId();
+    private static partial ReadOnlySpan<byte> Literal_DotId();
 
     [StringLiteral.Utf8(" IN ")]
-    public static partial ReadOnlySpan<byte> Literal_In();
+    private static partial ReadOnlySpan<byte> Literal_In();
 
     [StringLiteral.Utf8(" NOT ")]
-    public static partial ReadOnlySpan<byte> Literal_Not();
+    private static partial ReadOnlySpan<byte> Literal_Not();
 
     [StringLiteral.Utf8(" NOT IN ")]
-    public static partial ReadOnlySpan<byte> Literal_NotIn();
-
-    public static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, IdFilter? filter)
-    {
-        if (filter is null)
-        {
-            return;
-        }
-
-        if (filter.Ids is { Length: > 0 } ids)
-        {
-            builder.And(ref and);
-            builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_In());
-            builder.AppendValues(ids);
-        }
-
-        if (filter.IgnoreIds is { Length: > 0 } ignoreIds)
-        {
-            builder.And(ref and);
-            builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_NotIn());
-            builder.AppendValues(ignoreIds);
-        }
-    }
+    private static partial ReadOnlySpan<byte> Literal_NotIn();
 
     [StringLiteral.Utf8(" = ")]
-    public static partial ReadOnlySpan<byte> Literal_Equal();
+    private static partial ReadOnlySpan<byte> Literal_Equal();
 
-    public static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TagFilter? filter, ReadOnlySpan<byte> table)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TagFilter? filter, ReadOnlySpan<byte> table)
     {
         if (filter is null)
         {
@@ -156,7 +84,7 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8(".\"HideReason\"")]
     private static partial ReadOnlySpan<byte> Literal_DotHideReason();
 
-    public static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, HideFilter? filter)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, HideFilter? filter)
     {
         if (filter is null)
         {
@@ -211,7 +139,7 @@ internal static partial class FilterUtility
         }
     }
 
-    public static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, bool? value, ReadOnlySpan<byte> name)
+    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, bool? value, ReadOnlySpan<byte> name)
     {
         if (value is null)
         {
@@ -222,5 +150,30 @@ internal static partial class FilterUtility
         builder.AddName(origin, name);
         builder.AppendLiteral(Literal_Equal());
         builder.AppendAscii(value.Value ? '1' : '0');
+    }
+
+    private static void FilterInOrNotIn(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, byte aliasIntersect, byte aliasExcept, int intersect, int except)
+    {
+        if (intersect == -1)
+        {
+            if (except == -1)
+            {
+                return;
+            }
+
+            builder.And(ref and);
+            builder.AppendLiteral(origin);
+            builder.AppendLiteral(Literal_DotId());
+            builder.AppendLiteral(Literal_NotIn());
+            builder.Add(aliasExcept, except);
+        }
+        else
+        {
+            builder.And(ref and);
+            builder.AppendLiteral(origin);
+            builder.AppendLiteral(Literal_DotId());
+            builder.AppendLiteral(Literal_In());
+            builder.Add(aliasIntersect, intersect);
+        }
     }
 }
