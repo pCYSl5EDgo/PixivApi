@@ -150,7 +150,7 @@ internal static partial class FilterUtility
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
             builder.AppendLiteral(parts1);
-            if (index != 0)
+            if (index > 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
                 builder.Add(alias, index - 1);
@@ -174,7 +174,7 @@ internal static partial class FilterUtility
         builder.AppendLiteral(parts0);
         builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
         builder.AppendLiteral(parts1);
-        if (index != 0)
+        if (index > 0)
         {
             builder.AppendLiteral(Literal_CTDotIdIn());
             builder.Add(alias, index - 1);
@@ -200,8 +200,11 @@ internal static partial class FilterUtility
 
     private static int StringLengthReverseCompare(string x, string y) => y.Length.CompareTo(x.Length);
 
-    [StringLiteral.Utf8("(\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('")]
+    [StringLiteral.Utf8(" (\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('")]
     private static partial ReadOnlySpan<byte> Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch();
+
+    [StringLiteral.Utf8(" (\"Id\") AS (SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" LIKE '%")]
+    private static partial ReadOnlySpan<byte> Literal_ParenIdParenAsSelectIdFromTagTableWhereValueLikeQuotePercent();
 
     [StringLiteral.Utf8("')), ")]
     private static partial ReadOnlySpan<byte> Literal_QuoteRRParenCommaSpace();
@@ -224,7 +227,7 @@ internal static partial class FilterUtility
 
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(parts1);
-            if (index != 0)
+            if (index > 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
                 builder.Add(alias, index - 1);
@@ -237,8 +240,49 @@ internal static partial class FilterUtility
             builder.AppendAscii(')');
         }
 
+        if (like.Length == 0)
+        {
+            return;
+        }
+
         like.Sort(StringLengthReverseCompare);
-        foreach (var item in like)
+
+        if (index == -1)
+        {
+            // like temp table
+            builder.WithOrComma(ref first);
+            builder.Add(alias, alias, ++index);
+            builder.AppendLiteral(Literal_ParenIdParenAsSelectIdFromTagTableWhereValueLikeQuotePercent());
+            builder.AddSingleQuoteTextWithoutQuote(like[0]);
+            var span = builder.GetSpan(3);
+            span[0] = (byte)'%';
+            span[1] = (byte)'\'';
+            span[2] = (byte)')';
+            builder.Advance(3);
+
+            // main
+            builder.AppendLiteral(Literal_CommaSpace());
+            builder.Add(alias, index);
+            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(parts0);
+            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(parts1);
+            builder.AppendLiteral(Literal_CTDotTagIdIn());
+            builder.Add(alias, alias, index);
+            builder.AppendAscii(')');
+        }
+        else
+        {
+            Like(ref builder, ref first, alias, ref index, parts0, parts1, like[0]);
+        }
+
+        for (var i = 1; i < like.Length; i++)
+        {
+            var item = like[i];
+            Like(ref builder, ref first, alias, ref index, parts0, parts1, item);
+        }
+
+        static void Like(ref Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1, string item)
         {
             builder.WithOrComma(ref first);
             builder.Add(alias, ++index);
@@ -247,7 +291,7 @@ internal static partial class FilterUtility
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
             builder.AppendLiteral(parts1);
-            if (index != 0)
+            if (index > 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
                 builder.Add(alias, index - 1);
@@ -262,8 +306,6 @@ internal static partial class FilterUtility
             span[1] = (byte)'\'';
             span[2] = (byte)')';
             builder.Advance(3);
-
-            builder.AppendAscii(')');
         }
     }
 
@@ -291,7 +333,7 @@ internal static partial class FilterUtility
 
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(parts1);
-            if (index != 0)
+            if (index > 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
                 builder.Add(alias, index - 1);
@@ -314,7 +356,7 @@ internal static partial class FilterUtility
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
             builder.AppendLiteral(parts1);
-            if (index != 0)
+            if (index > 0)
             {
                 builder.AppendLiteral(Literal_CTDotIdIn());
                 builder.Add(alias, index - 1);
@@ -464,28 +506,66 @@ internal static partial class FilterUtility
         if (like.Length > 0)
         {
             like.Sort(StringLengthReverseCompare);
-            foreach (var item in like)
+            if (intersect == -1)
             {
+                // like temp table
                 builder.WithOrComma(ref first);
-                builder.Add(exceptAlias, ++except);
-                builder.AppendLiteral(Literal_ParenIdParenAs());
+                builder.Add(exceptAlias, exceptAlias, ++except);
+                builder.AppendLiteral(Literal_ParenIdParenAsSelectIdFromTagTableWhereValueLikeQuotePercent());
+                builder.AddSingleQuoteTextWithoutQuote(like[0]);
+                var span = builder.GetSpan(3);
+                span[0] = (byte)'%';
+                span[1] = (byte)'\'';
+                span[2] = (byte)')';
+                builder.Advance(3);
 
+                // main
+                builder.AppendLiteral(Literal_CommaSpace());
+                builder.Add(exceptAlias, except);
+                builder.AppendLiteral(Literal_ParenIdParenAs());
                 builder.AppendLiteral(parts0);
                 builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
                 builder.AppendLiteral(parts1);
                 builder.AppendLiteral(Literal_CTDotIdIn());
                 builder.Add(intersectAlias, intersect);
                 builder.AppendLiteral(Literal_And());
-                builder.AppendLiteral(Literal_TTDotValue());
-                builder.AppendLiteral(Literal_LikeQuotePercent());
-                builder.AddSingleQuoteTextWithoutQuote(item);
-
-                var span = builder.GetSpan(3);
-                span[0] = (byte)'%';
-                span[1] = (byte)'\'';
-                span[2] = (byte)')';
-                builder.Advance(3);
+                builder.AppendLiteral(Literal_CTDotTagIdIn());
+                builder.Add(exceptAlias, exceptAlias, except);
+                builder.AppendAscii(')');
             }
+            else
+            {
+                Like(ref builder, ref first, intersectAlias, exceptAlias, intersect, ref except, parts0, parts1, like[0]);
+            }
+
+            for (var i = 1; i < like.Length; i++)
+            {
+                var item = like[i];
+                Like(ref builder, ref first, intersectAlias, exceptAlias, intersect, ref except, parts0, parts1, item);
+            }
+        }
+
+        static void Like(ref Utf8ValueStringBuilder builder, ref bool first, byte intersectAlias, byte exceptAlias, int intersect, ref int except, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1, string item)
+        {
+            builder.WithOrComma(ref first);
+            builder.Add(exceptAlias, ++except);
+            builder.AppendLiteral(Literal_ParenIdParenAs());
+
+            builder.AppendLiteral(parts0);
+            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(parts1);
+            builder.AppendLiteral(Literal_CTDotIdIn());
+            builder.Add(intersectAlias, intersect);
+            builder.AppendLiteral(Literal_And());
+            builder.AppendLiteral(Literal_TTDotValue());
+            builder.AppendLiteral(Literal_LikeQuotePercent());
+            builder.AddSingleQuoteTextWithoutQuote(item);
+
+            var span = builder.GetSpan(3);
+            span[0] = (byte)'%';
+            span[1] = (byte)'\'';
+            span[2] = (byte)')';
+            builder.Advance(3);
         }
     }
 
