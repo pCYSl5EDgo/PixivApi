@@ -81,13 +81,6 @@ public sealed class Program
         app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider) { ContentTypeProvider = contetTypeProvider });
         app.UseStaticFiles(new StaticFileOptions(ugoiraSharedProvider) { ContentTypeProvider = contetTypeProvider });
 
-        var webSharedProvider = new Microsoft.AspNetCore.StaticFiles.Infrastructure.SharedOptions()
-        {
-            FileProvider = new PhysicalFileProvider(Path.GetFullPath(configSettings.WebFolder)),
-            RequestPath = "/",
-        };
-        app.UseStaticFiles(new StaticFileOptions(webSharedProvider));
-
         if (isDevelopment)
         {
             app.UseDirectoryBrowser(new DirectoryBrowserOptions(originalSharedProvider));
