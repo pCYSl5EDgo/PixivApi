@@ -123,6 +123,10 @@ internal sealed partial class Database
             statement = Prepare(ref builder, true, out _);
             builder.Dispose();
         }
+        else
+        {
+            Reset(statement);
+        }
 
         Bind(statement, 1, id);
         for (int i = 0, offset = 1; i < frames.Length; i++)
@@ -161,6 +165,10 @@ internal sealed partial class Database
             builder.AppendAscii(')');
             statement = Prepare(ref builder, true, out _);
             builder.Dispose();
+        }
+        else
+        {
+            Reset(statement);
         }
 
         Bind(statement, 1, id);
@@ -209,6 +217,10 @@ internal sealed partial class Database
             builder.AppendAscii(')');
             statement = Prepare(ref builder, true, out _);
             builder.Dispose();
+        }
+        else
+        {
+            Reset(statement);
         }
 
         return statement;
@@ -268,6 +280,10 @@ internal sealed partial class Database
                 builder.AppendAscii(')');
                 statement = Prepare(ref builder, true, out _);
                 builder.Dispose();
+            }
+            else
+            {
+                Reset(statement);
             }
 
             return statement;
@@ -401,6 +417,10 @@ internal sealed partial class Database
                     builder.AppendLiteral(Literal_OnConflictIdTagId());
                     statement = Prepare(ref builder, true, out _);
                     builder.Dispose();
+                }
+                else
+                {
+                    Reset(statement);
                 }
 
                 return statement;

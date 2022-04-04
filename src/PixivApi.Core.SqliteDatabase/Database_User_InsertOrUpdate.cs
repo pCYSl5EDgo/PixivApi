@@ -51,6 +51,10 @@ internal sealed partial class Database
             statement = Prepare(ref builder, true, out _);
             builder.Dispose();
         }
+        else
+        {
+            Reset(statement);
+        }
 
         Bind(statement, 1, id);
         for (var i = 0; i < tags.Length; i++)

@@ -49,15 +49,73 @@ internal sealed partial class Database
         } while (true);
     }
 
-    public ValueTask<ulong> CountArtworkAsync(CancellationToken token) => CountAsync(countArtworkStatement ??= PrepareCountStatement(Literal_Id(), Literal_ArtworkTable()), token);
+    public ValueTask<ulong> CountArtworkAsync(CancellationToken token)
+    {
+        if (countArtworkStatement is null)
+        {
+            countArtworkStatement = PrepareCountStatement(Literal_Id(), Literal_ArtworkTable());
+        }
+        else
+        {
+            Reset(countArtworkStatement);
+        }
 
-    public ValueTask<ulong> CountRankingAsync(CancellationToken token) => CountAsync(countRankingStatement ??= PrepareCountStatement(Literal_Date(), Literal_RankingTable()), token);
+        return CountAsync(countArtworkStatement, token);
+    }
 
-    public ValueTask<ulong> CountTagAsync(CancellationToken token) => CountAsync(countTagStatement ??= PrepareCountStatement(Literal_Id(), Literal_TagTable()), token);
+    public ValueTask<ulong> CountRankingAsync(CancellationToken token)
+    {
+        if (countRankingStatement is null)
+        {
+            countRankingStatement = PrepareCountStatement(Literal_Date(), Literal_RankingTable());
+        }
+        else
+        {
+            Reset(countRankingStatement);
+        }
+        return CountAsync(countRankingStatement, token);
+    }
 
-    public ValueTask<ulong> CountToolAsync(CancellationToken token) => CountAsync(countToolStatement ??= PrepareCountStatement(Literal_Id(), Literal_ToolTable()), token);
+    public ValueTask<ulong> CountTagAsync(CancellationToken token)
+    {
+        if (countTagStatement is null)
+        {
+            countTagStatement = PrepareCountStatement(Literal_Id(), Literal_TagTable());
+        }
+        else
+        {
+            Reset(countTagStatement);
+        }
 
-    public ValueTask<ulong> CountUserAsync(CancellationToken token) => CountAsync(countUserStatement ??= PrepareCountStatement(Literal_Id(), Literal_UserTable()), token);
+        return CountAsync(countTagStatement, token);
+    }
+
+    public ValueTask<ulong> CountToolAsync(CancellationToken token)
+    {
+        if (countToolStatement is null)
+        {
+            countToolStatement = PrepareCountStatement(Literal_Id(), Literal_ToolTable());
+        }
+        else
+        {
+            Reset(countToolStatement);
+        }
+        return CountAsync(countToolStatement, token);
+    }
+
+    public ValueTask<ulong> CountUserAsync(CancellationToken token)
+    {
+        if (countUserStatement is null)
+        {
+            countUserStatement = PrepareCountStatement(Literal_Id(), Literal_UserTable());
+        }
+        else
+        {
+            Reset(countUserStatement);
+        }
+
+        return CountAsync(countUserStatement, token);
+    }
 
     [StringLiteral.Utf8(" AS \"Origin\" WHERE ")] private static partial ReadOnlySpan<byte> Literal_AsOriginWhere();
 
