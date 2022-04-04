@@ -66,7 +66,50 @@ internal static partial class FilterUtility
             return;
         }
 
-        builder.Preprocess(ref first, intersectAlias, ref intersect, filter.Or, filter.Exacts, filter.Partials, parts0, parts1);
+        var oldIntersect = intersect;
+        var oldExcept = except;
+        var done = false;
+        if (filter.Exacts is { Length: > 0 } exacts)
+        {
+            done = true;
+            if (filter.Or)
+            {
+                builder.PreprocessArtworkOr(ref first, intersectAlias, ref intersect, exacts, parts0, parts1);
+            }
+            else
+            {
+                builder.PreprocessArtworkAnd(ref first, intersectAlias, ref intersect, exacts, parts0, parts1);
+            }
+        }
+
+        if (filter.Partials is { Length: > 0 } partials)
+        {
+            done = true;
+            var (array, longerThan2) = SplitLongerThan2(partials);
+            if (filter.Or)
+            {
+                builder.PreprocessArtworkOr(ref first, intersectAlias, ref intersect, array.AsSpan(0, longerThan2), array.AsSpan(longerThan2, partials.Length - longerThan2), parts0, parts1);
+            }
+            else
+            {
+                builder.PreprocessArtworkAnd(ref first, intersectAlias, ref intersect, array.AsSpan(0, longerThan2), array.AsSpan(longerThan2, partials.Length - longerThan2), parts0, parts1);
+            }
+
+            ArrayPool<string>.Shared.Return(array);
+        }
+
+        if (done && oldIntersect == -1 && oldExcept != -1)
+        {
+            builder.WithOrComma(ref first);
+            builder.Add(intersectAlias, ++intersect);
+            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.Add(intersectAlias, intersect - 1);
+            builder.AppendLiteral(Literal_Except());
+            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.Add(exceptAlias, except);
+            builder.AppendAscii(')');
+        }
 
         if (intersect == -1)
         {
