@@ -31,6 +31,7 @@ public partial class NetworkClient
                 return;
             }
 
+            artworkFilter.IsOfficiallyRemoved = false;
             var artworks = PrepareDownloadFileAsync(database, artworkFilter, gigaByteCount);
             if (artworks is null)
             {
