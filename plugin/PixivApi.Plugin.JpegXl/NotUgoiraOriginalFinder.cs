@@ -16,17 +16,15 @@ public sealed record class NotUgoiraOriginalFinder(ConfigSettings ConfigSettings
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    private static string GetJxlName(Artwork artwork, uint index) => $"{artwork.Id}_{index}.jxl";
-
-    public FileInfo Find(Artwork artwork, uint index)
+    public FileInfo Find(ulong id, FileExtensionKind extensionKind, uint index)
     {
-        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(artwork.Id));
-        var file = new FileInfo(Path.Combine(folder, artwork.GetNotUgoiraOriginalFileName(index)));
+        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(id));
+        var file = new FileInfo(Path.Combine(folder, ArtworkNameUtility.GetNotUgoiraOriginalFileName(id, extensionKind, index)));
         if (file.Exists)
         {
             return file;
         }
 
-        return new(Path.Combine(folder, GetJxlName(artwork, index)));
+        return new(Path.Combine(folder, $"{id}_{index}.jxl"));
     }
 }

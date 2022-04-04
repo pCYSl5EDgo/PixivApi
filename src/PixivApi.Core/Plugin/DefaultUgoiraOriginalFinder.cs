@@ -9,5 +9,5 @@ public sealed record class DefaultUgoiraOriginalFinder(string Folder) : IFinder
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    public FileInfo Find(Artwork artwork) => new(Path.Combine(Folder, IOUtility.GetHashPath(artwork.Id), artwork.GetUgoiraOriginalFileName()));
+    public FileInfo Find(ulong id, FileExtensionKind extensionKind) => new(Path.Combine(Folder, IOUtility.GetHashPath(id), ArtworkNameUtility.GetUgoiraOriginalFileName(id, extensionKind)));
 }

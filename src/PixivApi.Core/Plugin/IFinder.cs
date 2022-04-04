@@ -4,10 +4,10 @@ namespace PixivApi.Core.Plugin;
 
 public interface IFinder : IPlugin
 {
-    FileInfo Find(Artwork artwork);
+    FileInfo Find(ulong id, FileExtensionKind extensionKind);
 }
 
 public interface IFinderWithIndex : IPlugin
 {
-    FileInfo Find(Artwork artwork, uint index);
+    FileInfo Find(ulong id, FileExtensionKind extensionKind, uint index);
 }

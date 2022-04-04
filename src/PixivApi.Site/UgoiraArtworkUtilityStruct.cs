@@ -70,7 +70,7 @@ public readonly struct UgoiraArtworkUtilityStruct
                 goto NULL;
             }
 
-            var info = finder.Find(artwork);
+            var info = finder.Find(artwork.Id, artwork.Extension);
             if (!info.Exists)
             {
                 goto NULL;

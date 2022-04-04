@@ -4,10 +4,10 @@ namespace PixivApi.Core.Plugin;
 
 public sealed record class DefaultUgoiraZipFinder(string Folder) : IFinder
 {
-    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken) 
+    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
         => Task.FromResult<IPlugin?>(new DefaultUgoiraZipFinder(configSettings.UgoiraFolder));
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    public FileInfo Find(Artwork artwork) => new(Path.Combine(Folder, IOUtility.GetHashPath(artwork.Id), artwork.GetUgoiraZipFileName()));
+    public FileInfo Find(ulong id, FileExtensionKind extensionKind) => new(Path.Combine(Folder, IOUtility.GetHashPath(id), ArtworkNameUtility.GetUgoiraZipFileName(id)));
 }

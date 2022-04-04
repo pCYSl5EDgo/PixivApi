@@ -14,17 +14,15 @@ public sealed record class NotUgoiraThumbnailFinder(ConfigSettings ConfigSetting
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 
-    private static string GetJxlName(Artwork artwork, uint index) => $"{artwork.Id}_{index}.jxl";
-
-    public FileInfo Find(Artwork artwork, uint index)
+    public FileInfo Find(ulong id, FileExtensionKind extensionKind, uint index)
     {
-        var folder = Path.Combine(ConfigSettings.ThumbnailFolder, IOUtility.GetHashPath(artwork.Id));
-        var file = new FileInfo(Path.Combine(folder, artwork.GetNotUgoiraThumbnailFileName(index)));
+        var folder = Path.Combine(ConfigSettings.ThumbnailFolder, IOUtility.GetHashPath(id));
+        var file = new FileInfo(Path.Combine(folder, ArtworkNameUtility.GetNotUgoiraThumbnailFileName(id, index)));
         if (file.Exists)
         {
             return file;
         }
 
-        return new(Path.Combine(folder, GetJxlName(artwork, index)));
+        return new(Path.Combine(folder, $"{id}_{index}.jxl"));
     }
 }

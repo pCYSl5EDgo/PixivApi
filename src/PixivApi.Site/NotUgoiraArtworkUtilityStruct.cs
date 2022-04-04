@@ -69,7 +69,7 @@ public readonly partial struct NotUgoiraArtworkUtilityStruct
                 goto NULL;
             }
 
-            var info = finder.Find(artwork, pageIndex);
+            var info = finder.Find(artwork.Id, artwork.Extension, pageIndex);
             if (!info.Exists)
             {
                 goto NULL;
