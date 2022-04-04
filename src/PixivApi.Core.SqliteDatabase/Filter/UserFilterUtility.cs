@@ -8,7 +8,7 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8(".\"Name\"")]
     private static partial ReadOnlySpan<byte> Literal_DotName();
 
-    public static void Preprocess(ref Utf8ValueStringBuilder bulder, UserFilter filter, ref bool first, ref int intersect, ref int except) => PreprocessUser(ref bulder, filter.TagFilter, ref first, ref intersect, ref except);
+    public static void Preprocess(ref Utf8ValueStringBuilder builder, UserFilter filter, ref bool first, ref int intersect, ref int except) => Preprocess(ref builder, filter.TagFilter, P, Q, ref first, ref intersect, ref except, Literal_SelectIdFromUserTagCrossTableAsCT(), Literal_Where());
 
     public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, UserFilter filter, ILogger logger, int intersect, int except)
     {
