@@ -23,6 +23,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         CloseStatement(ref getHideReasonsStatement);
         CloseStatement(ref enumerateArtworkStatement);
         CloseStatement(ref officiallyRemoveArtworkStatement);
+        CloseStatement(ref selectHidePagesStatement);
         CloseStatement(ref insertUserStatement);
         CloseStatement(ref insertUser_UserResponse_Statement);
         CloseStatement(ref insertUser_UserPreviewResponse_Statement);

@@ -9,6 +9,7 @@ internal sealed partial class Database
     private sqlite3_stmt? getHideReasonsStatement;
     private sqlite3_stmt? enumerateArtworkStatement;
     private sqlite3_stmt? officiallyRemoveArtworkStatement;
+    private sqlite3_stmt? selectHidePagesStatement;
 
     [StringLiteral.Utf8("SELECT \"UserId\", \"PageCount\", \"Width\", \"Height\", " +
         "\"Type\", \"Extension\", \"IsXRestricted\", \"IsVisible\", \"IsMuted\"," +
@@ -292,8 +293,51 @@ internal sealed partial class Database
         }
     }
 
+    [StringLiteral.Utf8("SELECT \"Index\" FROM \"HidePageTable\" WHERE \"Id\" = ? AND \"HideReason\" <> 0 ORDER BY \"Index\" ASC")]
+    private static partial ReadOnlySpan<byte> Literal_SelectHidePageFromHidePageTableOfId();
+
+    private async IAsyncEnumerable<uint> SelectHidePageOfId(ulong id, [EnumeratorCancellation] CancellationToken token)
+    {
+        if (selectHidePagesStatement is null)
+        {
+            selectHidePagesStatement = Prepare(Literal_SelectHidePageFromHidePageTableOfId(), true, out _);
+        }
+        else
+        {
+            Reset(selectHidePagesStatement);
+        }
+
+        var statement = selectHidePagesStatement;
+        Bind(statement, 1, id);
+        do
+        {
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
+
+            if (code == SQLITE_DONE)
+            {
+                break;
+            }
+
+            if (code == SQLITE_ROW)
+            {
+                yield return CU32(statement, 0);
+                continue;
+            }
+
+            throw new InvalidOperationException($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
+        } while (!token.IsCancellationRequested);
+    }
+
     [StringLiteral.Utf8(" WHERE ")]
     private static partial ReadOnlySpan<byte> Literal_Where();
+
+    [StringLiteral.Utf8("SELECT \"Origin\".\"Id\", \"Origin\".\"PageCount\", \"Origin\".\"Type\", \"Origin\".\"Extension\" FROM \"ArtworkTable\" AS \"Origin\"")]
+    private static partial ReadOnlySpan<byte> Literal_EnumerateArtworkForFileExistance();
 
     /// <summary>
     /// When FileExistanceFilter exists, ignore Offset, Count and FileExistanceFilter
@@ -314,7 +358,7 @@ internal sealed partial class Database
             var first = true;
             int intersectArtwork = -1, exceptArtwork = -1, intersectUser = -1, exceptUser = -1;
             FilterUtility.Preprocess(ref builder, filter, ref first, ref intersectArtwork, ref exceptArtwork, ref intersectUser, ref exceptUser);
-            builder.AppendLiteral(Literal_EnumerateArtwork());
+            builder.AppendLiteral(Literal_EnumerateArtworkForFileExistance());
             builder.AppendLiteral(Literal_Where());
             var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger, intersectArtwork, exceptArtwork, intersectUser, exceptUser);
             builder.Dispose();
@@ -344,13 +388,13 @@ internal sealed partial class Database
                     continue;
                 }
 
-                var answer = new Artwork
+                if (filter.ShouldHandleFileExistanceFilter)
                 {
-                    Id = id,
-                };
+                    continue;
+                }
 
-                await ColumnArtworkAsync(answer, statement, 1, token).ConfigureAwait(false);
-                if (filter.ShouldHandleFileExistanceFilter && !filter.FileExistanceFilter.Filter(answer))
+                var answer = await GetArtworkAsync(id, token).ConfigureAwait(false);
+                if (answer is null)
                 {
                     continue;
                 }

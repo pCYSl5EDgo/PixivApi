@@ -5,9 +5,6 @@ internal static partial class FilterUtility
     [StringLiteral.Utf8("\"Origin\"")]
     private static partial ReadOnlySpan<byte> Literal_Origin();
 
-    [StringLiteral.Utf8("\"ArtworkTagCrossTable\"")]
-    private static partial ReadOnlySpan<byte> Literal_ArtworkTagCrossTable();
-
     [StringLiteral.Utf8("\"TextTable\"")]
     private static partial ReadOnlySpan<byte> Literal_TextTable();
 
