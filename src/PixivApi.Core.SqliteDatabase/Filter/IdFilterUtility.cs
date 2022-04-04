@@ -75,7 +75,7 @@ internal static partial class FilterUtility
 
             builder.AppendAscii(')');
 
-            if (except >= 0)
+            if (intersect == 0 && except >= 0)
             {
                 builder.AppendLiteral(Literal_Except());
                 builder.AppendLiteral(Literal_SelectIdFrom());
