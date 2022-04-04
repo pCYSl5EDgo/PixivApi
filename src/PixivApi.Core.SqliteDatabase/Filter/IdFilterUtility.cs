@@ -52,7 +52,7 @@ internal static partial class FilterUtility
     private const byte I = (byte)'I';
     private const byte E = (byte)'E';
 
-    private static void Preproces(ref this Utf8ValueStringBuilder builder, IdFilter? filter, ref bool first, ref int intersect, ref int except)
+    private static void Preprocess(ref this Utf8ValueStringBuilder builder, IdFilter? filter, byte intersectAlias, byte exceptAlias, ref bool first, ref int intersect, ref int except)
     {
         if (filter is null)
         {
@@ -78,21 +78,21 @@ internal static partial class FilterUtility
 
         if (filter.Ids is { Length: > 0 })
         {
-            Add(ref builder, ref first, ref intersect, filter.Ids, I);
+            Add(ref builder, ref first, ref intersect, filter.Ids, intersectAlias);
         }
 
         if (filter.IgnoreIds is { Length: > 0 } excepts)
         {
             if (intersect == -1)
             {
-                Add(ref builder, ref first, ref except, filter.IgnoreIds, E);
+                Add(ref builder, ref first, ref except, filter.IgnoreIds, exceptAlias);
             }
             else
             {
                 builder.WithOrComma(ref first);
-                builder.Add(I, ++intersect);
+                builder.Add(intersectAlias, ++intersect);
                 builder.AppendLiteral(Literal_ParenIdParenAs());
-                builder.Add(I, intersect - 1);
+                builder.Add(intersectAlias, intersect - 1);
                 builder.AppendLiteral(Literal_Except());
                 builder.AppendLiteral(Literal_Values());
                 builder.AppendAscii('(');

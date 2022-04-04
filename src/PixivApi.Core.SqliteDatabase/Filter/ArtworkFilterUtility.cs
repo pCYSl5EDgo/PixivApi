@@ -46,7 +46,9 @@ internal static partial class FilterUtility
 
     public static void Preprocess(ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool first, ref int intersectArtwork, ref int exceptArtwork, ref int intersectUser, ref int exceptUser)
     {
+        Preprocess(ref builder, filter.IdFilter, I, E, ref first, ref intersectArtwork, ref exceptArtwork);
         Preprocess(ref builder, filter.TagFilter, I, E, ref first, ref intersectArtwork, ref exceptArtwork, Literal_SelectIdFromArtworkTagCrossTableAsCT(), Literal_WhereCTDotValueKindNotEqual0And());
+        Preprocess(ref builder, filter.UserFilter?.IdFilter, P, Q, ref first, ref intersectUser, ref exceptUser);
         Preprocess(ref builder, filter.UserFilter?.TagFilter, P, Q, ref first, ref intersectUser, ref exceptUser, Literal_SelectIdFromUserTagCrossTableAsCT(), Literal_Where());
     }
 
