@@ -77,6 +77,7 @@ public sealed class Program
         app.Configuration.Bind("MimeTypes", mimeDictionary);
         var contetTypeProvider = new FileExtensionContentTypeProvider(mimeDictionary);
 
+        app.UseFileServer();
         app.UseStaticFiles(new StaticFileOptions(originalSharedProvider) { ContentTypeProvider = contetTypeProvider });
         app.UseStaticFiles(new StaticFileOptions(thumbnailSharedProvider) { ContentTypeProvider = contetTypeProvider });
         app.UseStaticFiles(new StaticFileOptions(ugoiraSharedProvider) { ContentTypeProvider = contetTypeProvider });
