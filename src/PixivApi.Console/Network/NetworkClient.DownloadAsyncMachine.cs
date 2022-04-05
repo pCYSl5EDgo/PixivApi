@@ -143,6 +143,7 @@ public partial class NetworkClient
                     if (response.StatusCode == HttpStatusCode.NotFound)
                     {
                         artwork.IsOfficiallyRemoved = true;
+                        logger.LogInformation($"Detail: {!artwork.IsOfficiallyRemoved} Id: {artwork.Id,20}");
                     }
 
                     return false;
@@ -169,15 +170,11 @@ public partial class NetworkClient
                     if (response.StatusCode == HttpStatusCode.NotFound)
                     {
                         artwork.IsOfficiallyRemoved = true;
+                        logger.LogInformation($"Detail: {!artwork.IsOfficiallyRemoved} Id: {artwork.Id,20}");
                     }
 
                     return false;
                 }
-            }
-
-            if (!System.Console.IsOutputRedirected)
-            {
-                logger.LogInformation($"Detail: {!artwork.IsOfficiallyRemoved} Id: {artwork.Id,20}");
             }
 
             return !artwork.IsOfficiallyRemoved;
