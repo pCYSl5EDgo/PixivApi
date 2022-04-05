@@ -9,7 +9,7 @@ public sealed class FileExistanceFilter
     [JsonPropertyName("ugoira")] public bool? Ugoira;
     [JsonPropertyName("relation")] public Relation Relationship = new();
 
-    private FinderFacade finder = null!;
+    [JsonIgnore] public FinderFacade finder = null!;
 
     public void Initialize(FinderFacade finder) => this.finder = finder;
 

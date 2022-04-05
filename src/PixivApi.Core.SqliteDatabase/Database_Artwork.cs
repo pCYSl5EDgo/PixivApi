@@ -1,4 +1,6 @@
-﻿namespace PixivApi.Core.SqliteDatabase;
+﻿using PixivApi.Core.Plugin;
+
+namespace PixivApi.Core.SqliteDatabase;
 
 internal sealed partial class Database
 {
@@ -137,7 +139,7 @@ internal sealed partial class Database
         ColumnArtwork(answer, statement, offset);
         await ColumnToolsAsync(answer, token).ConfigureAwait(false);
         await ColumnTagsAsync(answer, token).ConfigureAwait(false);
-        await ColumnHideReasonsAsync(answer, token).ConfigureAwait(false);
+        answer.ExtraPageHideReasonDictionary = await ColumnHideReasonsAsync(answer.Id, token).ConfigureAwait(false);
         await ColumnUgoiraFramesAsync(answer, token).ConfigureAwait(false);
     }
 
@@ -199,7 +201,7 @@ internal sealed partial class Database
     [StringLiteral.Utf8("SELECT \"Index\", \"HideReason\" FROM \"HidePageTable\" WHERE \"Id\" = ?")]
     private static partial ReadOnlySpan<byte> Literal_SelectHideReasons();
 
-    private async ValueTask ColumnHideReasonsAsync(Artwork answer, CancellationToken token)
+    private async ValueTask<Dictionary<uint, HideReason>> ColumnHideReasonsAsync(ulong id, CancellationToken token)
     {
         if (getHideReasonsStatement is null)
         {
@@ -211,9 +213,11 @@ internal sealed partial class Database
         }
 
         var statement = getHideReasonsStatement;
-        Bind(statement, 1, answer.Id);
+        Bind(statement, 1, id);
+        var answer = new Dictionary<uint, HideReason>();
         do
         {
+            token.ThrowIfCancellationRequested();
             var code = Step(statement);
             if (code == SQLITE_BUSY)
             {
@@ -228,8 +232,9 @@ internal sealed partial class Database
 
             var index = CU32(statement, 0);
             var reason = (HideReason)(byte)CI32(statement, 1);
-            (answer.ExtraPageHideReasonDictionary ??= new())[index] = reason;
-        } while (!token.IsCancellationRequested);
+            answer[index] = reason;
+        } while (true);
+        return answer;
     }
 
     private const string EnumerateArtworkQuery = "SELECT \"Origin\".\"Id\", \"Origin\".\"UserId\", \"Origin\".\"PageCount\", \"Origin\".\"Width\", \"Origin\".\"Height\", \"Origin\".\"Type\", \"Origin\".\"Extension\", \"Origin\".\"IsXRestricted\", \"Origin\".\"IsVisible\", \"Origin\".\"IsMuted\", \"Origin\".\"CreateDate\", \"Origin\".\"FileDate\", \"Origin\".\"TotalView\", \"Origin\".\"TotalBookmarks\", \"Origin\".\"HideReason\", \"Origin\".\"IsOfficiallyRemoved\", \"Origin\".\"IsBookmarked\", \"Origin\".\"Title\", \"Origin\".\"Caption\", \"Origin\".\"Memo\" FROM \"ArtworkTable\" AS \"Origin\"";
@@ -307,46 +312,6 @@ internal sealed partial class Database
         } while (!token.IsCancellationRequested);
     }
 
-    [StringLiteral.Utf8("SELECT \"Index\" FROM \"HidePageTable\" WHERE \"Id\" = ? AND \"HideReason\" <> 0 ORDER BY \"Index\" ASC")]
-    private static partial ReadOnlySpan<byte> Literal_SelectHidePageFromHidePageTableOfId();
-
-    private async IAsyncEnumerable<uint> SelectHidePageOfId(ulong id, [EnumeratorCancellation] CancellationToken token)
-    {
-        if (selectHidePagesStatement is null)
-        {
-            selectHidePagesStatement = Prepare(Literal_SelectHidePageFromHidePageTableOfId(), true, out _);
-        }
-        else
-        {
-            Reset(selectHidePagesStatement);
-        }
-
-        var statement = selectHidePagesStatement;
-        Bind(statement, 1, id);
-        do
-        {
-            var code = Step(statement);
-            if (code == SQLITE_BUSY)
-            {
-                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                continue;
-            }
-
-            if (code == SQLITE_DONE)
-            {
-                break;
-            }
-
-            if (code == SQLITE_ROW)
-            {
-                yield return CU32(statement, 0);
-                continue;
-            }
-
-            throw new InvalidOperationException($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
-        } while (!token.IsCancellationRequested);
-    }
-
     [StringLiteral.Utf8(" WHERE ")]
     private static partial ReadOnlySpan<byte> Literal_Where();
 
@@ -404,7 +369,13 @@ internal sealed partial class Database
 
                 if (filter.ShouldHandleFileExistanceFilter)
                 {
-                    continue;
+                    var pageCount = CU32(statement, 1);
+                    var type = (ArtworkType)CU32(statement, 2);
+                    var extensionKind = (FileExtensionKind)CU32(statement, 3);
+                    if (!await FileFilterAsync(filter.FileExistanceFilter, id, pageCount, type, extensionKind, token).ConfigureAwait(false))
+                    {
+                        continue;
+                    }
                 }
 
                 var answer = await GetArtworkAsync(id, token).ConfigureAwait(false);
@@ -420,5 +391,152 @@ internal sealed partial class Database
         {
             statement.manual_close();
         }
+    }
+
+    private async ValueTask<bool> FileFilterAsync(FileExistanceFilter filter, ulong id, uint pageCount, ArtworkType artworkType, FileExtensionKind extensionKind, CancellationToken token)
+    {
+        if (filter.Original is null)
+        {
+            if (filter.Thumbnail is null)
+            {
+                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
+                {
+                    return true;
+                }
+                else
+                {
+                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
+                    return ugoiraValue;
+                }
+            }
+            else
+            {
+                var thumbnailValue = await PrivateFilter(id, pageCount, artworkType, extensionKind, filter.Thumbnail, filter.finder.IllustThumbnailFinder, filter.finder.MangaThumbnailFinder, filter.finder.UgoiraThumbnailFinder, token).ConfigureAwait(false);
+                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
+                {
+                    return thumbnailValue;
+                }
+                else
+                {
+                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
+                    return filter.Relationship.Calc_Thumbnail_Ugoira(thumbnailValue, ugoiraValue);
+                }
+            }
+        }
+        else
+        {
+            var originalValue = await PrivateFilter(id, pageCount, artworkType, extensionKind, filter.Original, filter.finder.IllustOriginalFinder, filter.finder.MangaOriginalFinder, filter.finder.UgoiraOriginalFinder, token).ConfigureAwait(false);
+            if (filter.Thumbnail is null)
+            {
+                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
+                {
+                    return originalValue;
+                }
+                else
+                {
+                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
+                    return filter.Relationship.Calc_Ogirinal_Ugoira(originalValue, ugoiraValue);
+                }
+            }
+            else
+            {
+                var thumbnailValue = await PrivateFilter(id, pageCount, artworkType, extensionKind, filter.Thumbnail, filter.finder.IllustThumbnailFinder, filter.finder.MangaThumbnailFinder, filter.finder.UgoiraThumbnailFinder, token).ConfigureAwait(false);
+                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
+                {
+                    return filter.Relationship.Calc_Original_Thumbnail(originalValue, thumbnailValue);
+                }
+                else
+                {
+                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
+                    return filter.Relationship.Calc_Original_Thumbnail_Ugoira(originalValue, thumbnailValue, ugoiraValue);
+                }
+            }
+        }
+    }
+
+    private ValueTask<bool> PrivateFilter(ulong id, uint pageCount, ArtworkType artworkType, FileExtensionKind extensionKind, FileExistanceFilter.InnerFilter filter, IFinderWithIndex illustFinder, IFinderWithIndex mangaFinder, IFinder ugoiraFinder, CancellationToken token) => artworkType switch
+    {
+        ArtworkType.Illust => PrivateFilter(id, pageCount, extensionKind, filter, illustFinder, token),
+        ArtworkType.Manga => PrivateFilter(id, pageCount, extensionKind, filter, mangaFinder, token),
+        ArtworkType.Ugoira => PrivateFilter(id, pageCount, extensionKind, filter, ugoiraFinder, token),
+        _ => ValueTask.FromResult(false),
+    };
+
+    private async ValueTask<bool> PrivateFilter(ulong id, uint pageCount, FileExtensionKind extensionKind, FileExistanceFilter.InnerFilter filter, IFinderWithIndex finder, CancellationToken token)
+    {
+        var hideDictionary = await ColumnHideReasonsAsync(id, token).ConfigureAwait(false);
+        uint filterPageCount = 0, filterPassCount = 0;
+        for (uint i = 0; i < pageCount; i++)
+        {
+            if (hideDictionary.TryGetValue(i, out var reason) && reason != HideReason.NotHidden)
+            {
+                continue;
+            }
+
+            ++filterPageCount;
+            if (finder.Find(id, extensionKind, i).Exists)
+            {
+                ++filterPassCount;
+            }
+        }
+
+        if (logTrace)
+        {
+            logger.LogTrace($"Id: {id} PageCount: {pageCount} Extension: {extensionKind} FilterPageCount: {filterPageCount} FilterPassCount: {filterPassCount}");
+        }
+
+        var answer = PrivateFilter(filter, filterPassCount, filterPageCount);
+        if (logTrace)
+        {
+            logger.LogTrace($"Id: {id} PageCount: {pageCount} Extension: {extensionKind} FilterPageCount: {filterPageCount} FilterPassCount: {filterPassCount} Answer: {answer}");
+        }
+
+        return answer;
+    }
+
+    private async ValueTask<bool> PrivateFilter(ulong id, uint pageCount, FileExtensionKind extensionKind, FileExistanceFilter.InnerFilter filter, IFinder finder, CancellationToken token)
+    {
+        uint filterPageCount = 0, filterPassCount = 0;
+        if (pageCount == 0)
+        {
+            goto RETURN;
+        }
+
+        var hideDictionary = await ColumnHideReasonsAsync(id, token).ConfigureAwait(false);
+        if (hideDictionary.TryGetValue(0, out var reason) && reason != HideReason.NotHidden)
+        {
+            goto RETURN;
+        }
+
+        filterPassCount = finder.Find(id, extensionKind).Exists ? 1U : 0U;
+        filterPageCount = 1;
+    RETURN:
+        var answer = PrivateFilter(filter, filterPassCount, filterPageCount);
+        if (logTrace)
+        {
+            logger.LogTrace($"Id: {id} PageCount: {pageCount} Extension: {extensionKind} FilterPageCount: {filterPageCount} FilterPassCount: {filterPassCount} Answer: {answer}");
+        }
+
+        return answer;
+    }
+
+    private bool PrivateFilter(FileExistanceFilter.InnerFilter filter, uint count, uint pageCount)
+    {
+        if (filter.IsAllMin)
+        {
+            return count == pageCount;
+        }
+
+        if (count < (filter.Min < 0 ? pageCount : 0) + filter.Min)
+        {
+            return false;
+        }
+
+        if (filter.Max is { } max)
+        {
+            return count <= (max < 0 ? pageCount : 0) + max;
+        }
+
+        return true;
     }
 }
