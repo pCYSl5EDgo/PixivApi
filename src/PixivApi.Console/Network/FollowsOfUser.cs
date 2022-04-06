@@ -166,7 +166,8 @@ public partial class NetworkClient
                             goto RETURN;
                         }
 
-                        if (await database.AddOrUpdateAsync(illust.Id, token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token), token).ConfigureAwait(false))
+                        var isAddTask = database is IExtenededDatabase exteneded ? exteneded.ArtworkAddOrUpdateAsync(illust, token) : database.AddOrUpdateAsync(illust.Id, token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token), token);
+                        if (await isAddTask.ConfigureAwait(false))
                         {
                             ++addArtwork;
                             logTrace?.LogTrace($"Art-A {addArtwork,10}: {illust.Id,20}");
@@ -261,7 +262,7 @@ public partial class NetworkClient
         {
             logger.LogError(e, "Error happened");
         }
-        
+
     RETURN:
         return (add, update, addArtwork, updateArtwork);
     }
@@ -316,10 +317,11 @@ public partial class NetworkClient
                             goto RETURN;
                         }
 
-                        if (await database.AddOrUpdateAsync(illust.Id, token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token), token).ConfigureAwait(false))
+                        var isAddTask = database is IExtenededDatabase exteneded ? exteneded.ArtworkAddOrUpdateAsync(illust, token) : database.AddOrUpdateAsync(illust.Id, token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token), token);
+                        if (await isAddTask.ConfigureAwait(false))
                         {
                             ++addArtwork;
-                            logTrace?.LogTrace($"Art-A {addArtwork,10}: {illust.Id,20}");
+                            logTrace?.LogInformation($"Art-A {addArtwork,10}: {illust.Id,20}");
                         }
                         else
                         {
