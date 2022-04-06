@@ -43,7 +43,7 @@ internal sealed partial class Database
     
     [StringLiteral.Utf8("END TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
     
-    public ValueTask EndTransactionAsync(CancellationToken token)
+    public async ValueTask EndTransactionAsync(CancellationToken token)
     {
         logger.LogDebug("End Transaction");
         if (endTransactionStatement is null)
@@ -55,7 +55,24 @@ internal sealed partial class Database
             Reset(endTransactionStatement);
         }
 
-        return ExecuteAsync(endTransactionStatement, token);
+        var statement = endTransactionStatement;
+        do
+        {
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
+            {
+                await RollbackTransactionAsync(token).ConfigureAwait(false);
+                logger.LogError("Error writing to the database because it is busy");
+                break;
+            }
+
+            if (code == SQLITE_DONE)
+            {
+                break;
+            }
+
+            throw new InvalidOperationException($"Error: {code} - {sqlite3_errmsg(database).utf8_to_string()}");
+        } while (!token.IsCancellationRequested);
     }
 
     [StringLiteral.Utf8("ROLLBACK TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();

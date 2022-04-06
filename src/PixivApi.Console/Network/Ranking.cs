@@ -69,7 +69,7 @@ public partial class NetworkClient
         }
         catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            await transactional.RollbackTransactionAsync(token).ConfigureAwait(false);
+            await transactional.RollbackTransactionAsync(Context.CancellationToken).ConfigureAwait(false);
             transactional = null;
             throw;
         }
@@ -83,7 +83,7 @@ public partial class NetworkClient
 
             if (transactional is not null)
             {
-                await transactional.EndTransactionAsync(token).ConfigureAwait(false);
+                await transactional.EndTransactionAsync(Context.CancellationToken).ConfigureAwait(false);
             }
 
             databaseFactory.Return(ref database);
