@@ -72,23 +72,29 @@ internal sealed partial class Database
     private async ValueTask<uint> RegisterTagOrToolAsync(sqlite3_stmt statement, string value, CancellationToken token)
     {
         Bind(statement, 1, value);
-        int code;
-        while ((code = Step(statement)) == SQLITE_BUSY)
+        uint answer = 0;
+        do
         {
-            await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-        }
+            var code = Step(statement);
+            if (code == SQLITE_BUSY)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
+                continue;
+            }
 
-        if (code == SQLITE_ROW)
-        {
-            return CU32(statement, 0);
-        }
+            if (code == SQLITE_DONE)
+            {
+                return answer;
+            }
 
-        if (logError)
-        {
-            logger.LogError($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
-        }
+            if (code == SQLITE_ROW)
+            {
+                answer = CU32(statement, 0);
+                continue;
+            }
 
-        throw new InvalidOperationException();
+            throw new Exception($"Error Code: {code} Message: {sqlite3_errmsg(database).utf8_to_string()}");
+        } while (true);
     }
 
     [StringLiteral.Utf8("INSERT INTO \"TagTable\" (\"Value\") VALUES (?) RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoTagTableReturningId();

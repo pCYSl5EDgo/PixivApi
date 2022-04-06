@@ -459,7 +459,7 @@ internal sealed partial class Database
             var ids = ArrayPool<uint>.Shared.Rent(answer.Tools.Length);
             for (var i = 0; i < answer.Tools.Length; i++)
             {
-                ids[i] = await RegisterTagAsync(answer.Tools[i], token).ConfigureAwait(false);
+                ids[i] = await RegisterToolAsync(answer.Tools[i], token).ConfigureAwait(false);
             }
 
             var statetment = PrepareInsertToolsStatement(answer.Tools.Length);

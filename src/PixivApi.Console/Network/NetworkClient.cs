@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace PixivApi.Console;
+﻿namespace PixivApi.Console;
 
 [Command("net")]
 public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
@@ -435,7 +433,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         }
                     }
 
-                    if (item.Id == 97457287)
+                    if (update == 7)
                     {
                         throw new TaskCanceledException();
                     }

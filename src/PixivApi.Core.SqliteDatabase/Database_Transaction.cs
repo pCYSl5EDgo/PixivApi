@@ -7,7 +7,7 @@ internal sealed partial class Database
     private sqlite3_stmt? endTransactionStatement;
     private sqlite3_stmt? rollbackTransactionStatement;
 
-    [StringLiteral.Utf8("BEGIN TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
+    [StringLiteral.Utf8("BEGIN TRANSACTION;")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
     
     public ValueTask BeginTransactionAsync(CancellationToken token)
     {
@@ -24,7 +24,7 @@ internal sealed partial class Database
         return ExecuteAsync(beginTransactionStatement, token);
     }
 
-    [StringLiteral.Utf8("BEGIN EXCLUSIVE TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Exclusive_Transaction();
+    [StringLiteral.Utf8("BEGIN EXCLUSIVE TRANSACTION;")] private static partial ReadOnlySpan<byte> Literal_Begin_Exclusive_Transaction();
 
     public ValueTask BeginExclusiveTransactionAsync(CancellationToken token)
     {
@@ -41,7 +41,7 @@ internal sealed partial class Database
         return ExecuteAsync(beginExclusiveTransactionStatement, token);
     }
     
-    [StringLiteral.Utf8("END TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
+    [StringLiteral.Utf8("END TRANSACTION;")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
     
     public async ValueTask EndTransactionAsync(CancellationToken token)
     {
@@ -75,7 +75,7 @@ internal sealed partial class Database
         } while (!token.IsCancellationRequested);
     }
 
-    [StringLiteral.Utf8("ROLLBACK TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();
+    [StringLiteral.Utf8("ROLLBACK TRANSACTION;")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();
     
     public ValueTask RollbackTransactionAsync(CancellationToken token)
     {
