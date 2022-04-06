@@ -155,6 +155,7 @@ internal sealed partial class Database
 
     private async ValueTask ColumnArtworkAsync(Artwork answer, sqlite3_stmt statement, int offset, CancellationToken token)
     {
+        logger.LogTrace("Column Artwork");
         ColumnArtwork(answer, statement, offset);
         await ColumnToolsAsync(answer, token).ConfigureAwait(false);
         await ColumnTagsAsync(answer, token).ConfigureAwait(false);
@@ -163,11 +164,11 @@ internal sealed partial class Database
         {
             await ColumnUgoiraFramesAsync(answer, token).ConfigureAwait(false);
         }
+        logger.LogTrace("Column Artwork Done");
     }
 
     private void ColumnArtwork(Artwork answer, sqlite3_stmt statement, int offset)
     {
-        logger.LogTrace("Column Artwork");
         answer.UserId = CU64(statement, offset++);
         answer.PageCount = CU32(statement, offset++);
         answer.Width = CU32(statement, offset++);
@@ -314,6 +315,7 @@ internal sealed partial class Database
 
     public async ValueTask OfficiallyRemoveArtwork(ulong id, CancellationToken token)
     {
+        logger.LogTrace("Remove Officially");
         if (officiallyRemoveArtworkStatement is null)
         {
             officiallyRemoveArtworkStatement = Prepare(Literal_Remove_Artwork(), true, out _);

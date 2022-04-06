@@ -435,7 +435,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         }
                     }
 
-                    if (add == 1)
+                    if (item.Id == 97457287)
                     {
                         throw new TaskCanceledException();
                     }
