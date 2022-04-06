@@ -464,12 +464,15 @@ internal sealed partial class Database
     }
 
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTable\" VALUES " +
-        "(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, 0, 0, ?15, ?16, ?17, NULL) " +
-        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\", " +
-            "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\"," +
-            "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\", " +
-            "\"IsOfficiallyRemoved\" = 0, \"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Title\" = \"excluded\".\"Title\"," +
-            "\"Caption\" = \"excluded\".\"Caption\", \"Memo\" = \"excluded\".\"Memo\"")]
+        "(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 0, ?16, ?17, ?18, NULL) " +
+        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\"," +
+            "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\"," +
+            "\"TotalView\" = \"excluded\".\"TotalView\"," +
+            "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\"," +
+            "\"IsOfficiallyRemoved\" = 0," +
+            "\"HideReason\" = CASE WHEN \"HideReason\" = 0 THEN \"excluded\".\"HideReason\" ELSE \"HideReason\" END," +
+            "\"IsBookmarked\" = \"excluded\".\"IsBookmarked\"," +
+            "\"Title\" = \"excluded\".\"Title\", \"Caption\" = \"excluded\".\"Caption\"")]
     private static partial ReadOnlySpan<byte> Literal_Update_Artwowrk_ArtworkResponseContent();
 
     private ValueTask InsertOrUpdateArtworkAsync(ArtworkResponseContent answer, CancellationToken token)
@@ -498,9 +501,10 @@ internal sealed partial class Database
         Bind(statement, 0x0c, LocalNetworkConverter.ParseFileDate(answer));
         Bind(statement, 0x0d, answer.TotalView);
         Bind(statement, 0x0e, answer.TotalBookmarks);
-        Bind(statement, 0x0f, answer.IsBookmarked);
-        Bind(statement, 0x10, answer.Title);
-        Bind(statement, 0x11, answer.Caption);
+        Bind(statement, 0x0f, answer.IsUnknown());
+        Bind(statement, 0x10, answer.IsBookmarked);
+        Bind(statement, 0x11, answer.Title);
+        Bind(statement, 0x12, answer.Caption);
         return ExecuteAsync(statement, token);
     }
 }

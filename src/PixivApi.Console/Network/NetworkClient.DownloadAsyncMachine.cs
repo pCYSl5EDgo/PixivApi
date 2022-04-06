@@ -136,13 +136,32 @@ public partial class NetworkClient
         private async ValueTask<bool> DownloadFilePrepareDetailAsync(Artwork artwork)
         {
             ArtworkResponseContent detailArtwork;
+            var exteneded = database as IExtenededDatabase;
             using (var response = await GetArtworkDetailAsync(requestSender, artwork.Id, token).ConfigureAwait(false))
             {
                 if (!response.IsSuccessStatusCode)
                 {
                     if (response.StatusCode == HttpStatusCode.NotFound)
                     {
-                        artwork.IsOfficiallyRemoved = true;
+                        if (exteneded is not null)
+                        {
+                            await exteneded.OfficiallyRemoveArtwork(artwork.Id, token).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await database.AddOrUpdateAsync(artwork.Id, token =>
+                            {
+                                token.ThrowIfCancellationRequested();
+                                artwork.IsOfficiallyRemoved = true;
+                                return ValueTask.FromResult(artwork);
+                            }, static (artwork, token) =>
+                            {
+                                token.ThrowIfCancellationRequested();
+                                artwork.IsOfficiallyRemoved = true;
+                                return ValueTask.CompletedTask;
+                            }, token).ConfigureAwait(false);
+                        }
+
                         logger.LogInformation($"Detail: {!artwork.IsOfficiallyRemoved} Id: {artwork.Id,20}");
                     }
 
@@ -157,7 +176,24 @@ public partial class NetworkClient
                 detailArtwork = IOUtility.JsonDeserialize<IllustDateilResponseData>(await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false)).Illust;
             }
 
-            await LocalNetworkConverter.OverwriteAsync(artwork, detailArtwork, database, database, database, token).ConfigureAwait(false);
+            if (exteneded is not null)
+            {
+                await exteneded.ArtworkAddOrUpdateAsync(detailArtwork, token).ConfigureAwait(false);
+            }
+            else
+            {
+                await database.AddOrUpdateAsync(artwork.Id, async token =>
+                {
+                    await LocalNetworkConverter.OverwriteAsync(artwork, detailArtwork, database, database, database, token).ConfigureAwait(false);
+                    return artwork;
+                }, async (artwork, token) =>
+                {
+                    await LocalNetworkConverter.OverwriteAsync(artwork, detailArtwork, database, database, database, token).ConfigureAwait(false);
+                },
+                token).ConfigureAwait(false);
+
+            }
+
             if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is null)
             {
                 using var response = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
@@ -169,12 +205,39 @@ public partial class NetworkClient
                     {
                         artwork.UgoiraFrames[i] = (ushort)frames[i].Delay;
                     }
+
+                    await database.AddOrUpdateAsync(artwork.Id,
+                        token => ValueTask.FromResult(artwork),
+                        (destination, token) =>
+                        {
+                            destination.UgoiraFrames = artwork.UgoiraFrames;
+                            return ValueTask.CompletedTask;
+                        },
+                        token).ConfigureAwait(false);
                 }
                 else
                 {
                     if (response.StatusCode == HttpStatusCode.NotFound)
                     {
-                        artwork.IsOfficiallyRemoved = true;
+                        if (exteneded is not null)
+                        {
+                            await exteneded.OfficiallyRemoveArtwork(artwork.Id, token).ConfigureAwait(false);
+                        }
+                        else
+                        {
+                            await database.AddOrUpdateAsync(artwork.Id, token =>
+                            {
+                                token.ThrowIfCancellationRequested();
+                                artwork.IsOfficiallyRemoved = true;
+                                return ValueTask.FromResult(artwork);
+                            }, static (artwork, token) =>
+                            {
+                                token.ThrowIfCancellationRequested();
+                                artwork.IsOfficiallyRemoved = true;
+                                return ValueTask.CompletedTask;
+                            }, token).ConfigureAwait(false);
+                        }
+
                         logger.LogInformation($"Detail: {!artwork.IsOfficiallyRemoved} Id: {artwork.Id,20}");
                     }
 
@@ -182,6 +245,7 @@ public partial class NetworkClient
                 }
             }
 
+            await database.AddOrUpdateAsync(artwork.Id, token => ValueTask.FromResult(artwork), (artwork, token) => ValueTask.CompletedTask, token);
             return !artwork.IsOfficiallyRemoved;
         }
     }

@@ -25,6 +25,8 @@ public struct ArtworkResponseContent
     [JsonPropertyName("is_muted")] public bool IsMuted;
     [JsonPropertyName("total_comments")] public uint TotalComments;
 
+    public readonly bool IsUnknown() => ImageUrls.SquareMedium?.EndsWith("limit_unknown_360.png") ?? false;
+
 #if DEBUG
     public readonly override string ToString() => $"{Id} {Title}";
 
