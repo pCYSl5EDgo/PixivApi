@@ -115,7 +115,10 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     var oldAdd = add;
                     foreach (var item in collection)
                     {
-                        if (await database.AddOrUpdateAsync(item.Id, token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
+                        if (await database.AddOrUpdateAsync(item.Id,
+                            token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                            (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token),
+                            token).ConfigureAwait(false))
                         {
                             ++add;
                             if (logInfo)
@@ -176,7 +179,10 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 {
                     foreach (var item in collection)
                     {
-                        if (await database.AddOrUpdateAsync(item.Id, token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token), token).ConfigureAwait(false))
+                        if (await database.AddOrUpdateAsync(item.Id,
+                            token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                            (v, token) => LocalNetworkConverter.OverwriteAsync(v, item, database, database, database, token),
+                            token).ConfigureAwait(false))
                         {
                             ++add;
                             if (logInfo)
@@ -249,29 +255,19 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         break;
                     }
 
-                    if (await database.AddOrUpdateAsync(item.Id, async token =>
+                    if (await database.AddOrUpdateAsync(item.Id, 
+                        token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                        (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                        token).ConfigureAwait(false))
                     {
-                        var artwork = await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
-                        if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                        var artwork = await database.GetArtworkAsync(item.Id, token).ConfigureAwait(false);
+                        if (artwork is not null && filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
                         {
                             _ = artwork.Type == ArtworkType.Ugoira ?
                                 await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
                                 await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
                         }
 
-                        return artwork;
-                    }, async (artwork, token) =>
-                    {
-                        await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token).ConfigureAwait(false);
-                        if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
-                        {
-                            _ = artwork.Type == ArtworkType.Ugoira ?
-                                await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
-                                await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
-                        }
-
-                    }, token).ConfigureAwait(false))
-                    {
                         ++add;
                         if (logInfo)
                         {
@@ -280,6 +276,14 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     }
                     else
                     {
+                        var artwork = await database.GetArtworkAsync(item.Id, token).ConfigureAwait(false);
+                        if (artwork is not null && filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                        {
+                            _ = artwork.Type == ArtworkType.Ugoira ?
+                                await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                                await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                        }
+
                         ++update;
                         if (logTrace)
                         {
@@ -349,29 +353,19 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         break;
                     }
 
-                    if (await database.AddOrUpdateAsync(item.Id, async token =>
+                    if (await database.AddOrUpdateAsync(item.Id,
+                        token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
+                        (artwork, token) => LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token),
+                        token).ConfigureAwait(false))
                     {
-                        var artwork = await LocalNetworkConverter.ConvertAsync(item, database, database, database, token).ConfigureAwait(false);
-                        if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                        var artwork = await database.GetArtworkAsync(item.Id, token).ConfigureAwait(false);
+                        if (artwork is not null && filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
                         {
                             _ = artwork.Type == ArtworkType.Ugoira ?
                                 await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
                                 await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
                         }
 
-                        return artwork;
-                    }, async (artwork, token) =>
-                    {
-                        await LocalNetworkConverter.OverwriteAsync(artwork, item, database, database, database, token).ConfigureAwait(false);
-                        if (filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
-                        {
-                            _ = artwork.Type == ArtworkType.Ugoira ?
-                                await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
-                                await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
-                        }
-
-                    }, token).ConfigureAwait(false))
-                    {
                         ++add;
                         if (logInfo)
                         {
@@ -380,6 +374,14 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     }
                     else
                     {
+                        var artwork = await database.GetArtworkAsync(item.Id, token).ConfigureAwait(false);
+                        if (artwork is not null && filter.FastFilter(artwork) && await filter.SlowFilter(artwork, token).ConfigureAwait(false))
+                        {
+                            _ = artwork.Type == ArtworkType.Ugoira ?
+                                await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                                await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                        }
+
                         ++update;
                         if (logTrace)
                         {
