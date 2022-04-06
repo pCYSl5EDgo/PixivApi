@@ -43,6 +43,14 @@ public partial class NetworkClient
                 for (var i = 0; i < rankingArray.Length; i++)
                 {
                     var item = rankingList[i];
+                    await database.AddOrUpdateAsync(item.User.Id,
+                        token => ValueTask.FromResult(item.User.Convert()),
+                        (user, token) =>
+                        {
+                            user.Overwrite(item.User);
+                            return ValueTask.CompletedTask;
+                        },
+                        token).ConfigureAwait(false);
                     if (await database.AddOrUpdateAsync(
                         item.Id,
                         token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),

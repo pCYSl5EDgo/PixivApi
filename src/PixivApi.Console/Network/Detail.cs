@@ -157,6 +157,14 @@ public partial class NetworkClient
                     goto REMOVED;
                 }
 
+                await database.AddOrUpdateAsync(artwork.User.Id,
+                    token => ValueTask.FromResult(artwork.User.Convert()),
+                    (user, token) =>
+                    {
+                        user.Overwrite(artwork.User);
+                        return ValueTask.CompletedTask;
+                    },
+                    token).ConfigureAwait(false);
                 await database.AddOrUpdateAsync(artworkId,
                     token => LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token),
                     (item, token) => LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token), token);

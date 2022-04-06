@@ -72,6 +72,14 @@ public partial class NetworkClient
                             return;
                         }
 
+                        await database.AddOrUpdateAsync(item.User.Id,
+                            token => ValueTask.FromResult(item.User.Convert()),
+                            (user, token) =>
+                            {
+                                user.Overwrite(item.User);
+                                return ValueTask.CompletedTask;
+                            },
+                            token).ConfigureAwait(false);
                         if (await database.AddOrUpdateAsync(
                             item.Id,
                             token => LocalNetworkConverter.ConvertAsync(item, database, database, database, token),
@@ -80,14 +88,7 @@ public partial class NetworkClient
                         ).ConfigureAwait(false))
                         {
                             ++add;
-                            if (System.Console.IsOutputRedirected)
-                            {
-                                Context.Logger.LogInformation($"{item.Id}");
-                            }
-                            else
-                            {
-                                Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
-                            }
+                            Context.Logger.LogInformation($"{add,4}: {item.Id,20}");
                         }
                         else
                         {

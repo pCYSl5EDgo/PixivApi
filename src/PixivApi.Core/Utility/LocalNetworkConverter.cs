@@ -29,12 +29,7 @@ public static class LocalNetworkConverter
             Tags = await tagDatabase.CalculateTagsAsync(source.Tags, token).ConfigureAwait(false),
             Tools = await toolDatabase.CalculateToolsAsync(source.Tools, token).ConfigureAwait(false),
         };
-
-        await userDatabase.AddOrUpdateAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), (user, token) =>
-        {
-            Overwrite(user, source.User);
-            return ValueTask.CompletedTask;
-        }, token).ConfigureAwait(false);
+        
         return answer;
     }
 
@@ -75,12 +70,6 @@ public static class LocalNetworkConverter
         {
             destination.ExtraHideReason = HideReason.TemporaryHidden;
         }
-
-        await userDatabase.AddOrUpdateAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), (user, token) =>
-        {
-            Overwrite(user, source.User);
-            return ValueTask.CompletedTask;
-        }, token).ConfigureAwait(false);
     }
 
     public static User Convert(this UserPreviewResponseContent user)
@@ -90,13 +79,13 @@ public static class LocalNetworkConverter
         return answer;
     }
 
-    public static void Overwrite(User destination, in UserPreviewResponseContent source)
+    public static void Overwrite(this User destination, in UserPreviewResponseContent source)
     {
         Overwrite(destination, source.User);
         destination.IsMuted = source.IsMuted;
     }
 
-    public static void Overwrite(User destination, in UserResponse source)
+    public static void Overwrite(this User destination, in UserResponse source)
     {
         if (destination.Id != source.Id)
         {
@@ -110,7 +99,7 @@ public static class LocalNetworkConverter
         OverwriteExtensions.Overwrite(ref destination.Comment, source.Comment);
     }
 
-    public static void Overwrite(User destination, in UserDetailResponseData source)
+    public static void Overwrite(this User destination, in UserDetailResponseData source)
     {
         if (destination.Id != source.User.Id)
         {
