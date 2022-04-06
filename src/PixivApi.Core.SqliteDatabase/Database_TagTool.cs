@@ -351,6 +351,7 @@ internal sealed partial class Database
 
     private ValueTask DeleteTagsOfArtworkWhereValueKindEquals1StatementAsync(ulong id, CancellationToken token)
     {
+        logger.LogTrace("Delete Tags");
         if (deleteTagsOfArtworkStatement is null)
         {
             deleteTagsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkTagCrossTable_Where_ValueKind_Equals_1(), true, out _);
@@ -383,6 +384,7 @@ internal sealed partial class Database
 
     private ValueTask DeleteToolsOfArtworkStatementAsync(ulong id, CancellationToken token)
     {
+        logger.LogTrace("Delete Tools");
         if (deleteToolsOfArtworkStatement is null)
         {
             deleteToolsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkToolCrossTable(), true, out _);

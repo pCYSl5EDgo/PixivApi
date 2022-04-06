@@ -16,6 +16,7 @@ internal sealed partial class Database
 
     private async ValueTask InsertAsync(Artwork answer, CancellationToken token)
     {
+        logger.LogTrace("Insert Async");
         await InsertArtworkAsync(answer, token).ConfigureAwait(false);
         await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
         await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
@@ -87,6 +88,7 @@ internal sealed partial class Database
 
     private async ValueTask UpdateAsync(Artwork answer, CancellationToken token)
     {
+        logger.LogTrace("Update Async");
         await UpdateArtworkAsync(answer, token).ConfigureAwait(false);
         await DeleteTagsOfArtworkStatementAsync(answer.Id, token).ConfigureAwait(false);
         await InsertTagsOfArtworkAsync(answer.Id, answer.CalculateTags(), token).ConfigureAwait(false);
@@ -128,6 +130,7 @@ internal sealed partial class Database
             Reset(statement);
         }
 
+        logger.LogTrace("Insert Ugoira Frames");
         Bind(statement, 1, id);
         for (int i = 0, offset = 1; i < frames.Length; i++)
         {
@@ -149,6 +152,7 @@ internal sealed partial class Database
             return ValueTask.CompletedTask;
         }
 
+        logger.LogTrace("Insert Hides");
         ref var statement = ref At(ref insertHidesStatementArray, dictionary.Count);
         if (statement is null)
         {
@@ -196,6 +200,7 @@ internal sealed partial class Database
             Reset(deleteHidesStatement);
         }
 
+        logger.LogTrace("Delete Hides");
         var statement = deleteHidesStatement;
         Bind(statement, 1, id);
         return ExecuteAsync(statement, token);
@@ -226,14 +231,15 @@ internal sealed partial class Database
         return statement;
     }
 
-    private async ValueTask InsertToolsOfArtworkAsync(ulong id, uint[] array, CancellationToken token)
+    private ValueTask InsertToolsOfArtworkAsync(ulong id, uint[] array, CancellationToken token)
     {
         if (array.Length == 0)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         var statement = PrepareInsertToolsStatement(array.Length);
+        logger.LogTrace("Insert Tools");
         Bind(statement, 1, id);
         for (var i = 0; i < array.Length; i++)
         {
@@ -246,7 +252,7 @@ internal sealed partial class Database
             Bind(statement, i + 2, vid);
         }
 
-        await ExecuteAsync(statement, token).ConfigureAwait(false);
+        return ExecuteAsync(statement, token);
     }
 
     [StringLiteral.Utf8("INSERT INTO \"ArtworkTagCrossTable\" VALUES (?1, ?2, ?3")]
@@ -257,6 +263,7 @@ internal sealed partial class Database
 
     private async ValueTask InsertTagsOfArtworkAsync(ulong id, Dictionary<uint, uint> dictionary, CancellationToken token)
     {
+        logger.LogTrace("Insert Tags");
         if (dictionary.Count == 0)
         {
             return;
@@ -401,6 +408,7 @@ internal sealed partial class Database
 
         if (answer.Tags is { Length: > 0 })
         {
+            logger.LogTrace("Insert Tags");
             sqlite3_stmt PrepareStatement(int length)
             {
                 ref var statement = ref At(ref insertArtworkTagCrossTableStatementArray, length);
@@ -440,10 +448,12 @@ internal sealed partial class Database
             }
 
             await ExecuteAsync(statetment, token).ConfigureAwait(false);
+            logger.LogTrace("Insert Tags Done");
         }
 
         if (answer.Tools is { Length: > 0 })
         {
+            logger.LogTrace("Insert Tools");
             var statetment = PrepareInsertToolsStatement(answer.Tools.Length);
             Bind(statetment, 1, answer.Id);
             for (var i = 0; i < answer.Tools.Length; i++)
@@ -458,6 +468,7 @@ internal sealed partial class Database
             }
 
             await ExecuteAsync(statetment, token).ConfigureAwait(false);
+            logger.LogTrace("Insert Tools Done");
         }
 
         return rowId == answer.Id;
@@ -486,6 +497,7 @@ internal sealed partial class Database
             Reset(insertOrUpdateArtwork_ArtworkResponseContent_Statement);
         }
 
+        logger.LogTrace("Insert Or Update Artwork by response content");
         var statement = insertOrUpdateArtwork_ArtworkResponseContent_Statement;
         Bind(statement, 0x01, answer.Id);
         Bind(statement, 0x02, answer.User.Id);

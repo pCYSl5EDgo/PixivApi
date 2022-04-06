@@ -1,4 +1,6 @@
-﻿namespace PixivApi.Console;
+﻿using System.Threading.Tasks;
+
+namespace PixivApi.Console;
 
 [Command("net")]
 public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
@@ -431,6 +433,11 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         {
                             logger.LogTrace($"Art-U {update,10}: {item.Id,16}");
                         }
+                    }
+
+                    if (add == 1)
+                    {
+                        throw new TaskCanceledException();
                     }
                 }
             }

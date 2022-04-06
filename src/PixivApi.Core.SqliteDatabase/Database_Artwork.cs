@@ -93,6 +93,7 @@ internal sealed partial class Database
 
     public async ValueTask<Artwork?> GetArtworkAsync(ulong id, CancellationToken token)
     {
+        logger.LogTrace("Get Artwork");
         if (id == 0)
         {
             return null;
@@ -123,6 +124,10 @@ internal sealed partial class Database
                 return null;
             }
 
+            if (code != SQLITE_ROW)
+            {
+                throw new InvalidOperationException($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
+            }
 
             var answer = new Artwork()
             {
@@ -143,8 +148,9 @@ internal sealed partial class Database
         await ColumnUgoiraFramesAsync(answer, token).ConfigureAwait(false);
     }
 
-    private static void ColumnArtwork(Artwork answer, sqlite3_stmt statement, int offset)
+    private void ColumnArtwork(Artwork answer, sqlite3_stmt statement, int offset)
     {
+        logger.LogTrace("Column Artwork");
         answer.UserId = CU64(statement, offset++);
         answer.PageCount = CU32(statement, offset++);
         answer.Width = CU32(statement, offset++);
@@ -180,6 +186,7 @@ internal sealed partial class Database
 
     private async ValueTask ColumnUgoiraFramesAsync(Artwork answer, CancellationToken token)
     {
+        logger.LogTrace("Column Ugoira Frames");
         if (getUgoiraFramesStatement is null)
         {
             getUgoiraFramesStatement = Prepare(Literal_SelectUgoiraFrames(), true, out _);
@@ -203,6 +210,7 @@ internal sealed partial class Database
 
     private async ValueTask<Dictionary<uint, HideReason>> ColumnHideReasonsAsync(ulong id, CancellationToken token)
     {
+        logger.LogTrace("Column Hide Reasons");
         if (getHideReasonsStatement is null)
         {
             getHideReasonsStatement = Prepare(Literal_SelectHideReasons(), true, out _);

@@ -170,7 +170,12 @@ public partial class NetworkClient
                             goto RETURN;
                         }
 
-                        var isAddTask = database is IExtenededDatabase exteneded ? exteneded.ArtworkAddOrUpdateAsync(illust, token) : database.AddOrUpdateAsync(illust.Id, token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token), (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token), token);
+                        var isAddTask = database is IExtenededDatabase exteneded ? 
+                            exteneded.ArtworkAddOrUpdateAsync(illust, token) : 
+                            database.AddOrUpdateAsync(illust.Id, 
+                                token => LocalNetworkConverter.ConvertAsync(illust, database, database, database, token),
+                                (v, token) => LocalNetworkConverter.OverwriteAsync(v, illust, database, database, database, token),
+                                token);
                         if (await isAddTask.ConfigureAwait(false))
                         {
                             ++addArtwork;
