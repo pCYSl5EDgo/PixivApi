@@ -434,18 +434,20 @@ internal sealed partial class Database
                 return statement;
             }
 
+            var ids = ArrayPool<uint>.Shared.Rent(answer.Tags.Length);
+            for (var i = 0; i < answer.Tags.Length; i++)
+            {
+                ids[i] = await RegisterTagAsync(answer.Tags[i].Name, token).ConfigureAwait(false);
+            }
+
             var statetment = PrepareStatement(answer.Tags.Length);
             Bind(statetment, 1, answer.Id);
             for (var i = 0; i < answer.Tags.Length; i++)
             {
-                var id = await RegisterTagAsync(answer.Tags[i].Name, token).ConfigureAwait(false);
-                if (id == 0)
-                {
-                    logger.LogError($"{id} : {answer.Tags[i].Name}");
-                }
-
-                Bind(statetment, i + 2, id);
+                Bind(statetment, i + 2, ids[i]);
             }
+
+            ArrayPool<uint>.Shared.Return(ids);
 
             await ExecuteAsync(statetment, token).ConfigureAwait(false);
             logger.LogTrace("Insert Tags Done");
@@ -454,19 +456,20 @@ internal sealed partial class Database
         if (answer.Tools is { Length: > 0 })
         {
             logger.LogTrace("Insert Tools");
+            var ids = ArrayPool<uint>.Shared.Rent(answer.Tools.Length);
+            for (var i = 0; i < answer.Tools.Length; i++)
+            {
+                ids[i] = await RegisterTagAsync(answer.Tools[i], token).ConfigureAwait(false);
+            }
+
             var statetment = PrepareInsertToolsStatement(answer.Tools.Length);
             Bind(statetment, 1, answer.Id);
             for (var i = 0; i < answer.Tools.Length; i++)
             {
-                var id = await RegisterToolAsync(answer.Tools[i], token).ConfigureAwait(false);
-                if (id == 0)
-                {
-                    logger.LogError($"{id} : {answer.Tools[i]}");
-                }
-
-                Bind(statetment, i + 2, id);
+                Bind(statetment, i + 2, ids[i]);
             }
 
+            ArrayPool<uint>.Shared.Return(ids);
             await ExecuteAsync(statetment, token).ConfigureAwait(false);
             logger.LogTrace("Insert Tools Done");
         }
