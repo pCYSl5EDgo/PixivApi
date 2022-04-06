@@ -28,6 +28,7 @@ internal sealed partial class Database
 
     private async ValueTask ColumnTagsAsync(Artwork artwork, CancellationToken token)
     {
+        logger.LogTrace("Column Tags");
         if (getTagsOfArtworkStatement is null)
         {
             getTagsOfArtworkStatement = Prepare(Literal_SelectTagId_FromArtworkTagCrossTable_WhereId(), true, out _);
@@ -41,16 +42,22 @@ internal sealed partial class Database
         Bind(statement, 1, artwork.Id);
         do
         {
+            token.ThrowIfCancellationRequested();
             var code = Step(statement);
-            while (code == SQLITE_BUSY)
+            if (code == SQLITE_BUSY)
             {
                 await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
-                code = Step(statement);
+                continue;
             }
 
             if (code == SQLITE_DONE)
             {
                 return;
+            }
+
+            if (code != SQLITE_ROW)
+            {
+                throw new Exception($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
             }
 
             var tagId = CU32(statement, 0);
@@ -77,6 +84,7 @@ internal sealed partial class Database
 
     private async ValueTask ColumnToolsAsync(Artwork answer, CancellationToken token)
     {
+        logger.LogTrace("Column Tools");
         if (getToolsOfArtworkStatement is null)
         {
             getToolsOfArtworkStatement = Prepare(Literal_SelectToolId_FromArtworkToolCrossTable_WhereId(), true, out _);
@@ -135,7 +143,13 @@ internal sealed partial class Database
             };
 
             await ColumnArtworkAsync(answer, statement, 0, token).ConfigureAwait(false);
-            return answer;
+            code = Step(statement);
+            if (code == SQLITE_DONE)
+            {
+                return answer;
+            }
+
+            throw new InvalidOperationException($"Error: {sqlite3_errmsg(database).utf8_to_string()}");
         } while (true);
     }
 
@@ -145,7 +159,10 @@ internal sealed partial class Database
         await ColumnToolsAsync(answer, token).ConfigureAwait(false);
         await ColumnTagsAsync(answer, token).ConfigureAwait(false);
         answer.ExtraPageHideReasonDictionary = await ColumnHideReasonsAsync(answer.Id, token).ConfigureAwait(false);
-        await ColumnUgoiraFramesAsync(answer, token).ConfigureAwait(false);
+        if (answer.Type == ArtworkType.Ugoira)
+        {
+            await ColumnUgoiraFramesAsync(answer, token).ConfigureAwait(false);
+        }
     }
 
     private void ColumnArtwork(Artwork answer, sqlite3_stmt statement, int offset)
