@@ -228,13 +228,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, ReadOnlySpan<char> value)
     {
         var code = sqlite3_bind_text16(statement, index, value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} UTF16: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -244,13 +245,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, bool value)
     {
         var code = sqlite3_bind_int(statement, index, value ? 1 : 0);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Bool: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -260,13 +262,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, ArtworkType value)
     {
         var code = sqlite3_bind_int(statement, index, (byte)value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} ArtworkType: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -276,13 +279,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, HideReason value)
     {
         var code = sqlite3_bind_int(statement, index, (byte)value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} HideReason: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -292,13 +296,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, FileExtensionKind value)
     {
         var code = sqlite3_bind_int(statement, index, (byte)value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} FileExtensionKind: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -308,13 +313,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, RankingKind value)
     {
         var code = sqlite3_bind_int(statement, index, (byte)value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} RankingKind: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -324,13 +330,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, long value)
     {
         var code = sqlite3_bind_int64(statement, index, value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Int64: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -340,13 +347,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, int value)
     {
         var code = sqlite3_bind_int(statement, index, value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Int32: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -356,13 +364,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     private int Bind(sqlite3_stmt statement, int index, ulong value)
     {
         var code = sqlite3_bind_int64(statement, index, (long)value);
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} UInt64: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -375,13 +384,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         builder.Append(value);
         var code = sqlite3_bind_text(statement, index, builder.AsSpan());
         builder.Dispose();
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} Date: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
@@ -394,13 +404,14 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         builder.Append(value);
         var code = sqlite3_bind_text(statement, index, builder.AsSpan());
         builder.Dispose();
+        if (code == SQLITE_MISUSE)
+        {
+            throw new InvalidOperationException($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
+        }
+
         if (logTrace)
         {
             logger.LogTrace($"Bind {index} Code: {code} DateTime: {value}");
-            if (code == SQLITE_MISUSE)
-            {
-                logger.LogTrace($"MISUSE - {sqlite3_sql(statement).utf8_to_string()}");
-            }
         }
 
         return code;
