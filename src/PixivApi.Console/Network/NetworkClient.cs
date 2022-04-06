@@ -432,11 +432,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                             logger.LogTrace($"Art-U {update,10}: {item.Id,16}");
                         }
                     }
-
-                    if (update == 7)
-                    {
-                        throw new TaskCanceledException();
-                    }
                 }
             }
         }
