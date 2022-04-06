@@ -71,6 +71,10 @@ public static class LocalNetworkConverter
         destination.Tools = await toolDatabase.CalculateToolsAsync(source.Tools, token).ConfigureAwait(false);
         destination.Title = source.Title ?? string.Empty;
         destination.Caption = source.Caption ?? string.Empty;
+        if (destination.ExtraHideReason == HideReason.NotHidden && (source.ImageUrls.SquareMedium?.EndsWith("limit_unknown_360.png") ?? false))
+        {
+            destination.ExtraHideReason = HideReason.TemporaryHidden;
+        }
 
         await userDatabase.AddOrUpdateAsync(source.User.Id, _ => ValueTask.FromResult(source.User.Convert()), (user, token) =>
         {

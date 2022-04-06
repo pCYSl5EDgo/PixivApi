@@ -3,6 +3,7 @@
 public enum HideReason : byte
 {
     NotHidden,
+    TemporaryHidden,
     LowQuality,
     Irrelevant,
     ExternalLink,

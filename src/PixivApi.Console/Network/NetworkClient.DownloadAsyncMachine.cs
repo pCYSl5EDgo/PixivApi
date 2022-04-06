@@ -149,6 +149,11 @@ public partial class NetworkClient
                     return false;
                 }
 
+                if (logger.IsEnabled(LogLevel.Trace))
+                {
+                    logger.LogTrace(await response.Content.ReadAsStringAsync(token).ConfigureAwait(false));
+                }
+
                 detailArtwork = IOUtility.JsonDeserialize<IllustDateilResponseData>(await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false)).Illust;
             }
 
