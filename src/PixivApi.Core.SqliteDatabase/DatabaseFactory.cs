@@ -15,6 +15,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
         var info = new FileInfo(path);
         if (!info.Exists || info.Length == 0)
         {
+            logger.LogTrace("Initialize databse with sql");
             File.Create(path).Dispose();
             Database database = new(logger, path);
             ReadOnlySpan<byte> span = GetInitSql(), outSpan;
@@ -43,6 +44,8 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
             } while (!span.IsEmpty);
             database.Dispose();
         }
+
+        logger.LogTrace($"Initialize databse @ {path}");
     }
 
     private readonly ConcurrentBag<Database> Returned = new();
@@ -51,8 +54,13 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
     public ValueTask<IDatabase> RentAsync(CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        if (!Returned.TryTake(out var database))
+        if (Returned.TryTake(out var database))
         {
+            logger.LogTrace("Rent existing database");
+        }
+        else
+        {
+            logger.LogTrace("Create database");
             database = new(logger, path);
         }
 
@@ -66,15 +74,18 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
     {
         while (Returned.TryTake(out var database))
         {
+            logger.LogTrace("Dispose database");
             database.Dispose();
         }
 
+        logger.LogDebug("Shutdown database");
         sqlite3_shutdown();
         return ValueTask.CompletedTask;
     }
 
     public void Return([MaybeNull] ref IDatabase database)
     {
+        logger.LogTrace("Return database");
         Returned.Add((Database)database);
         database = null;
     }

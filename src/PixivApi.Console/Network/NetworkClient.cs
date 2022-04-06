@@ -30,7 +30,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         var transactional = database as ITransactionalDatabase;
         if (transactional is not null)
         {
-            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+            await transactional.BeginExclusiveTransactionAsync(token).ConfigureAwait(false);
         }
 
         try
@@ -60,7 +60,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
         catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            await transactional.RollbackTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+            await transactional.RollbackTransactionAsync(token).ConfigureAwait(false);
             transactional = null;
             throw;
         }
@@ -74,7 +74,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
             if (transactional is not null)
             {
-                await transactional.EndTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+                await transactional.EndTransactionAsync(token).ConfigureAwait(false);
             }
 
             databaseFactory.Return(ref database);

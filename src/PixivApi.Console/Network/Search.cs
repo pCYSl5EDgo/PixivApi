@@ -43,7 +43,7 @@ public partial class NetworkClient
         var transactional = database as ITransactionalDatabase;
         if (transactional is not null)
         {
-            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
+            await transactional.BeginExclusiveTransactionAsync(token).ConfigureAwait(false);
         }
 
         ulong add = 0UL, update = 0UL;
@@ -104,7 +104,7 @@ public partial class NetworkClient
         }
         catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            await transactional.RollbackTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+            await transactional.RollbackTransactionAsync(token).ConfigureAwait(false);
             transactional = null;
             throw;
         }
@@ -118,7 +118,7 @@ public partial class NetworkClient
 
             if (transactional is not null)
             {
-                await transactional.EndTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+                await transactional.EndTransactionAsync(token).ConfigureAwait(false);
             }
 
             databaseFactory.Return(ref database);
