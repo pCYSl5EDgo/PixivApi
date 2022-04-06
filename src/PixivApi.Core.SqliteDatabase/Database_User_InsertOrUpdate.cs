@@ -116,7 +116,7 @@ internal sealed partial class Database
     [StringLiteral.Utf8("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, 0, 0, 0, ?5, ?6, NULL, 1) ON CONFLICT (\"Id\") DO UPDATE SET " +
         "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\"," +
         "\"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\", \"HasDetail\" = 1")]
-    private static partial ReadOnlySpan<byte> Literal_InsertUser_UserResponse();
+    private static partial ReadOnlySpan<byte> Literal_InsertUser_UserResponse_HasDetail();
 
     private ValueTask InsertOrUpdateUserAsync(in UserDetailResponseData user, CancellationToken token) => InsertOrUpdateUserAsync(user.User, token);
 
@@ -124,7 +124,7 @@ internal sealed partial class Database
     {
         if (insertUser_UserResponse_Statement is null)
         {
-            insertUser_UserResponse_Statement = Prepare(Literal_InsertUser_UserResponse(), true, out _);
+            insertUser_UserResponse_Statement = Prepare(Literal_InsertUser_UserResponse_HasDetail(), true, out _);
         }
         else
         {
@@ -150,7 +150,7 @@ internal sealed partial class Database
     {
         if (insertUser_UserPreviewResponse_Statement is null)
         {
-            insertUser_UserPreviewResponse_Statement = Prepare(Literal_InsertUser(), true, out _);
+            insertUser_UserPreviewResponse_Statement = Prepare(Literal_InsertUser_UserPreviewResponse(), true, out _);
         }
         else
         {
