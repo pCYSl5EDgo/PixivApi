@@ -21,7 +21,7 @@ internal sealed partial class Database
         return ExecuteAsync(beginTransactionStatement, token);
     }
 
-    [StringLiteral.Utf8("BEGIN IMMEDIATE TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
+    [StringLiteral.Utf8("BEGIN EXCLUSIVE TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
     [StringLiteral.Utf8("END TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
     [StringLiteral.Utf8("ROLLBACK TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();
 
