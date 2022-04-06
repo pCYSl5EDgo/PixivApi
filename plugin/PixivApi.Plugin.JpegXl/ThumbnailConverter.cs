@@ -2,7 +2,7 @@
 
 public sealed record class ThumbnailConverter(string ExePath, ConfigSettings ConfigSettings, SpecificConfigSettings SpecificConfigSettings) : IConverter
 {
-    public static async Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
+    public static async Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, IServiceProvider provider, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var exePath = PluginUtility.Find(dllPath, "cjxl");

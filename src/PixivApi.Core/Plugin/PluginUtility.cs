@@ -32,7 +32,7 @@ public static class PluginUtility
         return null;
     }
 
-    public static Task<IPlugin?> LoadPluginAsync(string? pluginText, ConfigSettings configSettings, object boxedCancellationToken)
+    public static Task<IPlugin?> LoadPluginAsync(string? pluginText, ConfigSettings configSettings, IServiceProvider provider, object boxedCancellationToken)
     {
         var token = Unsafe.Unbox<CancellationToken>(boxedCancellationToken);
         if (token.IsCancellationRequested)
@@ -80,7 +80,7 @@ public static class PluginUtility
 
         var typeName = ToStringFromSpan(plugin[(index + 1)..].TrimStart());
         var type = assembly.GetType(typeName, false);
-        if (type?.GetMethod(nameof(IPlugin.CreateAsync))?.Invoke(null, new object[] { dllPath, configSettings, boxedCancellationToken }) is Task<IPlugin?> task)
+        if (type?.GetMethod(nameof(IPlugin.CreateAsync))?.Invoke(null, new object[] { dllPath, configSettings, provider, boxedCancellationToken }) is Task<IPlugin?> task)
         {
             return task;
         }

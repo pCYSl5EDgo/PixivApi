@@ -2,7 +2,7 @@
 
 public sealed record class NotUgoiraThumbnailFinder(ConfigSettings ConfigSettings) : IFinderWithIndex
 {
-    public static Task<IPlugin?> CreateAsync(string _, ConfigSettings configSettings, CancellationToken cancellationToken)
+    public static Task<IPlugin?> CreateAsync(string _, ConfigSettings configSettings, IServiceProvider provider, CancellationToken cancellationToken)
     {
         if (cancellationToken.IsCancellationRequested)
         {

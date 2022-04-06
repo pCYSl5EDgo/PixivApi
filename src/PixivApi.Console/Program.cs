@@ -30,13 +30,13 @@ public sealed class Program
                     {
                         var config = provier.GetRequiredService<ConfigSettings>();
                         var token = provier.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
-                        return FinderFacade.CreateAsync(config, token).Result;
+                        return FinderFacade.CreateAsync(config, provier, token).Result;
                     })
                     .AddSingleton(static provier =>
                     {
                         var config = provier.GetRequiredService<ConfigSettings>();
                         var token = provier.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
-                        return ConverterFacade.CreateAsync(config, token).Result;
+                        return ConverterFacade.CreateAsync(config, provier, token).Result;
                     })
                     .AddTransient<HttpMessageHandler, SocketsHttpHandler>(static _ => new SocketsHttpHandler
                     {

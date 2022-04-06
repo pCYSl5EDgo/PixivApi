@@ -25,13 +25,13 @@ public sealed class Program
         {
             var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
             var configSettings = provider.GetRequiredService<ConfigSettings>();
-            return FinderFacade.CreateAsync(configSettings, lifetime.ApplicationStopping).Result;
+            return FinderFacade.CreateAsync(configSettings, provider, lifetime.ApplicationStopping).Result;
         })
         .AddSingleton(provider =>
         {
             var lifetime = provider.GetRequiredService<IHostApplicationLifetime>();
             var configSettings = provider.GetRequiredService<ConfigSettings>();
-            return ConverterFacade.CreateAsync(configSettings, lifetime.ApplicationStopping).Result;
+            return ConverterFacade.CreateAsync(configSettings, provider, lifetime.ApplicationStopping).Result;
         })
         .AddSingleton(provider =>
         {
