@@ -2,10 +2,13 @@
 
 internal sealed partial class Database
 {
+    private sqlite3_stmt? beginExclusiveTransactionStatement;
     private sqlite3_stmt? beginTransactionStatement;
     private sqlite3_stmt? endTransactionStatement;
     private sqlite3_stmt? rollbackTransactionStatement;
 
+    [StringLiteral.Utf8("BEGIN TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
+    
     public ValueTask BeginTransactionAsync(CancellationToken token)
     {
         logger.LogDebug("Begin Transaction");
@@ -21,10 +24,25 @@ internal sealed partial class Database
         return ExecuteAsync(beginTransactionStatement, token);
     }
 
-    [StringLiteral.Utf8("BEGIN EXCLUSIVE TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
-    [StringLiteral.Utf8("END TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
-    [StringLiteral.Utf8("ROLLBACK TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();
+    [StringLiteral.Utf8("BEGIN EXCLUSIVE TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Exclusive_Transaction();
 
+    public ValueTask BeginExclusiveTransactionAsync(CancellationToken token)
+    {
+        logger.LogDebug("Begin Exclusive Transaction");
+        if (beginExclusiveTransactionStatement is null)
+        {
+            beginExclusiveTransactionStatement = Prepare(Literal_Begin_Exclusive_Transaction(), true, out _);
+        }
+        else
+        {
+            Reset(beginExclusiveTransactionStatement);
+        }
+
+        return ExecuteAsync(beginExclusiveTransactionStatement, token);
+    }
+    
+    [StringLiteral.Utf8("END TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
+    
     public ValueTask EndTransactionAsync(CancellationToken token)
     {
         logger.LogDebug("End Transaction");
@@ -40,6 +58,8 @@ internal sealed partial class Database
         return ExecuteAsync(endTransactionStatement, token);
     }
 
+    [StringLiteral.Utf8("ROLLBACK TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();
+    
     public ValueTask RollbackTransactionAsync(CancellationToken token)
     {
         logger.LogDebug("Rollback Transaction");

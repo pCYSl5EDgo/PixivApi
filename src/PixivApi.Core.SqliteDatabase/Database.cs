@@ -12,6 +12,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     public void Dispose()
     {
         CloseStatement(ref beginTransactionStatement);
+        CloseStatement(ref beginExclusiveTransactionStatement);
         CloseStatement(ref endTransactionStatement);
         CloseStatement(ref rollbackTransactionStatement);
         CloseStatement(ref getRankingStatement);
