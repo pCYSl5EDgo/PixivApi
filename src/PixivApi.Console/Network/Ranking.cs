@@ -69,7 +69,7 @@ public partial class NetworkClient
         }
         catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            transactional.RollbackTransaction();
+            await transactional.RollbackTransactionAsync(CancellationToken.None).ConfigureAwait(false);
             transactional = null;
             throw;
         }
@@ -81,7 +81,11 @@ public partial class NetworkClient
                 Context.Logger.LogInformation($"Total: {databaseCount} Add: {add} Update: {(ulong)rankingList.Count - add} Time: {DateTime.Now}");
             }
 
-            transactional?.EndTransaction();
+            if (transactional is not null)
+            {
+                await transactional.EndTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+
             databaseFactory.Return(ref database);
         }
     }

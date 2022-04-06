@@ -60,7 +60,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
         catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            transactional.RollbackTransaction();
+            await transactional.RollbackTransactionAsync(CancellationToken.None).ConfigureAwait(false);
             transactional = null;
             throw;
         }
@@ -72,7 +72,11 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                 logger.LogInformation($"Total: {artworkCount} Add: {addCount} Update: {updateCount} Download: {downloadCount} Transfer: {ByteAmountUtility.ToDisplayable(transferByteCount)}");
             }
 
-            transactional?.EndTransaction();
+            if (transactional is not null)
+            {
+                await transactional.EndTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+
             databaseFactory.Return(ref database);
         }
     }
@@ -138,7 +142,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         {
             logger.LogError(e, "Error happened");
         }
-        
+
         return (add, update);
     }
 
@@ -192,7 +196,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         {
             logger.LogError(e, "Error happened");
         }
-        
+
         return (add, update);
     }
 

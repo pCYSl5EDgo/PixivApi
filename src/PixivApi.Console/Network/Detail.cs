@@ -90,7 +90,7 @@ public partial class NetworkClient
         }
         catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)
         {
-            transactional.RollbackTransaction();
+            await transactional.RollbackTransactionAsync(CancellationToken.None).ConfigureAwait(false);
             transactional = null;
             throw;
         }
@@ -102,7 +102,11 @@ public partial class NetworkClient
                 logger.LogInformation($"Total: {artworkCount} Update: {update} Removed: {removed}");
             }
 
-            transactional?.EndTransaction();
+            if (transactional is not null)
+            {
+                await transactional.EndTransactionAsync(CancellationToken.None).ConfigureAwait(false);
+            }
+
             databaseFactory.Return(ref database);
         }
     }
@@ -153,7 +157,7 @@ public partial class NetworkClient
                     goto REMOVED;
                 }
 
-                await database.AddOrUpdateAsync(artworkId, 
+                await database.AddOrUpdateAsync(artworkId,
                     token => LocalNetworkConverter.ConvertAsync(artwork, database, database, database, token),
                     (item, token) => LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token), token);
                 ++update;

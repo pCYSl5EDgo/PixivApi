@@ -6,18 +6,26 @@ internal sealed partial class Database
     private sqlite3_stmt? endTransactionStatement;
     private sqlite3_stmt? rollbackTransactionStatement;
 
-    public async ValueTask BeginTransactionAsync(CancellationToken token)
+    public ValueTask BeginTransactionAsync(CancellationToken token)
     {
         logger.LogDebug("Begin Transaction");
-        beginTransactionStatement ??= Prepare(Literal_Begin_Transaction(), true, out _);
-        await ExecuteAsync(beginTransactionStatement, token).ConfigureAwait(false);
+        if (beginTransactionStatement is null)
+        {
+            beginTransactionStatement = Prepare(Literal_Begin_Transaction(), true, out _);
+        }
+        else
+        {
+            Reset(beginTransactionStatement);
+        }
+
+        return ExecuteAsync(beginTransactionStatement, token);
     }
 
     [StringLiteral.Utf8("BEGIN IMMEDIATE TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Begin_Transaction();
     [StringLiteral.Utf8("END TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_End_Transaction();
     [StringLiteral.Utf8("ROLLBACK TRANSACTION")] private static partial ReadOnlySpan<byte> Literal_Rollback_Transaction();
 
-    public void EndTransaction()
+    public ValueTask EndTransactionAsync(CancellationToken token)
     {
         logger.LogDebug("End Transaction");
         if (endTransactionStatement is null)
@@ -29,10 +37,10 @@ internal sealed partial class Database
             Reset(endTransactionStatement);
         }
 
-        Step(endTransactionStatement);
+        return ExecuteAsync(endTransactionStatement, token);
     }
 
-    public void RollbackTransaction()
+    public ValueTask RollbackTransactionAsync(CancellationToken token)
     {
         logger.LogDebug("Rollback Transaction");
         if (rollbackTransactionStatement is null)
@@ -44,6 +52,6 @@ internal sealed partial class Database
             Reset(rollbackTransactionStatement);
         }
 
-        Step(rollbackTransactionStatement);
+        return ExecuteAsync(rollbackTransactionStatement, token);
     }
 }

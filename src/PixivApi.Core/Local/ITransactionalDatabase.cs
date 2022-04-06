@@ -4,7 +4,7 @@ public interface ITransactionalDatabase : IDatabase
 {
     ValueTask BeginTransactionAsync(CancellationToken token);
 
-    void RollbackTransaction();
+    ValueTask RollbackTransactionAsync(CancellationToken token);
 
-    void EndTransaction();
+    ValueTask EndTransactionAsync(CancellationToken token);
 }

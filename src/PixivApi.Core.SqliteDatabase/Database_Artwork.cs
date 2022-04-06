@@ -480,14 +480,10 @@ internal sealed partial class Database
             }
         }
 
-        if (logTrace)
-        {
-            logger.LogTrace($"Id: {id} PageCount: {pageCount} Extension: {extensionKind} FilterPageCount: {filterPageCount} FilterPassCount: {filterPassCount}");
-        }
-
         var answer = PrivateFilter(filter, filterPassCount, filterPageCount);
         if (logTrace)
         {
+#pragma warning disable CA2254
             logger.LogTrace($"Id: {id} PageCount: {pageCount} Extension: {extensionKind} FilterPageCount: {filterPageCount} FilterPassCount: {filterPassCount} Answer: {answer}");
         }
 
