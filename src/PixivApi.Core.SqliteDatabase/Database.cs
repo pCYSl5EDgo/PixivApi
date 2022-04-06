@@ -205,6 +205,11 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
             var code = Step(statement);
             if (code == SQLITE_BUSY)
             {
+                if (logTrace)
+                {
+                    logger.LogTrace($"Busy Extended Error Code: {sqlite3_extended_errcode(database)}");
+                }
+
                 await Task.Delay(TimeSpan.FromSeconds(1d), token).ConfigureAwait(false);
                 continue;
             }
