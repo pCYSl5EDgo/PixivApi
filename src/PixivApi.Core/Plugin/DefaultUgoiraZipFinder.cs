@@ -4,7 +4,7 @@ namespace PixivApi.Core.Plugin;
 
 public sealed record class DefaultUgoiraZipFinder(string Folder) : IFinder
 {
-    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
+    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, IServiceProvider provider, CancellationToken cancellationToken)
         => Task.FromResult<IPlugin?>(new DefaultUgoiraZipFinder(configSettings.UgoiraFolder));
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

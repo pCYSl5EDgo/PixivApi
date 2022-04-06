@@ -4,7 +4,7 @@ namespace PixivApi.Core.Plugin;
 
 public sealed record class DefaultNotUgoiraOriginalFinder(string Folder) : IFinderWithIndex
 {
-    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, CancellationToken cancellationToken)
+    public static Task<IPlugin?> CreateAsync(string dllPath, ConfigSettings configSettings, IServiceProvider provider, CancellationToken cancellationToken)
         => Task.FromResult<IPlugin?>(new DefaultNotUgoiraOriginalFinder(configSettings.OriginalFolder));
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
