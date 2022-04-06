@@ -118,7 +118,7 @@ public partial class NetworkClient
 
             if (transactional is not null)
             {
-                await transactional.EndTransactionAsync(token).ConfigureAwait(false);
+                await transactional.EndTransactionAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
             databaseFactory.Return(ref database);

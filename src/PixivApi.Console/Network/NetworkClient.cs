@@ -74,7 +74,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
             if (transactional is not null)
             {
-                await transactional.EndTransactionAsync(token).ConfigureAwait(false);
+                await transactional.EndTransactionAsync(CancellationToken.None).ConfigureAwait(false);
             }
 
             databaseFactory.Return(ref database);
@@ -84,15 +84,33 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
     private static async ValueTask<(ulong add, ulong update)> PrivateDownloadNewArtworkResponses(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
     {
         ulong add = 0UL, update = 0UL;
-        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
-#pragma warning disable IDE0019
-        var extended = database as IExtenededDatabase;
-#pragma warning restore IDE0019
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace), logDebug = logger.IsEnabled(LogLevel.Debug);
+        if (logDebug)
+        {
+            logger.LogDebug("No-Download No-All-Add");
+        }
+
         try
         {
             await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
             {
-                if (extended is null)
+                if (database is IExtenededDatabase extended)
+                {
+                    var (_add, _update) = await extended.ArtworkAddOrUpdateAsync(collection, token).ConfigureAwait(false);
+                    if (logInfo)
+                    {
+                        logger.LogInformation($"Add: {_add} Update: {_update}");
+                    }
+
+                    update += _update;
+                    if (_add == 0)
+                    {
+                        break;
+                    }
+
+                    add += _add;
+                }
+                else
                 {
                     var oldAdd = add;
                     foreach (var item in collection)
@@ -120,22 +138,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                         break;
                     }
                 }
-                else
-                {
-                    var (_add, _update) = await extended.ArtworkAddOrUpdateAsync(collection, token).ConfigureAwait(false);
-                    if (logInfo)
-                    {
-                        logger.LogInformation($"Add: {_add} Update: {_update}");
-                    }
-
-                    update += _update;
-                    if (_add == 0)
-                    {
-                        break;
-                    }
-
-                    add += _add;
-                }
             }
         }
         catch (Exception e)
@@ -149,15 +151,28 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
     private static async ValueTask<(ulong add, ulong update)> PrivateDownloadAllArtworkResponses(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
     {
         ulong add = 0UL, update = 0UL;
-        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
-#pragma warning disable IDE0019
-        var extended = database as IExtenededDatabase;
-#pragma warning restore IDE0019
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace), logDebug = logger.IsEnabled(LogLevel.Debug);
+        if (logDebug)
+        {
+            logger.LogDebug("No-Download All-Add");
+        }
+
         try
         {
             await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
             {
-                if (extended is null)
+                if (database is IExtenededDatabase extended)
+                {
+                    var (_add, _update) = await extended.ArtworkAddOrUpdateAsync(collection, token).ConfigureAwait(false);
+                    if (logInfo)
+                    {
+                        logger.LogInformation($"Add: {_add} Update: {_update}");
+                    }
+
+                    add += _add;
+                    update += _update;
+                }
+                else
                 {
                     foreach (var item in collection)
                     {
@@ -178,17 +193,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                             }
                         }
                     }
-                }
-                else
-                {
-                    var (_add, _update) = await extended.ArtworkAddOrUpdateAsync(collection, token).ConfigureAwait(false);
-                    if (logInfo)
-                    {
-                        logger.LogInformation($"Add: {_add} Update: {_update}");
-                    }
-
-                    add += _add;
-                    update += _update;
                 }
             }
         }
@@ -215,7 +219,12 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
             return (add, update, 0, 0);
         }
 
-        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace), logDebug = logger.IsEnabled(LogLevel.Debug);
+        if (logDebug)
+        {
+            logger.LogDebug("Download No-All-Add");
+        }
+
         var machine = new DownloadAsyncMachine(this, database, token);
         var shouldDownloadOriginal = fileFilter.Original is not null;
         var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
@@ -310,7 +319,12 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
             return (add, update, 0, 0);
         }
 
-        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace);
+        bool logInfo = logger.IsEnabled(LogLevel.Information), logTrace = logger.IsEnabled(LogLevel.Trace), logDebug = logger.IsEnabled(LogLevel.Debug);
+        if (logDebug)
+        {
+            logger.LogDebug("Download All-Add");
+        }
+
         var machine = new DownloadAsyncMachine(this, database, token);
         var shouldDownloadOriginal = fileFilter.Original is not null;
         var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
