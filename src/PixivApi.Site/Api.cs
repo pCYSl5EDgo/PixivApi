@@ -83,4 +83,41 @@ public static class Api
             databaseFactory.Return(ref database);
         }
     }
+
+    //public static async Task<IResult> EnsureThumbnailAsync(ulong id, [FromServices] IDatabaseFactory databaseFactory, [FromServices] FinderFacade finderFacade, CancellationToken token)
+    //{
+    //    var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+    //    try
+    //    {
+    //        var artwork =  await database.GetArtworkAsync(id, token).ConfigureAwait(false);
+    //        switch (artwork?.Type)
+    //        {
+    //            case ArtworkType.Illust:
+    //                break;
+    //            case ArtworkType.Manga:
+    //                break;
+    //            case ArtworkType.Ugoira:
+    //                break;
+    //            default:
+    //                break;
+    //        }
+    //    }
+    //    finally
+    //    {
+    //        databaseFactory.Return(ref database);
+    //    }
+    //}
+
+    //public static async Task<IResult> EnsureContentAsync(ulong id, [FromServices] IDatabaseFactory databaseFactory, [FromServices] FinderFacade finderFacade, CancellationToken token)
+    //{
+    //    var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+    //    try
+    //    {
+    //        var artwork = await database.GetArtworkAsync(id, token).ConfigureAwait(false);
+    //    }
+    //    finally
+    //    {
+    //        databaseFactory.Return(ref database);
+    //    }
+    //}
 }
