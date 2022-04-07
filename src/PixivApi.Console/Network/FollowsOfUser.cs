@@ -40,17 +40,6 @@ public partial class NetworkClient
             {
                 if (addBehaviour)
                 {
-                    await Parallel.ForEachAsync(database.EnumerateUserAsync(token), token, (user, token) =>
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            return ValueTask.FromCanceled(token);
-                        }
-
-                        user.IsFollowed = false;
-                        return ValueTask.CompletedTask;
-                    }).ConfigureAwait(false);
-
                     (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
                 }
                 else
@@ -62,17 +51,6 @@ public partial class NetworkClient
             {
                 if (addBehaviour)
                 {
-                    await Parallel.ForEachAsync(database.EnumerateUserAsync(token), token, (user, token) =>
-                    {
-                        if (token.IsCancellationRequested)
-                        {
-                            return ValueTask.FromCanceled(token);
-                        }
-
-                        user.IsFollowed = false;
-                        return ValueTask.CompletedTask;
-                    }).ConfigureAwait(false);
-
                     if (allWork)
                     {
                         (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_All_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
