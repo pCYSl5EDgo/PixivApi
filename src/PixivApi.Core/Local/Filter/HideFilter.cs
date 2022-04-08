@@ -11,16 +11,13 @@ public sealed partial class HideFilter
         {
             return AllowedReason.Contains(reason);
         }
+        else if (DisallowedReason is { Count: > 0 })
+        {
+            return !DisallowedReason.Contains(reason);
+        }
         else
         {
-            if (DisallowedReason is { Count: > 0 })
-            {
-                return !DisallowedReason.Contains(reason);
-            }
-            else
-            {
-                return true;
-            }
+            return true;
         }
     }
 }
