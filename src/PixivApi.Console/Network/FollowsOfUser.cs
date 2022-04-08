@@ -38,13 +38,14 @@ public partial class NetworkClient
         {
             if (download)
             {
+                var filter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await filterFactory.CreateAsync(database, new FileInfo(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
                 if (addBehaviour)
                 {
-                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
+                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, filter, url, idOffset, token).ConfigureAwait(false);
                 }
                 else
                 {
-                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_New_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
+                    (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_New_All_Async(database, requestSender, filter, url, idOffset, token).ConfigureAwait(false);
                 }
             }
             else
@@ -394,7 +395,7 @@ public partial class NetworkClient
         return (add, update, addArtwork, updateArtwork);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_New_All_Async(IDatabase database, RequestSender requestSender, string url, ulong? idOffset, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_New_All_Async(IDatabase database, RequestSender requestSender, ArtworkFilter? filter, string url, ulong? idOffset, CancellationToken token)
     {
         var logger = Context.Logger;
         var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
@@ -446,7 +447,7 @@ public partial class NetworkClient
                     }
 
                     var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
-                    var (_addArtwork, _updateArtwork, _download, _transfer) = await PrivateDownloadAllArtworkResponsesAndFiles(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
+                    var (_addArtwork, _updateArtwork, _download, _transfer) = await PrivateDownloadAllArtworkResponsesAndFiles(illustsUrl, logger, database, requestSender, filter, token).ConfigureAwait(false);
                     addArtwork += _addArtwork;
                     updateArtwork += _updateArtwork;
                     download += _download;
@@ -468,7 +469,7 @@ public partial class NetworkClient
         return (add, update, addArtwork, updateArtwork, download, transfer);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_All_All_Async(IDatabase database, RequestSender requestSender, string url, ulong? idOffset, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong addArtwork, ulong updateArtwork, ulong downloadCount, ulong transferByteCount)> PrivateDownloadFollowsOfUser_Download_All_All_Async(IDatabase database, RequestSender requestSender, ArtworkFilter? filter, string url, ulong? idOffset, CancellationToken token)
     {
         var logger = Context.Logger;
         var logInfo = logger.IsEnabled(LogLevel.Information) ? logger : null;
@@ -519,7 +520,7 @@ public partial class NetworkClient
                     }
 
                     var illustsUrl = $"https://{ApiHost}/v1/user/illusts?user_id={item.User.Id}";
-                    var (_addArtwork, _updateArtwork, _download, _transfer) = await PrivateDownloadAllArtworkResponsesAndFiles(illustsUrl, logger, database, requestSender, token).ConfigureAwait(false);
+                    var (_addArtwork, _updateArtwork, _download, _transfer) = await PrivateDownloadAllArtworkResponsesAndFiles(illustsUrl, logger, database, requestSender, filter, token).ConfigureAwait(false);
                     addArtwork += _addArtwork;
                     updateArtwork += _updateArtwork;
                     download += _download;

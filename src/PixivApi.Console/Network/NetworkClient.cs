@@ -37,13 +37,14 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         {
             if (download)
             {
+                var filter = string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath) ? null : await filterFactory.CreateAsync(database, new FileInfo(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
                 if (addBehaviour)
                 {
-                    (addCount, updateCount, downloadCount, transferByteCount) = await PrivateDownloadAllArtworkResponsesAndFiles(url, logger, database, requestSender, token).ConfigureAwait(false);
+                    (addCount, updateCount, downloadCount, transferByteCount) = await PrivateDownloadAllArtworkResponsesAndFiles(url, logger, database, requestSender, filter, token).ConfigureAwait(false);
                 }
                 else
                 {
-                    (addCount, updateCount, downloadCount, transferByteCount) = await PrivateDownloadNewArtworkResponsesAndFiles(url, logger, database, requestSender, token).ConfigureAwait(false);
+                    (addCount, updateCount, downloadCount, transferByteCount) = await PrivateDownloadNewArtworkResponsesAndFiles(url, logger, database, requestSender, filter, token).ConfigureAwait(false);
                 }
             }
             else
@@ -226,7 +227,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         return (add, update);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong download, ulong transfer)> PrivateDownloadNewArtworkResponsesAndFiles(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong download, ulong transfer)> PrivateDownloadNewArtworkResponsesAndFiles(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, ArtworkFilter? filter, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath))
         {
@@ -234,7 +235,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         ulong add = 0UL, update = 0UL;
-        var filter = await filterFactory.CreateAsync(database, new FileInfo(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
         if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Thumbnail: null, Ugoira: null })
         {
             (add, update) = await PrivateDownloadNewArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
@@ -337,7 +337,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         return (add, update, (ulong)machine.DownloadFileCount, machine.DownloadByteCount);
     }
 
-    private async ValueTask<(ulong add, ulong update, ulong download, ulong transfer)> PrivateDownloadAllArtworkResponsesAndFiles(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, CancellationToken token)
+    private async ValueTask<(ulong add, ulong update, ulong download, ulong transfer)> PrivateDownloadAllArtworkResponsesAndFiles(string url, ILogger<ConsoleApp> logger, IDatabase database, RequestSender requestSender, ArtworkFilter? filter, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(configSettings.ArtworkFilterFilePath))
         {
@@ -345,7 +345,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         ulong add = 0UL, update = 0UL;
-        var filter = await filterFactory.CreateAsync(database, new FileInfo(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false);
         if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Thumbnail: null, Ugoira: null })
         {
             (add, update) = await PrivateDownloadNewArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
