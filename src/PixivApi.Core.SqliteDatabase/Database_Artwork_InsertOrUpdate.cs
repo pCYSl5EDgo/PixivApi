@@ -1,5 +1,4 @@
-﻿#pragma warning disable CA2254
-namespace PixivApi.Core.SqliteDatabase;
+﻿namespace PixivApi.Core.SqliteDatabase;
 
 internal sealed partial class Database
 {
@@ -523,4 +522,3 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 }
-#pragma warning restore CA2254
