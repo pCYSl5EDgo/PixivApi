@@ -483,9 +483,9 @@ internal sealed partial class Database
             "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\"," +
             "\"TotalView\" = \"excluded\".\"TotalView\"," +
             "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\"," +
-            "\"IsOfficiallyRemoved\" = 0," +
+            "\"IsOfficiallyRemoved\" = 0, \"Type\" = \"excluded\".\"Type\"," +
             "\"HideReason\" = CASE WHEN \"HideReason\" = 0 THEN \"excluded\".\"HideReason\" ELSE \"HideReason\" END," +
-            "\"IsBookmarked\" = \"excluded\".\"IsBookmarked\"," +
+            "\"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Extension\" = \"excluded\".\"Extension\"," +
             "\"Title\" = \"excluded\".\"Title\", \"Caption\" = \"excluded\".\"Caption\"")]
     private static partial ReadOnlySpan<byte> Literal_Update_Artwowrk_ArtworkResponseContent();
 
