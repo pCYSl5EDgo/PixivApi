@@ -208,15 +208,17 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
 public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
 {
     private readonly QueryWithRetryAndReconnectAsync query;
+    private readonly ILogger? logger;
     private readonly string initialUrl;
 
-    public DownloadUserPreviewAsyncEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query)
+    public DownloadUserPreviewAsyncEnumerable(string initialUrl, QueryWithRetryAndReconnectAsync query, ILogger? logger)
     {
         this.initialUrl = initialUrl;
         this.query = query;
+        this.logger = logger is null ? null : logger.IsEnabled(LogLevel.Trace) ? logger : null;
     }
 
-    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, cancellationToken);
+    public Enumerator GetAsyncEnumerator(CancellationToken cancellationToken) => new(initialUrl, query, logger, cancellationToken);
 
     IAsyncEnumerator<Users> IAsyncEnumerable<Users>.GetAsyncEnumerator(CancellationToken cancellationToken) => GetAsyncEnumerator(cancellationToken);
 
@@ -224,14 +226,16 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
     {
         private string? url;
         private readonly QueryWithRetryAndReconnectAsync query;
+        private readonly ILogger? logger;
         private readonly CancellationToken cancellationToken;
 
         private UserPreviewResponseContent[]? array;
 
-        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, CancellationToken cancellationToken)
+        public Enumerator(string initialUrl, QueryWithRetryAndReconnectAsync query, ILogger? logger, CancellationToken cancellationToken)
         {
             url = initialUrl;
             this.query = query;
+            this.logger = logger;
             this.cancellationToken = cancellationToken;
         }
 
@@ -255,6 +259,11 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
             if (responseByteArray.Length == 0)
             {
                 return false;
+            }
+
+            if (logger is not null)
+            {
+                logger.LogTrace(System.Text.Encoding.UTF8.GetString(responseByteArray));
             }
 
             var response = IOUtility.JsonDeserialize<UserPreviewsResponseData>(responseByteArray.AsSpan());
