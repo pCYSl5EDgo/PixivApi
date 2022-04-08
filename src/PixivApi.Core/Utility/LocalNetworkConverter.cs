@@ -279,6 +279,10 @@ public static class LocalNetworkConverter
         {
             return FileExtensionKind.Zip;
         }
+        else if (ext.SequenceEqual(".gif"))
+        {
+            return FileExtensionKind.Gif;
+        }
         else
         {
             return FileExtensionKind.None;

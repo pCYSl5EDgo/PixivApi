@@ -143,6 +143,7 @@ public static class ArtworkNameUtility
         FileExtensionKind.Jpg => ".jpg",
         FileExtensionKind.Png => ".png",
         FileExtensionKind.Zip => ".zip",
+        FileExtensionKind.Gif => ".gif",
         FileExtensionKind.None or _ => "",
     };
 }

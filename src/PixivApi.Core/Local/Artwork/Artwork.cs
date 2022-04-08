@@ -585,6 +585,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
     [StringLiteral.Utf8("jpg")] private static partial ReadOnlySpan<byte> LiteralJpg();
     [StringLiteral.Utf8("png")] private static partial ReadOnlySpan<byte> LiteralPng();
     [StringLiteral.Utf8("zip")] private static partial ReadOnlySpan<byte> LiteralZip();
+    [StringLiteral.Utf8("gif")] private static partial ReadOnlySpan<byte> LiteralGif();
 
     [StringLiteral.Utf8("hide-reason")] private static partial ReadOnlySpan<byte> LiteralHideReason();
     [StringLiteral.Utf8("not-hidden")] private static partial ReadOnlySpan<byte> LiteralNotHidden();
@@ -732,6 +733,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
                 FileExtensionKind.Jpg => LiteralJpg(),
                 FileExtensionKind.Png => LiteralPng(),
                 FileExtensionKind.Zip => LiteralZip(),
+                FileExtensionKind.Gif => LiteralGif(),
                 FileExtensionKind.None or _ => LiteralNone(),
             });
 

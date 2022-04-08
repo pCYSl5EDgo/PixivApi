@@ -6,4 +6,5 @@ public enum FileExtensionKind : byte
     Jpg,
     Png,
     Zip,
+    Gif,
 }
