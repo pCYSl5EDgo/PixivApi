@@ -112,7 +112,7 @@ public partial class NetworkClient
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
         try
         {
-            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -197,7 +197,7 @@ public partial class NetworkClient
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
         try
         {
-            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -269,7 +269,7 @@ public partial class NetworkClient
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
         try
         {
-            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -343,7 +343,7 @@ public partial class NetworkClient
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0;
         try
         {
-            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -409,7 +409,7 @@ public partial class NetworkClient
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0, download = 0, transfer = 0;
         try
         {
-            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -483,7 +483,7 @@ public partial class NetworkClient
         ulong add = 0, update = 0, addArtwork = 0, updateArtwork = 0, download = 0, transfer = 0;
         try
         {
-            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadUserPreviewAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
