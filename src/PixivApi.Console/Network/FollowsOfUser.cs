@@ -8,7 +8,8 @@ public partial class NetworkClient
         [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
         bool allWork = false,
         [Option("d")] bool download = false,
-        ulong? idOffset = null
+        ulong? idOffset = null,
+        [Option("p")] bool isPrivate = false
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -26,6 +27,10 @@ public partial class NetworkClient
         var token = Context.CancellationToken;
         var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
         var url = $"https://{ApiHost}/v1/user/following?user_id={configSettings.UserId}";
+        if (isPrivate)
+        {
+            url += "&restrict=private";
+        }
         ulong add = 0UL, update = 0UL, addArtwork = 0UL, updateArtwork = 0UL, downloadCount = 0UL, transferByteCount = 0UL;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
         var transactional = database as ITransactionalDatabase;
@@ -42,27 +47,11 @@ public partial class NetworkClient
                 if (addBehaviour)
                 {
                     (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, filter, url, idOffset, token).ConfigureAwait(false);
-                    url += "&restrict=private";
-                    var (_add, _update, _addArtwork, _updateArtwork, _downloadCount, _transferByteCount) = await PrivateDownloadFollowsOfUser_Download_All_All_Async(database, requestSender, filter, url, idOffset, token).ConfigureAwait(false);
-                    add += _add;
-                    update += _update;
-                    addArtwork += _addArtwork;
-                    updateArtwork += _updateArtwork;
-                    downloadCount += _downloadCount;
-                    transferByteCount += _transferByteCount;
                 }
                 else
                 {
                     (add, update, addArtwork, updateArtwork, downloadCount, transferByteCount) = await PrivateDownloadFollowsOfUser_Download_New_All_Async(database, requestSender, filter, url, idOffset, token).ConfigureAwait(false);
-                    url += "&restrict=private";
-                    var (_add, _update, _addArtwork, _updateArtwork, _downloadCount, _transferByteCount) = await PrivateDownloadFollowsOfUser_Download_New_All_Async(database, requestSender, filter, url, idOffset, token).ConfigureAwait(false);
-                    add += _add;
-                    update += _update;
-                    addArtwork += _addArtwork;
-                    updateArtwork += _updateArtwork;
-                    downloadCount += _downloadCount;
-                    transferByteCount += _transferByteCount;
-                }
+               }
             }
             else
             {
@@ -71,22 +60,10 @@ public partial class NetworkClient
                     if (allWork)
                     {
                         (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_All_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
-                        url += "&restrict=private";
-                        var (_add, _update, _addArtwork, _updateArtwork) = await PrivateDownloadFollowsOfUser_All_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
-                        add += _add;
-                        update += _update;
-                        addArtwork += _addArtwork;
-                        updateArtwork += _updateArtwork;
                     }
                     else
                     {
                         (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_All_OnlyPreview_Async(database, requestSender, url, token).ConfigureAwait(false);
-                        url += "&restrict=private";
-                        var (_add, _update, _addArtwork, _updateArtwork) = await PrivateDownloadFollowsOfUser_All_OnlyPreview_Async(database, requestSender, url, token).ConfigureAwait(false);
-                        add += _add;
-                        update += _update;
-                        addArtwork += _addArtwork;
-                        updateArtwork += _updateArtwork;
                     }
                 }
                 else
@@ -94,22 +71,10 @@ public partial class NetworkClient
                     if (allWork)
                     {
                         (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_New_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
-                        url += "&restrict=private";
-                        var (_add, _update, _addArtwork, _updateArtwork) = await PrivateDownloadFollowsOfUser_New_All_Async(database, requestSender, url, idOffset, token).ConfigureAwait(false);
-                        add += _add;
-                        update += _update;
-                        addArtwork += _addArtwork;
-                        updateArtwork += _updateArtwork;
                     }
                     else
                     {
                         (add, update, addArtwork, updateArtwork) = await PrivateDownloadFollowsOfUser_New_OnlyPreview_Async(database, requestSender, url, token).ConfigureAwait(false);
-                        url += "&restrict=private";
-                        var (_add, _update, _addArtwork, _updateArtwork) = await PrivateDownloadFollowsOfUser_New_OnlyPreview_Async(database, requestSender, url, token).ConfigureAwait(false);
-                        add += _add;
-                        update += _update;
-                        addArtwork += _addArtwork;
-                        updateArtwork += _updateArtwork;
                     }
                 }
             }

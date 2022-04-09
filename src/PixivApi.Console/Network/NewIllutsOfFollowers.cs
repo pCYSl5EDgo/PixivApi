@@ -6,7 +6,8 @@ public partial class NetworkClient
     public ValueTask DownloadNewIllustsOfFollowersAsync
     (
         [Option("a", ArgumentDescriptions.AddKindDescription)] bool addBehaviour = false,
-        [Option("d")] bool download = false
+        [Option("d")] bool download = false,
+        [Option("p")] bool isPrivate = false
     )
     {
         if (string.IsNullOrWhiteSpace(configSettings.DatabaseFilePath))
@@ -14,7 +15,8 @@ public partial class NetworkClient
             return ValueTask.CompletedTask;
         }
 
-        var url = $"https://{ApiHost}/v2/illust/follow?restrict=public";
-        return DownloadArtworkResponses(addBehaviour, download, url, Context.CancellationToken);
+        DefaultInterpolatedStringHandler url = $"https://{ApiHost}/v2/illust/follow?restrict=";
+        url.AppendLiteral(isPrivate ? "private" : "public");
+        return DownloadArtworkResponses(addBehaviour, download, url.ToStringAndClear(), Context.CancellationToken);
     }
 }
