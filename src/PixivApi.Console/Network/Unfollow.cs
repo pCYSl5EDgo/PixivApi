@@ -30,6 +30,7 @@ public partial class NetworkClient
         {
             do
             {
+                System.Console.Error.Write("Input User Id:");
                 var line = System.Console.ReadLine();
                 if (string.IsNullOrWhiteSpace(line))
                 {
