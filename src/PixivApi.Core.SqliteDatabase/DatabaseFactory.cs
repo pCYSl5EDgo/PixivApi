@@ -15,7 +15,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
         var info = new FileInfo(path);
         if (!info.Exists || info.Length == 0)
         {
-            logger.LogTrace("Initialize databse with sql");
+            logger.LogTrace("Initialize database with sql");
             File.Create(path).Dispose();
             Database database = new(logger, path);
             ReadOnlySpan<byte> span = GetInitSql(), outSpan;
@@ -45,7 +45,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
             database.Dispose();
         }
 
-        logger.LogTrace($"Initialize databse @ {path}");
+        logger.LogTrace($"Initialize database @ {path}");
     }
 
     private readonly ConcurrentBag<Database> Returned = new();
