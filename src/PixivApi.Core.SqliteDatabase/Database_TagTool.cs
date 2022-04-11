@@ -425,6 +425,10 @@ internal sealed partial class Database
             Reset(insertOrIgnoreIntoUserTagCrossTableStatement);
         }
 
+        var statement = insertOrIgnoreIntoUserTagCrossTableStatement;
+        Bind(statement, 1, id);
+        Bind(statement, 2, tagId);
+
         return ExecuteAsync(insertOrIgnoreIntoUserTagCrossTableStatement, token);
     }
 }
