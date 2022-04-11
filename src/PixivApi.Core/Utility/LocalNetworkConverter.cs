@@ -29,7 +29,7 @@ public static class LocalNetworkConverter
             Tags = await tagDatabase.CalculateTagsAsync(source.Tags, token).ConfigureAwait(false),
             Tools = await toolDatabase.CalculateToolsAsync(source.Tools, token).ConfigureAwait(false),
         };
-        
+
         return answer;
     }
 
@@ -154,6 +154,27 @@ public static class LocalNetworkConverter
         Comment = user.Comment,
     };
 
+    public static User Convert(this UserDetailResponseData user)
+    {
+        var answer = user.User.Convert();
+        if (user.Profile.HasValue)
+        {
+            answer.Profile = user.Profile.Value.Convert();
+        }
+
+        if (user.ProfilePublicity.HasValue)
+        {
+            answer.ProfilePublicity = user.ProfilePublicity.Value.Convert();
+        }
+
+        if (user.Workspace.HasValue)
+        {
+            answer.Workspace = user.Workspace.Value.Convert();
+        }
+
+        return answer;
+    }
+
     public static User.DetailProfile Convert(this UserDetailProfile source) => new()
     {
         Webpage = source.Webpage,
@@ -210,7 +231,7 @@ public static class LocalNetworkConverter
         destination.IsUsingCustomProfileImage = source.IsUsingCustomProfileImage;
     }
 
-    public static User.DetailProfilePublicity Convert(UserDetailProfilePublicity source) => new()
+    public static User.DetailProfilePublicity Convert(this UserDetailProfilePublicity source) => new()
     {
         Gender = source.Gender,
         Region = source.Region,
@@ -230,7 +251,7 @@ public static class LocalNetworkConverter
         destination.Pawoo = source.Pawoo;
     }
 
-    public static User.DetailWorkspace Convert(UserDetailWorkspace source) => new()
+    public static User.DetailWorkspace Convert(this UserDetailWorkspace source) => new()
     {
         Pc = source.Pc,
         Monitor = source.Monitor,
