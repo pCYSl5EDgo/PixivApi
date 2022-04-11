@@ -59,7 +59,6 @@ public partial class NetworkClient
                 } while (true);
 
                 var isFollowed = userDetail.User.IsFollowed;
-                if (isFollowed != follow)
                 {
                     var authentication = await holder.GetAsync(token).ConfigureAwait(false);
                     var url = follow ? $"https://{ApiHost}/v1/user/follow/add" : $"https://{ApiHost}/v1/user/follow/delete";
@@ -70,11 +69,11 @@ public partial class NetworkClient
                         throw new InvalidOperationException();
                     }
 
-                    request.Content = new StringContent(follow ? 
-                        (isPrivate ? 
-                            $"get_secure_url=1&user_id={id}&restrict=private" : 
-                            $"get_secure_url=1&user_id={id}&restrict=public") : 
-                        $"get_secure_url=1&user_id={id}", 
+                    request.Content = new StringContent(follow ?
+                        (isPrivate ?
+                            $"get_secure_url=1&user_id={id}&restrict=private" :
+                            $"get_secure_url=1&user_id={id}&restrict=public") :
+                        $"get_secure_url=1&user_id={id}",
                         encoding, MediaType);
                     using var response = await client.SendAsync(request, token).ConfigureAwait(false);
                     if (logTrace)
