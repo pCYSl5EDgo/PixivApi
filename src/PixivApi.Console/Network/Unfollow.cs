@@ -81,7 +81,12 @@ public partial class NetworkClient
                         logger.LogTrace(await response.Content.ReadAsStringAsync(token).ConfigureAwait(false));
                     }
 
-                    response.EnsureSuccessStatusCode();
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        logger.LogError(response.ReasonPhrase);
+                        continue;
+                    }
+
                     userDetail.User.IsFollowed = follow;
                 }
 

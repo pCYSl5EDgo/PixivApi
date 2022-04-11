@@ -406,7 +406,7 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"UserTagCrossTable\" VALUES (?1, ?2)")]
+    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"UserTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2)")]
     private static partial ReadOnlySpan<byte> Literal_InsertOrIgnoreIntoUserTagCrossTable();
 
     public ValueTask AddTagToUser(ulong id, uint tagId, CancellationToken token)
