@@ -21,7 +21,7 @@ public partial class NetworkClient : ConsoleAppBase
     }
 
     [Command("http-post")]
-    public async ValueTask PostAsync([Option(0)] string url, [Option(1)] string content)
+    public async ValueTask PostAsync([Option(0)] string url, [Option(1)] string content, bool isJson = false)
     {
         var token = Context.CancellationToken;
         var authentication = await holder.GetAsync(token).ConfigureAwait(false);
@@ -32,9 +32,18 @@ public partial class NetworkClient : ConsoleAppBase
             throw new InvalidOperationException();
         }
 
-        request.Content = new StringContent($"get_secure_url=1&{content}", new System.Text.UTF8Encoding(false));
-        request.Content.Headers.ContentType = new("application/x-www-form-urlencoded");
+        request.Content = new StringContent($"get_secure_url=1&{content}", new System.Text.UTF8Encoding(false), isJson ? "application/json" : "application/x-www-form-urlencoded");
+        if (Context.Logger.IsEnabled(LogLevel.Trace))
+        {
+            Context.Logger.LogTrace(content);
+        }
+
         using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+        if (Context.Logger.IsEnabled(LogLevel.Trace))
+        {
+            Context.Logger.LogTrace(await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false));
+        }
+
         responseMessage.EnsureSuccessStatusCode();
         var json = await responseMessage.Content.ReadAsStringAsync(token).ConfigureAwait(false);
         Context.Logger.LogInformation(json);
