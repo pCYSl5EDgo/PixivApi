@@ -191,4 +191,6 @@ public partial class NetworkClient
     private static async ValueTask<HttpResponseMessage> GetArtworkDetailAsync(RequestSender requestSender, ulong id, CancellationToken token) => await requestSender.GetAsync($"https://{ApiHost}/v1/illust/detail?illust_id={id}", token).ConfigureAwait(false);
 
     private static async ValueTask<HttpResponseMessage> GetArtworkUgoiraMetadataAsync(RequestSender requestSender, ulong id, CancellationToken token) => await requestSender.GetAsync($"https://{ApiHost}/v1/ugoira/metadata?illust_id={id}", token).ConfigureAwait(false);
+
+    private static async ValueTask<HttpResponseMessage> GetUserDetailAsync(RequestSender requestSender, ulong id, CancellationToken token) => await requestSender.GetAsync($"https://{ApiHost}/v1/user/detail?user_id={id}", token).ConfigureAwait(false);
 }
