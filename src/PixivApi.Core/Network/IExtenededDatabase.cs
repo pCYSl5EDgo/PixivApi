@@ -62,4 +62,6 @@ public interface IExtenededDatabase : IDatabase
 
         return pair;
     }
+
+    ValueTask AddTagToUser(ulong id, uint tagId, CancellationToken token);
 }

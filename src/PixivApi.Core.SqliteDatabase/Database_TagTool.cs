@@ -15,6 +15,7 @@ internal sealed partial class Database
     private sqlite3_stmt? deleteTagsOfArtworkStatement;
     private sqlite3_stmt? deleteTagsOfUserStatement;
     private sqlite3_stmt? deleteToolsOfArtworkStatement;
+    private sqlite3_stmt? insertOrIgnoreIntoUserTagCrossTableStatement;
 
     [StringLiteral.Utf8("SELECT \"Value\" FROM \"TagTable\" WHERE \"Id\" = ?")] private static partial ReadOnlySpan<byte> Literal_SelectValueFromTagTableWhereId();
     [StringLiteral.Utf8("SELECT \"Value\" FROM \"ToolTable\" WHERE \"Id\" = ?")] private static partial ReadOnlySpan<byte> Literal_SelectValueFromToolTableWhereId();
@@ -403,5 +404,27 @@ internal sealed partial class Database
         var statement = deleteToolsOfArtworkStatement;
         Bind(statement, 0x01, id);
         return ExecuteAsync(statement, token);
+    }
+
+    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"UserTagCrossTable\" VALUES (?1, ?2)")]
+    private static partial ReadOnlySpan<byte> Literal_InsertOrIgnoreIntoUserTagCrossTable();
+
+    public ValueTask AddTagToUser(ulong id, uint tagId, CancellationToken token)
+    {
+        if (id == 0 || tagId == 0)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        if (insertOrIgnoreIntoUserTagCrossTableStatement is null)
+        {
+            insertOrIgnoreIntoUserTagCrossTableStatement = Prepare(Literal_InsertOrIgnoreIntoUserTagCrossTable(), true, out _);
+        }
+        else
+        {
+            Reset(insertOrIgnoreIntoUserTagCrossTableStatement);
+        }
+
+        return ExecuteAsync(insertOrIgnoreIntoUserTagCrossTableStatement, token);
     }
 }
