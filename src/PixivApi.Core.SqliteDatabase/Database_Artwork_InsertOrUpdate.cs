@@ -59,6 +59,33 @@ internal sealed partial class Database
         } while (true);
     }
 
+    public async ValueTask<bool> AddOrUpdateAsync(Artwork artwork, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var exists = await ExistsArtworkAsync(artwork.Id, CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        await InsertArtworkAsync(artwork, CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        await DeleteTagsOfArtworkStatementAsync(artwork.Id, CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        await InsertTagsOfArtworkAsync(artwork.Id, artwork.CalculateTags(), CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        await DeleteToolsOfArtworkStatementAsync(artwork.Id, CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        await InsertToolsOfArtworkAsync(artwork.Id, artwork.Tools, CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        await DeleteHidesAsync(artwork.Id, CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        await InsertHidesAsync(artwork.Id, artwork.ExtraPageHideReasonDictionary, CancellationToken.None).ConfigureAwait(false);
+        token.ThrowIfCancellationRequested();
+        if (artwork.Type == ArtworkType.Ugoira && artwork.UgoiraFrames is { Length: > 0 })
+        {
+            await InsertUgoiraFramesAsync(artwork.Id, artwork.UgoiraFrames, CancellationToken.None).ConfigureAwait(false);
+        }
+
+        return !exists;
+    }
+
     public async IAsyncEnumerable<bool> AddOrUpdateAsync(IEnumerable<Artwork> collection, [EnumeratorCancellation] CancellationToken token)
     {
         foreach (var answer in collection)

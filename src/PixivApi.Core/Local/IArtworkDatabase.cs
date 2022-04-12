@@ -11,6 +11,9 @@ public interface IArtworkDatabase
     /// <returns>True: Add, False: Update</returns>
     ValueTask<bool> AddOrUpdateAsync(ulong id, DatabaseAddArtworkFunc add, DatabaseUpdateArtworkFunc update, CancellationToken token);
 
+    /// <returns>True: Add, False: Update</returns>
+    ValueTask<bool> AddOrUpdateAsync(Artwork artwork, CancellationToken token);
+
     IAsyncEnumerable<Artwork> FilterAsync(ArtworkFilter filter, CancellationToken token);
     
     /// <summary>

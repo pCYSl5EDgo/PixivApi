@@ -69,6 +69,11 @@ public partial class NetworkClient
                     var downloadResult = artwork.Type == ArtworkType.Ugoira ?
                         await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
                         await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                    if (downloadResult != DownloadResult.None)
+                    {
+                        await database.AddOrUpdateAsync(artwork, token).ConfigureAwait(false);
+                    }
+
                     if ((downloadResult & DownloadResult.Success) != 0)
                     {
                         Interlocked.Increment(ref downloadItemCount);
@@ -165,6 +170,14 @@ public partial class NetworkClient
                 downloadAny = true;
                 if (!Success)
                 {
+                    if (noDetailDownload)
+                    {
+                        artwork.IsOfficiallyRemoved = true;
+                    }
+                    else
+                    {
+                        artwork.ExtraHideReason = HideReason.TemporaryHidden;
+                    }
                     goto END;
                 }
             }
@@ -187,6 +200,14 @@ public partial class NetworkClient
                 downloadAny = true;
                 if (!Success)
                 {
+                    if (noDetailDownload)
+                    {
+                        artwork.IsOfficiallyRemoved = true;
+                    }
+                    else
+                    {
+                        artwork.ExtraHideReason = HideReason.TemporaryHidden;
+                    }
                     goto END;
                 }
             }
@@ -213,6 +234,14 @@ public partial class NetworkClient
             downloadAny = true;
             if (!Success)
             {
+                if (noDetailDownload)
+                {
+                    artwork.IsOfficiallyRemoved = true;
+                }
+                else
+                {
+                    artwork.ExtraHideReason = HideReason.TemporaryHidden;
+                }
                 goto END;
             }
         }
@@ -230,6 +259,14 @@ public partial class NetworkClient
             downloadAny = true;
             if (!Success)
             {
+                if (noDetailDownload)
+                {
+                    artwork.IsOfficiallyRemoved = true;
+                }
+                else
+                {
+                    artwork.ExtraHideReason = HideReason.TemporaryHidden;
+                }
                 goto END;
             }
         }
@@ -247,6 +284,14 @@ public partial class NetworkClient
             downloadAny = true;
             if (!Success)
             {
+                if (noDetailDownload)
+                {
+                    artwork.IsOfficiallyRemoved = true;
+                }
+                else
+                {
+                    artwork.ExtraHideReason = HideReason.TemporaryHidden;
+                }
                 goto END;
             }
         }

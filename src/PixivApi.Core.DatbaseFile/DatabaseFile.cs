@@ -66,6 +66,18 @@ internal sealed class DatabaseFile : IDatabase
         return ValueTask.FromResult(isAdd);
     }
 
+    public ValueTask<bool> AddOrUpdateAsync(Artwork artwork, CancellationToken token)
+    {
+        _ = Interlocked.Exchange(ref IsChanged, 1);
+        var isAdd = true;
+        ArtworkDictionary.AddOrUpdate(artwork.Id, artwork, (_, _) =>
+        {
+            isAdd = false;
+            return artwork;
+        });
+        return ValueTask.FromResult(isAdd);
+    }
+
 #pragma warning disable CS1998
     public async IAsyncEnumerable<bool> AddOrUpdateAsync(IEnumerable<Artwork> collection, [EnumeratorCancellation] CancellationToken token)
 #pragma warning restore CS1998
