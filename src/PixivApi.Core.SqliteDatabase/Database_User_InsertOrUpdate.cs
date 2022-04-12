@@ -26,7 +26,7 @@ internal sealed partial class Database
         await InsertTagsOfUserAsync(user.Id, user.ExtraTags, token).ConfigureAwait(false);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"UserTagCrossTable\" VALUES (?1, ?2")]
+    [StringLiteral.Utf8("INSERT INTO \"UserTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
     private static partial ReadOnlySpan<byte> Literal_Insert_TagsOfUser_Parts_0();
 
     private ValueTask InsertTagsOfUserAsync(ulong id, ReadOnlySpan<uint> tags, CancellationToken token)
