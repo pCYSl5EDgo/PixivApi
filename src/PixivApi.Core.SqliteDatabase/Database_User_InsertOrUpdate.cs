@@ -29,6 +29,9 @@ internal sealed partial class Database
     [StringLiteral.Utf8("INSERT INTO \"UserTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
     private static partial ReadOnlySpan<byte> Literal_Insert_TagsOfUser_Parts_0();
 
+    [StringLiteral.Utf8(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1 END")]
+    private static partial ReadOnlySpan<byte> Literal_Insert_TagsOfUser_Parts_1();
+
     private ValueTask InsertTagsOfUserAsync(ulong id, ReadOnlySpan<uint> tags, CancellationToken token)
     {
         if (tags.IsEmpty)
@@ -47,7 +50,7 @@ internal sealed partial class Database
                 builder.Append(i + 2);
             }
 
-            builder.AppendAscii(')');
+            builder.AppendLiteral(Literal_Insert_TagsOfUser_Parts_1());
             statement = Prepare(ref builder, true, out _);
             builder.Dispose();
         }
