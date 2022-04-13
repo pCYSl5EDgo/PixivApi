@@ -92,6 +92,8 @@ public sealed class Program
         app.MapGet("/local/count", Api.CountAsync);
         app.MapGet("/local/map", Api.MapAsync);
         app.Map("/local/hide/{id}", Api.HideAsync);
+        app.MapGet("/local/thumbnail/{id}/{index}", Api.GetThumbnailAsync);
+        app.MapGet("/local/original/{id}/{index}", Api.GetOriginalAsync);
 
         await app.RunAsync().ConfigureAwait(false);
     }

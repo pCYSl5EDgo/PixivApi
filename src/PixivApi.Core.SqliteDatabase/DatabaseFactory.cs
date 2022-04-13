@@ -15,7 +15,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
         var info = new FileInfo(path);
         if (!info.Exists || info.Length == 0)
         {
-            logger.LogTrace("Initialize database with sql");
+            logger.LogDebug("Initialize database with sql");
             File.Create(path).Dispose();
             Database database = new(logger, path);
             ReadOnlySpan<byte> span = GetInitSql(), outSpan;
@@ -45,7 +45,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
             database.Dispose();
         }
 
-        logger.LogTrace($"Initialize database @ {path}");
+        logger.LogDebug($"Initialize database @ {path}");
     }
 
     private readonly ConcurrentBag<Database> Returned = new();
@@ -56,11 +56,11 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
         token.ThrowIfCancellationRequested();
         if (Returned.TryTake(out var database))
         {
-            logger.LogTrace("Rent existing database");
+            logger.LogDebug("Rent existing database");
         }
         else
         {
-            logger.LogTrace("Create database");
+            logger.LogDebug("Create database");
             database = new(logger, path);
         }
 
@@ -74,7 +74,7 @@ public sealed partial class DatabaseFactory : IDatabaseFactory
     {
         while (Returned.TryTake(out var database))
         {
-            logger.LogTrace("Dispose database");
+            logger.LogDebug("Dispose database");
             database.Dispose();
         }
 
