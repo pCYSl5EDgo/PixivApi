@@ -280,7 +280,7 @@ internal sealed partial class Database
         }
 
         var statement = enumerateArtworkStatement;
-        do
+        while (!token.IsCancellationRequested)
         {
             var code = Step(statement);
             if (code == SQLITE_BUSY)
@@ -307,7 +307,7 @@ internal sealed partial class Database
 
             await ColumnArtworkAsync(answer, statement, 1, token).ConfigureAwait(false);
             yield return answer;
-        } while (true);
+        }
     }
 
     [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkRemoveTable\" VALUES (?)")]
