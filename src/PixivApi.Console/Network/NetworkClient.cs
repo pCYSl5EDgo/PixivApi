@@ -93,7 +93,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (database is IExtenededDatabase extended)
                 {
@@ -171,7 +171,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (database is IExtenededDatabase extended)
                 {
@@ -256,7 +256,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
@@ -366,7 +366,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         try
         {
-            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger))
+            await foreach (var collection in new DownloadArtworkAsyncEnumerable(url, requestSender.GetAsync, logger).WithCancellation(token))
             {
                 if (token.IsCancellationRequested)
                 {
