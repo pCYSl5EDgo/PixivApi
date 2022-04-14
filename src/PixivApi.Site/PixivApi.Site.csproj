@@ -2,6 +2,10 @@
 	<ItemGroup>
 		<ProjectReference Include="..\PixivApi.Core.SqliteDatabase\PixivApi.Core.SqliteDatabase.csproj" />
 		<ProjectReference Include="..\PixivApi.Core\PixivApi.Core.csproj" />
+		<PackageReference Include="Microsoft.TypeScript.MSBuild" Version="4.6.4">
+		  <PrivateAssets>all</PrivateAssets>
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
 		<PackageReference Include="StringLiteralGenerator" Version="2.0.0">
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
