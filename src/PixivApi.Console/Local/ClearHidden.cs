@@ -11,45 +11,43 @@ public partial class LocalClient
         var finderFacade = Context.ServiceProvider.GetRequiredService<FinderFacade>();
         try
         {
-            static void DeleteFileWithIndex(in HiddenPageValueTuple tuple, IFinderWithIndex finder)
+            static void DeleteFileWithIndex(in HiddenPageValueTuple tuple, IFinderWithIndex finder, ILogger? logger)
             {
                 var info = finder.Find(tuple.Id, tuple.Extension, tuple.Index);
                 if (info.Exists)
                 {
+                    logger?.LogTrace($"Delete: {tuple}");
                     info.Delete();
                 }
             }
 
-            static void DeleteFile(in HiddenPageValueTuple tuple, IFinder finder)
+            static void DeleteFile(in HiddenPageValueTuple tuple, IFinder finder, ILogger? logger)
             {
                 var info = finder.Find(tuple.Id, tuple.Extension);
                 if (info.Exists)
                 {
+                    logger?.LogTrace($"Delete: {tuple}");
                     info.Delete();
                 }
             }
 
             void Delete(in HiddenPageValueTuple tuple)
             {
-                if (logger.IsEnabled(LogLevel.Trace))
-                {
-                    logger.LogTrace(tuple.ToString());
-                }
-
+                var tmpLogger = logger.IsEnabled(LogLevel.Trace) ? logger : null;
                 switch (tuple.Type)
                 {
                     case ArtworkType.Illust:
-                        DeleteFileWithIndex(tuple, finderFacade.IllustThumbnailFinder);
-                        DeleteFileWithIndex(tuple, finderFacade.IllustOriginalFinder);
+                        DeleteFileWithIndex(tuple, finderFacade.IllustThumbnailFinder, tmpLogger);
+                        DeleteFileWithIndex(tuple, finderFacade.IllustOriginalFinder, tmpLogger);
                         break;
                     case ArtworkType.Manga:
-                        DeleteFileWithIndex(tuple, finderFacade.MangaThumbnailFinder);
-                        DeleteFileWithIndex(tuple, finderFacade.MangaOriginalFinder);
+                        DeleteFileWithIndex(tuple, finderFacade.MangaThumbnailFinder, tmpLogger);
+                        DeleteFileWithIndex(tuple, finderFacade.MangaOriginalFinder, tmpLogger);
                         break;
                     case ArtworkType.Ugoira:
-                        DeleteFile(tuple, finderFacade.UgoiraThumbnailFinder);
-                        DeleteFile(tuple, finderFacade.UgoiraOriginalFinder);
-                        DeleteFile(tuple, finderFacade.UgoiraZipFinder);
+                        DeleteFile(tuple, finderFacade.UgoiraThumbnailFinder, tmpLogger);
+                        DeleteFile(tuple, finderFacade.UgoiraOriginalFinder, tmpLogger);
+                        DeleteFile(tuple, finderFacade.UgoiraZipFinder, tmpLogger);
                         break;
                     case ArtworkType.None:
                     default:
