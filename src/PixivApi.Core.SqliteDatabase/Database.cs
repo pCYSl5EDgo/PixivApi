@@ -64,6 +64,9 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         CloseStatement(ref deleteTagsOfUserStatement);
         CloseStatement(ref deleteToolsOfArtworkStatement);
         CloseStatement(ref insertOrIgnoreIntoUserTagCrossTableStatement);
+        CloseStatement(ref enumerateHiddenPagesByUserStatement);
+        CloseStatement(ref enumerateHiddenPagesByArtworkStatement);
+        CloseStatement(ref enumerateHiddenPagesByPageStatement);
 
         database.manual_close_v2();
     }

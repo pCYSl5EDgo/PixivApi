@@ -5,7 +5,7 @@ namespace PixivApi.Core.Network;
 public interface IExtenededDatabase : IDatabase
 {
     ValueTask OfficiallyRemoveArtwork(ulong id, CancellationToken token);
-    
+
     ValueTask OfficiallyRemoveUser(ulong id, CancellationToken token);
 
     /// <returns>True: Add, False: Update</returns>
@@ -64,4 +64,6 @@ public interface IExtenededDatabase : IDatabase
     }
 
     ValueTask AddTagToUser(ulong id, uint tagId, CancellationToken token);
+
+    IAsyncEnumerable<HiddenPageValueTuple> EnumerateHiddenPagesAsync(CancellationToken token);
 }
