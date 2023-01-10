@@ -12,6 +12,11 @@ public partial class LocalClient
         var token = Context.CancellationToken;
         filter ??= configSettings.ArtworkFilterFilePath;
         var database = await databaseFactory.RentAsync(token).ConfigureAwait(false);
+        if (errorNotRedirected)
+        {
+            System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Load database.");
+        }
+
         try
         {
             var artworkFilter = string.IsNullOrWhiteSpace(filter) ? null : await filterFactory.CreateAsync(database, new FileInfo(filter), token).ConfigureAwait(false);
@@ -24,11 +29,6 @@ public partial class LocalClient
             {
                 logger.LogInformation("0");
                 return;
-            }
-
-            if (errorNotRedirected)
-            {
-                System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Load database.");
             }
 
             if (token.IsCancellationRequested)
@@ -55,12 +55,12 @@ public partial class LocalClient
             {
                 System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Start collecting.");
             }
-            
+
             if (token.IsCancellationRequested)
             {
                 return;
             }
-            
+
             var count = 0UL;
             var mask = (1UL << maskPowerOf2) - 1UL;
             if (artworkFilter.ShouldHandleFileExistanceFilter)
