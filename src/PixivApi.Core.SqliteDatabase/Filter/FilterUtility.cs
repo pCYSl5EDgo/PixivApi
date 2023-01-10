@@ -77,7 +77,8 @@ internal static partial class FilterUtility
 
                 builder.AppendAscii(')');
             }
-            else if (filter.DisallowedReason is { Count: > 0 } disallow)
+            
+            if (filter.DisallowedReason is { Count: > 0 } disallow)
             {
                 builder.And(ref and);
                 builder.AppendLiteral(origin);

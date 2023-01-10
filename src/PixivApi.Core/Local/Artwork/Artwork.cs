@@ -631,6 +631,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         private static ReadOnlySpan<byte> GetLiteral(HideReason hideReason) => hideReason switch
         {
             HideReason.NotHidden => "not-hidden"u8,
+            HideReason.TemporaryHidden => "temporary-hidden"u8,
             HideReason.LowQuality => "low-quality"u8,
             HideReason.Irrelevant => "irrelevant"u8,
             HideReason.ExternalLink => "external-link"u8,
