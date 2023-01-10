@@ -39,7 +39,7 @@ public static partial class AccessTokenUtility
             return null;
         }
 
-        return GetToken(json, RefreshToken());
+        return GetToken(json, @"""refresh_token"":"u8);
     }
 
     private static string? ProcessLog(ChromeDriver driver)
@@ -106,12 +106,6 @@ public static partial class AccessTokenUtility
         return (verifier, challenge);
     }
 
-    [StringLiteral.Utf8(@"""access_token"":")]
-    private static partial ReadOnlySpan<byte> AccessToken();
-
-    [StringLiteral.Utf8(@"""refresh_token"":")]
-    private static partial ReadOnlySpan<byte> RefreshToken();
-
     public static async ValueTask<string?> GetAccessTokenAsync(HttpClient client, ConfigSettings config, int index, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
@@ -138,7 +132,7 @@ public static partial class AccessTokenUtility
             return null;
         }
 
-        return GetToken(json, AccessToken());
+        return GetToken(json, @"""access_token"":"u8);
     }
 
     private static unsafe string? GetToken(ReadOnlySpan<byte> json, ReadOnlySpan<byte> slice)
@@ -209,21 +203,6 @@ public partial class ChromeLogJson
 
     public ChromeLogJson(string code) => Code = code;
 
-    [StringLiteral.Utf8("message")]
-    private static partial ReadOnlySpan<byte> LiteralMessage();
-
-    [StringLiteral.Utf8("method")]
-    private static partial ReadOnlySpan<byte> LiteralMethod();
-
-    [StringLiteral.Utf8("Network.requestWillBeSent")]
-    private static partial ReadOnlySpan<byte> LiteralNetwork_RequestWillBeSent();
-
-    [StringLiteral.Utf8("params")]
-    private static partial ReadOnlySpan<byte> LiteralParams();
-
-    [StringLiteral.Utf8("documentURL")]
-    private static partial ReadOnlySpan<byte> LiteralDocumentUrl();
-
     public sealed class Converter : JsonConverter<ChromeLogJson?>
     {
         public static readonly Converter Instance = new();
@@ -255,7 +234,7 @@ public partial class ChromeLogJson
                     throw new JsonException();
                 }
 
-                if (!reader.ValueTextEquals(LiteralMessage()))
+                if (!reader.ValueTextEquals("message"u8))
                 {
                     reader.Skip();
                     reader.Skip();
@@ -301,16 +280,16 @@ public partial class ChromeLogJson
                     throw new JsonException();
                 }
 
-                if (reader.ValueTextEquals(LiteralMethod()))
+                if (reader.ValueTextEquals("method"u8))
                 {
                     if (!reader.Read())
                     {
                         throw new JsonException();
                     }
 
-                    isRequestWillBeSent = reader.ValueTextEquals(LiteralNetwork_RequestWillBeSent());
+                    isRequestWillBeSent = reader.ValueTextEquals("Network.requestWillBeSent"u8);
                 }
-                else if (reader.ValueTextEquals(LiteralParams()))
+                else if (reader.ValueTextEquals("params"u8))
                 {
                     if (!reader.Read())
                     {
@@ -356,7 +335,7 @@ public partial class ChromeLogJson
                     throw new JsonException();
                 }
 
-                if (!reader.ValueTextEquals(LiteralDocumentUrl()))
+                if (!reader.ValueTextEquals("documentURL"u8))
                 {
                     reader.Skip();
                     reader.Skip();

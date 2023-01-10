@@ -102,11 +102,9 @@ internal static partial class FilterUtility
         {
             builder.WithOrComma(ref first);
             builder.Add(intersectAlias, ++intersect);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
-            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"Id\" FROM "u8);
             builder.Add(intersectAlias, intersect - 1);
-            builder.AppendLiteral(Literal_Except());
-            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.AppendLiteral(" EXCEPT SELECT \"Id\" FROM "u8);
             builder.Add(exceptAlias, except);
             builder.AppendAscii(')');
         }
@@ -121,44 +119,25 @@ internal static partial class FilterUtility
         }
     }
 
-    [StringLiteral.Utf8("SELECT \"CT\".\"Id\" FROM \"ArtworkTagCrossTable\" AS \"CT\"")]
-    private static partial ReadOnlySpan<byte> Literal_SelectIdFromArtworkTagCrossTableAsCT();
-
-    [StringLiteral.Utf8(" WHERE \"CT\".\"ValueKind\" <> 0 AND ")]
-    private static partial ReadOnlySpan<byte> Literal_WhereCTDotValueKindNotEqual0And();
-
-    [StringLiteral.Utf8("\"TT\".\"Value\"")]
-    private static partial ReadOnlySpan<byte> Literal_TTDotValue();
-
-    [StringLiteral.Utf8("\"CT\".\"Id\" IN ")]
-    private static partial ReadOnlySpan<byte> Literal_CTDotIdIn();
-
-    [StringLiteral.Utf8("\"CT\".\"TagId\" IN ")]
-    private static partial ReadOnlySpan<byte> Literal_CTDotTagIdIn();
-
-    [StringLiteral.Utf8(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\"")]
-    private static partial ReadOnlySpan<byte> Literal_InnerJoinTagTableAsTTOnTagId();
-
     private static void PreprocessArtworkAnd(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, string[] exacts, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
         foreach (var item in exacts)
         {
             builder.WithOrComma(ref first);
             builder.Add(alias, ++index);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
 
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
             if (index > 0)
             {
-                builder.AppendLiteral(Literal_CTDotIdIn());
+                builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
                 builder.Add(alias, index - 1);
-                builder.AppendLiteral(Literal_And());
+                builder.AppendLiteral(" AND "u8);
             }
 
-            builder.AppendLiteral(Literal_TTDotValue());
-            builder.AppendLiteral(Literal_Equal());
+            builder.AppendLiteral("\"TT\".\"Value\" = "u8);
             builder.AddSingleQuoteText(item);
 
             builder.AppendAscii(')');
@@ -169,20 +148,19 @@ internal static partial class FilterUtility
     {
         builder.WithOrComma(ref first);
         builder.Add(alias, ++index);
-        builder.AppendLiteral(Literal_ParenIdParenAs());
+        builder.AppendLiteral(" (\"Id\") AS ("u8);
 
         builder.AppendLiteral(parts0);
-        builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+        builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
         builder.AppendLiteral(parts1);
         if (index > 0)
         {
-            builder.AppendLiteral(Literal_CTDotIdIn());
+            builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
             builder.Add(alias, index - 1);
-            builder.AppendLiteral(Literal_And());
+            builder.AppendLiteral(" AND "u8);
         }
 
-        builder.AppendLiteral(Literal_TTDotValue());
-        builder.AppendLiteral(Literal_In());
+        builder.AppendLiteral("\"TT\".\"Value\" IN "u8);
         builder.AppendAscii('(');
         for (var i = 0; i < exacts.Length; i++)
         {
@@ -195,19 +173,10 @@ internal static partial class FilterUtility
 
         }
 
-        builder.AppendLiteral(Literal_RRParen());
+        builder.AppendLiteral("))"u8);
     }
 
     private static int StringLengthReverseCompare(string x, string y) => y.Length.CompareTo(x.Length);
-
-    [StringLiteral.Utf8(" (\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('")]
-    private static partial ReadOnlySpan<byte> Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch();
-
-    [StringLiteral.Utf8(" (\"Id\") AS (SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" LIKE '%")]
-    private static partial ReadOnlySpan<byte> Literal_ParenIdParenAsSelectIdFromTagTableWhereValueLikeQuotePercent();
-
-    [StringLiteral.Utf8("')), ")]
-    private static partial ReadOnlySpan<byte> Literal_QuoteRRParenCommaSpace();
 
     private static void PreprocessArtworkAnd(ref this Utf8ValueStringBuilder builder, ref bool first, byte alias, ref int index, Span<string> match, Span<string> like, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
@@ -217,24 +186,24 @@ internal static partial class FilterUtility
             // match temp table
             builder.WithOrComma(ref first);
             builder.Add(alias, alias, ++index);
-            builder.AppendLiteral(Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('"u8);
             builder.AddDoubleQuoteText(item);
-            builder.AppendLiteral(Literal_QuoteRRParenCommaSpace());
+            builder.AppendLiteral("')), "u8);
 
             // main
             builder.Add(alias, index);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
 
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(parts1);
             if (index > 0)
             {
-                builder.AppendLiteral(Literal_CTDotIdIn());
+                builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
                 builder.Add(alias, index - 1);
-                builder.AppendLiteral(Literal_And());
+                builder.AppendLiteral(" AND "u8);
             }
 
-            builder.AppendLiteral(Literal_CTDotTagIdIn());
+            builder.AppendLiteral("\"CT\".\"TagId\" IN "u8);
             builder.Add(alias, alias, index);
 
             builder.AppendAscii(')');
@@ -252,22 +221,18 @@ internal static partial class FilterUtility
             // like temp table
             builder.WithOrComma(ref first);
             builder.Add(alias, alias, ++index);
-            builder.AppendLiteral(Literal_ParenIdParenAsSelectIdFromTagTableWhereValueLikeQuotePercent());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" LIKE '%"u8);
             builder.AddSingleQuoteTextWithoutQuote(like[0]);
-            var span = builder.GetSpan(3);
-            span[0] = (byte)'%';
-            span[1] = (byte)'\'';
-            span[2] = (byte)')';
-            builder.Advance(3);
+            builder.AppendLiteral("%\\)"u8);
 
             // main
-            builder.AppendLiteral(Literal_CommaSpace());
+            builder.AppendLiteral(", "u8);
             builder.Add(alias, index);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
-            builder.AppendLiteral(Literal_CTDotTagIdIn());
+            builder.AppendLiteral("\"CT\".\"TagId\" IN "u8);
             builder.Add(alias, alias, index);
             builder.AppendAscii(')');
         }
@@ -286,26 +251,21 @@ internal static partial class FilterUtility
         {
             builder.WithOrComma(ref first);
             builder.Add(alias, ++index);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
 
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
             if (index > 0)
             {
-                builder.AppendLiteral(Literal_CTDotIdIn());
+                builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
                 builder.Add(alias, index - 1);
-                builder.AppendLiteral(Literal_And());
+                builder.AppendLiteral(" AND "u8);
             }
 
-            builder.AppendLiteral(Literal_TTDotValue());
-            builder.AppendLiteral(Literal_LikeQuotePercent());
+            builder.AppendLiteral("\"TT\".\"Value\" LIKE '%"u8);
             builder.AddSingleQuoteTextWithoutQuote(item);
-            var span = builder.GetSpan(3);
-            span[0] = (byte)'%';
-            span[1] = (byte)'\'';
-            span[2] = (byte)')';
-            builder.Advance(3);
+            builder.AppendLiteral("%\\)"u8);
         }
     }
 
@@ -317,30 +277,30 @@ internal static partial class FilterUtility
             // match temp table
             builder.WithOrComma(ref first);
             builder.Add(alias, alias, ++index);
-            builder.AppendLiteral(Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('"u8);
             builder.AddDoubleQuoteText(match[0]);
             for (var i = 1; i < match.Length; i++)
             {
-                builder.AppendLiteral(Literal_Or());
+                builder.AppendLiteral(" OR "u8);
                 builder.AddDoubleQuoteText(match[i]);
             }
 
-            builder.AppendLiteral(Literal_QuoteRRParenCommaSpace());
+            builder.AppendLiteral("')), "u8);
 
             // main
             builder.Add(alias, index);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
 
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(parts1);
             if (index > 0)
             {
-                builder.AppendLiteral(Literal_CTDotIdIn());
+                builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
                 builder.Add(alias, index - 1);
-                builder.AppendLiteral(Literal_And());
+                builder.AppendLiteral(" AND "u8);
             }
 
-            builder.AppendLiteral(Literal_CTDotTagIdIn());
+            builder.AppendLiteral("\"CT\".\"TagId\" IN "u8);
             builder.Add(alias, alias, index);
 
             builder.AppendAscii(')');
@@ -351,40 +311,31 @@ internal static partial class FilterUtility
             like.Sort(StringLengthReverseCompare);
             builder.WithOrComma(ref first);
             builder.Add(alias, ++index);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
 
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
             if (index > 0)
             {
-                builder.AppendLiteral(Literal_CTDotIdIn());
+                builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
                 builder.Add(alias, index - 1);
-                builder.AppendLiteral(Literal_And());
+                builder.AppendLiteral(" AND "u8);
             }
 
-            builder.AppendLiteral(Literal_TTDotValue());
-            builder.AppendLiteral(Literal_LikeQuotePercent());
+            builder.AppendLiteral("\"TT\".\"Value\" LIKE '%"u8);
             builder.AddSingleQuoteTextWithoutQuote(like[0]);
-            builder.AppendLiteral(Literal_PercentQuote());
+            builder.AppendLiteral("%'"u8);
             for (var i = 1; i < like.Length; i++)
             {
-                builder.AppendLiteral(Literal_Or());
-                builder.AppendLiteral(Literal_TTDotValue());
-                builder.AppendLiteral(Literal_LikeQuotePercent());
+                builder.AppendLiteral(" OR \"TT\".\"Value\" LIKE '%"u8);
                 builder.AddSingleQuoteTextWithoutQuote(like[i]);
-                builder.AppendLiteral(Literal_PercentQuote());
+                builder.AppendLiteral("%'"u8);
             }
 
             builder.AppendAscii(')');
         }
     }
-
-    [StringLiteral.Utf8(" EXCEPT ")]
-    private static partial ReadOnlySpan<byte> Literal_Except();
-
-    [StringLiteral.Utf8(" INTERSECT ")]
-    private static partial ReadOnlySpan<byte> Literal_Intersect();
 
     private static void PreprocessExcept(ref this Utf8ValueStringBuilder builder, byte intersectAlias, byte exceptAlias, ref bool first, ref int intersect, ref int except, bool ignoreOr, string[]? ignoreExacts, string[]? ignorePartials, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
@@ -426,11 +377,11 @@ internal static partial class FilterUtility
                 default:
                     builder.WithOrComma(ref first);
                     builder.Add(exceptAlias, except + 1);
-                    builder.AppendLiteral(Literal_ParenIdParenAs());
+                    builder.AppendLiteral(" (\"Id\") AS ("u8);
                     builder.Add(exceptAlias, oldExcept + 1);
                     for (var i = oldExcept + 2; i <= except; i++)
                     {
-                        builder.AppendLiteral(Literal_Intersect());
+                        builder.AppendLiteral(" INTERSECT "u8);
                         builder.Add(exceptAlias, i);
                     }
 
@@ -441,11 +392,9 @@ internal static partial class FilterUtility
 
             builder.WithOrComma(ref first);
             builder.Add(intersectAlias, ++intersect);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
-            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"Id\" FROM "u8);
             builder.Add(intersectAlias, intersect - 1);
-            builder.AppendLiteral(Literal_Except());
-            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.AppendLiteral(" EXCEPT SELECT \"Id\" FROM "u8);
             builder.Add(exceptAlias, except);
             builder.AppendAscii(')');
         }
@@ -457,16 +406,14 @@ internal static partial class FilterUtility
         {
             builder.WithOrComma(ref first);
             builder.Add(exceptAlias, ++except);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
 
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
-            builder.AppendLiteral(Literal_CTDotIdIn());
+            builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
             builder.Add(intersectAlias, intersect);
-            builder.AppendLiteral(Literal_And());
-            builder.AppendLiteral(Literal_TTDotValue());
-            builder.AppendLiteral(Literal_Equal());
+            builder.AppendLiteral(" AND \"TT\".\"Value\" = "u8);
             builder.AddSingleQuoteText(item);
 
             builder.AppendAscii(')');
@@ -483,20 +430,19 @@ internal static partial class FilterUtility
                 // match
                 builder.WithOrComma(ref first);
                 builder.Add(exceptAlias, exceptAlias, ++except);
-                builder.AppendLiteral(Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch());
+                builder.AppendLiteral(" (\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('"u8);
                 builder.AddDoubleQuoteText(item);
-                builder.AppendLiteral(Literal_QuoteRRParenCommaSpace());
+                builder.AppendLiteral("')), "u8);
 
                 // main
                 builder.Add(exceptAlias, except);
-                builder.AppendLiteral(Literal_ParenIdParenAs());
+                builder.AppendLiteral(" (\"Id\") AS ("u8);
 
                 builder.AppendLiteral(parts0);
                 builder.AppendLiteral(parts1);
-                builder.AppendLiteral(Literal_CTDotIdIn());
+                builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
                 builder.Add(intersectAlias, intersect);
-                builder.AppendLiteral(Literal_And());
-                builder.AppendLiteral(Literal_CTDotTagIdIn());
+                builder.AppendLiteral(" AND \"CT\".\"TagId\" IN "u8);
                 builder.Add(exceptAlias, exceptAlias, except);
 
                 builder.AppendAscii(')');
@@ -511,25 +457,20 @@ internal static partial class FilterUtility
                 // like temp table
                 builder.WithOrComma(ref first);
                 builder.Add(exceptAlias, exceptAlias, ++except);
-                builder.AppendLiteral(Literal_ParenIdParenAsSelectIdFromTagTableWhereValueLikeQuotePercent());
+                builder.AppendLiteral(" (\"Id\") AS (SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" LIKE '%"u8);
                 builder.AddSingleQuoteTextWithoutQuote(like[0]);
-                var span = builder.GetSpan(3);
-                span[0] = (byte)'%';
-                span[1] = (byte)'\'';
-                span[2] = (byte)')';
-                builder.Advance(3);
+                builder.AppendLiteral("%\\)"u8);
 
                 // main
-                builder.AppendLiteral(Literal_CommaSpace());
+                builder.AppendLiteral(", "u8);
                 builder.Add(exceptAlias, except);
-                builder.AppendLiteral(Literal_ParenIdParenAs());
+                builder.AppendLiteral(" (\"Id\") AS ("u8);
                 builder.AppendLiteral(parts0);
-                builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+                builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
                 builder.AppendLiteral(parts1);
-                builder.AppendLiteral(Literal_CTDotIdIn());
+                builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
                 builder.Add(intersectAlias, intersect);
-                builder.AppendLiteral(Literal_And());
-                builder.AppendLiteral(Literal_CTDotTagIdIn());
+                builder.AppendLiteral(" AND \"CT\".\"TagId\" IN "u8);
                 builder.Add(exceptAlias, exceptAlias, except);
                 builder.AppendAscii(')');
             }
@@ -549,28 +490,19 @@ internal static partial class FilterUtility
         {
             builder.WithOrComma(ref first);
             builder.Add(exceptAlias, ++except);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
+            builder.AppendLiteral(" (\"Id\") AS ("u8);
 
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
-            builder.AppendLiteral(Literal_CTDotIdIn());
+            builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
             builder.Add(intersectAlias, intersect);
-            builder.AppendLiteral(Literal_And());
-            builder.AppendLiteral(Literal_TTDotValue());
-            builder.AppendLiteral(Literal_LikeQuotePercent());
+            builder.AppendLiteral(" AND \"TT\".\"Value\" LIKE '%"u8);
             builder.AddSingleQuoteTextWithoutQuote(item);
 
-            var span = builder.GetSpan(3);
-            span[0] = (byte)'%';
-            span[1] = (byte)'\'';
-            span[2] = (byte)')';
-            builder.Advance(3);
+            builder.AppendLiteral("%\\)"u8);
         }
     }
-
-    [StringLiteral.Utf8("SELECT \"Id\" FROM ")]
-    private static partial ReadOnlySpan<byte> Literal_SelectIdFrom();
 
     private static void PreprocessExceptOr(ref Utf8ValueStringBuilder builder, byte alias, ref bool first, ref int intersect, Span<string> match, Span<string> like, ReadOnlySpan<byte> parts0, ReadOnlySpan<byte> parts1)
     {
@@ -580,29 +512,26 @@ internal static partial class FilterUtility
             // match temp table
             builder.WithOrComma(ref first);
             builder.Add(alias, alias, ++intersect);
-            builder.AppendLiteral(Literal_ParenIdParenAsSelectRowIdFromTagTextTableMatch());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"rowid\" FROM \"TagTextTable\"('"u8);
             builder.AddDoubleQuoteText(match[0]);
             for (var i = 1; i < match.Length; i++)
             {
-                builder.AppendLiteral(Literal_Or());
+                builder.AppendLiteral(" OR "u8);
                 builder.AddDoubleQuoteText(match[i]);
             }
 
-            builder.AppendLiteral(Literal_QuoteRRParenCommaSpace());
+            builder.AppendLiteral("')), "u8);
 
             // main
             builder.Add(alias, intersect);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
-
-            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"Id\" FROM "u8);
             builder.Add(alias, intersect - 1);
-            builder.AppendLiteral(Literal_Except());
+            builder.AppendLiteral(" EXCEPT "u8);
             builder.AppendLiteral(parts0);
             builder.AppendLiteral(parts1);
-            builder.AppendLiteral(Literal_CTDotIdIn());
+            builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
             builder.Add(alias, intersect - 1);
-            builder.AppendLiteral(Literal_And());
-            builder.AppendLiteral(Literal_CTDotTagIdIn());
+            builder.AppendLiteral(" AND \"CT\".\"TagId\" IN "u8);
             builder.Add(alias, alias, intersect);
 
             builder.AppendAscii(')');
@@ -613,28 +542,22 @@ internal static partial class FilterUtility
             like.Sort(StringLengthReverseCompare);
             builder.WithOrComma(ref first);
             builder.Add(alias, ++intersect);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
-
-            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"Id\" FROM "u8);
             builder.Add(alias, intersect - 1);
-            builder.AppendLiteral(Literal_Except());
+            builder.AppendLiteral(" EXCEPT "u8);
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
-            builder.AppendLiteral(Literal_CTDotIdIn());
+            builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
             builder.Add(alias, intersect - 1);
-            builder.AppendLiteral(Literal_And());
-            builder.AppendLiteral(Literal_TTDotValue());
-            builder.AppendLiteral(Literal_LikeQuotePercent());
+            builder.AppendLiteral(" AND \"TT\".\"Value\" LIKE '%"u8);
             builder.AddSingleQuoteTextWithoutQuote(like[0]);
-            builder.AppendLiteral(Literal_PercentQuote());
+            builder.AppendLiteral("%'"u8);
             for (var i = 1; i < like.Length; i++)
             {
-                builder.AppendLiteral(Literal_Or());
-                builder.AppendLiteral(Literal_TTDotValue());
-                builder.AppendLiteral(Literal_LikeQuotePercent());
+                builder.AppendLiteral(" OR \"TT\".\"Value\" LIKE '%"u8);
                 builder.AddSingleQuoteTextWithoutQuote(like[i]);
-                builder.AppendLiteral(Literal_PercentQuote());
+                builder.AppendLiteral("%'"u8);
             }
 
             builder.AppendAscii(')');
@@ -647,28 +570,17 @@ internal static partial class FilterUtility
         {
             builder.WithOrComma(ref first);
             builder.Add(alias, ++intersect);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
-
-            builder.AppendLiteral(Literal_SelectIdFrom());
+            builder.AppendLiteral(" (\"Id\") AS (SELECT \"Id\" FROM "u8);
             builder.Add(alias, intersect - 1);
-            builder.AppendLiteral(Literal_Except());
+            builder.AppendLiteral(" EXCEPT "u8);
             builder.AppendLiteral(parts0);
-            builder.AppendLiteral(Literal_InnerJoinTagTableAsTTOnTagId());
+            builder.AppendLiteral(" INNER JOIN \"TagTable\" AS \"TT\" ON \"CT\".\"TagId\"=\"TT\".\"Id\""u8);
             builder.AppendLiteral(parts1);
-            builder.AppendLiteral(Literal_CTDotIdIn());
+            builder.AppendLiteral("\"CT\".\"Id\" IN "u8);
             builder.Add(alias, intersect - 1);
-            builder.AppendLiteral(Literal_And());
-            builder.AppendLiteral(Literal_TTDotValue());
-            builder.AppendLiteral(Literal_Equal());
+            builder.AppendLiteral(" AND \"TT\".\"Value\" = "u8);
             builder.AddSingleQuoteText(item);
-
             builder.AppendAscii(')');
         }
     }
-
-    [StringLiteral.Utf8("SELECT \"CT\".\"Id\" FROM \"ArtworkTagCrossTable\" AS \"CT\"")]
-    private static partial ReadOnlySpan<byte> Literal_SelectIdFromUserTagCrossTableAsCT();
-
-    [StringLiteral.Utf8(" WHERE ")]
-    private static partial ReadOnlySpan<byte> Literal_Where();
 }

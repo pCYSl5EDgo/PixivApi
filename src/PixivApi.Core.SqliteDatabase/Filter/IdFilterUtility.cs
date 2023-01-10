@@ -2,28 +2,16 @@
 
 internal static partial class FilterUtility
 {
-    [StringLiteral.Utf8("WITH ")]
-    private static partial ReadOnlySpan<byte> Literal_With();
-
-    [StringLiteral.Utf8(", ")]
-    private static partial ReadOnlySpan<byte> Literal_CommaSpace();
-
-    [StringLiteral.Utf8(" (\"Id\") AS (")]
-    private static partial ReadOnlySpan<byte> Literal_ParenIdParenAs();
-
-    [StringLiteral.Utf8("VALUES ")]
-    private static partial ReadOnlySpan<byte> Literal_Values();
-
     private static void WithOrComma(ref this Utf8ValueStringBuilder builder, ref bool first)
     {
         if (first)
         {
-            builder.AppendLiteral(Literal_With());
+            builder.AppendLiteral("WITH "u8);
             first = false;
         }
         else
         {
-            builder.AppendLiteral(Literal_CommaSpace());
+            builder.AppendLiteral(", "u8);
         }
     }
 
@@ -63,13 +51,12 @@ internal static partial class FilterUtility
         {
             builder.WithOrComma(ref first);
             builder.Add(intersectAlias, ++intersect);
-            builder.AppendLiteral(Literal_ParenIdParenAs());
-            builder.AppendLiteral(Literal_Values());
+            builder.AppendLiteral(" (\"Id\") AS (VALUES "u8);
             builder.AppendAscii('(');
             builder.Append(intersects[0]);
             for (var i = 1; i < intersects.Length; i++)
             {
-                builder.AppendLiteral(Literal_ParenCommaParen());
+                builder.AppendLiteral("), ("u8);
                 builder.Append(intersects[i]);
             }
 
@@ -77,8 +64,7 @@ internal static partial class FilterUtility
 
             if (intersect == 0 && except >= 0)
             {
-                builder.AppendLiteral(Literal_Except());
-                builder.AppendLiteral(Literal_SelectIdFrom());
+                builder.AppendLiteral(" EXCEPT SELECT \"Id\" FROM "u8);
                 builder.Add(exceptAlias, except);
             }
 
@@ -91,35 +77,33 @@ internal static partial class FilterUtility
             {
                 builder.WithOrComma(ref first);
                 builder.Add(exceptAlias, ++except);
-                builder.AppendLiteral(Literal_ParenIdParenAs());
-                builder.AppendLiteral(Literal_Values());
+                builder.AppendLiteral(" (\"Id\") AS (VALUES "u8);
                 builder.AppendAscii('(');
                 builder.Append(excepts[0]);
                 for (var i = 1; i < excepts.Length; i++)
                 {
-                    builder.AppendLiteral(Literal_ParenCommaParen());
+                    builder.AppendLiteral("), ("u8);
                     builder.Append(excepts[i]);
                 }
 
-                builder.AppendLiteral(Literal_RRParen());
+                builder.AppendLiteral("))"u8);
             }
             else
             {
                 builder.WithOrComma(ref first);
                 builder.Add(intersectAlias, ++intersect);
-                builder.AppendLiteral(Literal_ParenIdParenAs());
+                builder.AppendLiteral(" (\"Id\") AS ("u8);
                 builder.Add(intersectAlias, intersect - 1);
-                builder.AppendLiteral(Literal_Except());
-                builder.AppendLiteral(Literal_Values());
+                builder.AppendLiteral(" EXCEPT VALUES "u8);
                 builder.AppendAscii('(');
                 builder.Append(excepts[0]);
                 for (var i = 1; i < excepts.Length; i++)
                 {
-                    builder.AppendLiteral(Literal_ParenCommaParen());
+                    builder.AppendLiteral("), ("u8);
                     builder.Append(excepts[i]);
                 }
 
-                builder.AppendLiteral(Literal_RRParen());
+                builder.AppendLiteral("))"u8);
             }
         }
     }

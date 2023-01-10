@@ -553,60 +553,6 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         }
     }
 
-    #region Literals
-    [StringLiteral.Utf8("id")] private static partial ReadOnlySpan<byte> LiteralId();
-    [StringLiteral.Utf8("title")] private static partial ReadOnlySpan<byte> LiteralTitle();
-    [StringLiteral.Utf8("caption")] private static partial ReadOnlySpan<byte> LiteralCaption();
-    [StringLiteral.Utf8("total-view")] private static partial ReadOnlySpan<byte> LiteralTotalView();
-    [StringLiteral.Utf8("total-bookmarks")] private static partial ReadOnlySpan<byte> LiteralTotalBookmarks();
-
-    [StringLiteral.Utf8("tags")] private static partial ReadOnlySpan<byte> LiteralTags();
-    [StringLiteral.Utf8("fake-tags")] private static partial ReadOnlySpan<byte> LiteralFakeTags();
-    [StringLiteral.Utf8("extra-tags")] private static partial ReadOnlySpan<byte> LiteralExtraTags();
-
-    [StringLiteral.Utf8("tools")] private static partial ReadOnlySpan<byte> LiteralTools();
-    [StringLiteral.Utf8("user-id")] private static partial ReadOnlySpan<byte> LiteralUserId();
-    [StringLiteral.Utf8("user-name")] private static partial ReadOnlySpan<byte> LiteralUserName();
-
-    [StringLiteral.Utf8("page-count")] private static partial ReadOnlySpan<byte> LiteralPageCount();
-    [StringLiteral.Utf8("width")] private static partial ReadOnlySpan<byte> LiteralWidth();
-    [StringLiteral.Utf8("height")] private static partial ReadOnlySpan<byte> LiteralHeight();
-
-    [StringLiteral.Utf8("create-date")] private static partial ReadOnlySpan<byte> LiteralCreateDate();
-    [StringLiteral.Utf8("file-date")] private static partial ReadOnlySpan<byte> LiteralFileDate();
-
-    [StringLiteral.Utf8("type")] private static partial ReadOnlySpan<byte> LiteralType();
-    [StringLiteral.Utf8("none")] private static partial ReadOnlySpan<byte> LiteralNone();
-    [StringLiteral.Utf8("illust")] private static partial ReadOnlySpan<byte> LiteralIllust();
-    [StringLiteral.Utf8("manga")] private static partial ReadOnlySpan<byte> LiteralManga();
-    [StringLiteral.Utf8("ugoira")] private static partial ReadOnlySpan<byte> LiteralUgoira();
-
-    [StringLiteral.Utf8("extension")] private static partial ReadOnlySpan<byte> LiteralExtension();
-    [StringLiteral.Utf8("jpg")] private static partial ReadOnlySpan<byte> LiteralJpg();
-    [StringLiteral.Utf8("png")] private static partial ReadOnlySpan<byte> LiteralPng();
-    [StringLiteral.Utf8("zip")] private static partial ReadOnlySpan<byte> LiteralZip();
-    [StringLiteral.Utf8("gif")] private static partial ReadOnlySpan<byte> LiteralGif();
-
-    [StringLiteral.Utf8("hide-reason")] private static partial ReadOnlySpan<byte> LiteralHideReason();
-    [StringLiteral.Utf8("not-hidden")] private static partial ReadOnlySpan<byte> LiteralNotHidden();
-    [StringLiteral.Utf8("low-quality")] private static partial ReadOnlySpan<byte> LiteralLowQuality();
-    [StringLiteral.Utf8("irrelevant")] private static partial ReadOnlySpan<byte> LiteralIrrelevant();
-    [StringLiteral.Utf8("external-link")] private static partial ReadOnlySpan<byte> LiteralExternalLink();
-    [StringLiteral.Utf8("dislike")] private static partial ReadOnlySpan<byte> LiteralDislike();
-    [StringLiteral.Utf8("crop")] private static partial ReadOnlySpan<byte> LiteralCrop();
-
-    [StringLiteral.Utf8("officially-removed")] private static partial ReadOnlySpan<byte> LiteralIsOfficiallyRemoved();
-    [StringLiteral.Utf8("r18")] private static partial ReadOnlySpan<byte> LiteralIsXRestricted();
-    [StringLiteral.Utf8("bookmarked")] private static partial ReadOnlySpan<byte> LiteralIsBookmarked();
-    [StringLiteral.Utf8("visible")] private static partial ReadOnlySpan<byte> LiteralIsVisible();
-    [StringLiteral.Utf8("muted")] private static partial ReadOnlySpan<byte> LiteralIsMuted();
-
-    [StringLiteral.Utf8("memo")] private static partial ReadOnlySpan<byte> LiteralExtraMemo();
-    [StringLiteral.Utf8("ugoira-frames")] private static partial ReadOnlySpan<byte> LiteralUgoiraFrames();
-
-    [StringLiteral.Utf8("page-hide-reason-dictionary")] private static partial ReadOnlySpan<byte> LiteralExtraPageHideReasonDictionary();
-    #endregion
-
     public bool IsNotHided(uint pageIndex)
     {
         if (ExtraHideReason != HideReason.NotHidden)
@@ -684,73 +630,73 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
         private static ReadOnlySpan<byte> GetLiteral(HideReason hideReason) => hideReason switch
         {
-            HideReason.NotHidden => LiteralNotHidden(),
-            HideReason.LowQuality => LiteralLowQuality(),
-            HideReason.Irrelevant => LiteralIrrelevant(),
-            HideReason.ExternalLink => LiteralExternalLink(),
-            HideReason.Dislike => LiteralDislike(),
-            HideReason.Crop => LiteralCrop(),
+            HideReason.NotHidden => "not-hidden"u8,
+            HideReason.LowQuality => "low-quality"u8,
+            HideReason.Irrelevant => "irrelevant"u8,
+            HideReason.ExternalLink => "external-link"u8,
+            HideReason.Dislike => "dislike"u8,
+            HideReason.Crop => "crop"u8,
             _ => throw new InvalidDataException(hideReason.ToString()),
         };
 
         public override void Write(Utf8JsonWriter writer, Artwork value, JsonSerializerOptions options)
         {
             writer.WriteStartObject();
-            writer.WriteNumber(LiteralId(), value.Id);
-            writer.WriteString(LiteralTitle(), value.Title);
+            writer.WriteNumber("id"u8, value.Id);
+            writer.WriteString("title"u8, value.Title);
 
-            writer.WriteNumber(LiteralUserId(), value.UserId);
+            writer.WriteNumber("user-id"u8, value.UserId);
             if (value.IsStringified)
             {
-                writer.WriteString(LiteralUserName(), value.UserName);
+                writer.WriteString("user-name"u8, value.UserName);
             }
 
-            writer.WriteNumber(LiteralTotalView(), value.TotalView);
-            writer.WriteNumber(LiteralTotalBookmarks(), value.TotalBookmarks);
+            writer.WriteNumber("total-view"u8, value.TotalView);
+            writer.WriteNumber("total-bookmarks"u8, value.TotalBookmarks);
 
-            writer.WriteNumber(LiteralPageCount(), value.PageCount);
-            writer.WriteNumber(LiteralWidth(), value.Width);
-            writer.WriteNumber(LiteralHeight(), value.Height);
+            writer.WriteNumber("page-count"u8, value.PageCount);
+            writer.WriteNumber("width"u8, value.Width);
+            writer.WriteNumber("height"u8, value.Height);
 
-            writer.WritePropertyName(LiteralCreateDate());
+            writer.WritePropertyName("create-date"u8);
             writer.WriteStringValue(value.CreateDate);
             if (value.FileDate != value.CreateDate.ToLocalTime())
             {
-                writer.WritePropertyName(LiteralFileDate());
+                writer.WritePropertyName("file-date"u8);
                 writer.WriteStringValue(value.FileDate);
             }
 
-            writer.WriteString(LiteralType(), value.Type switch
+            writer.WriteString("type"u8, value.Type switch
             {
-                ArtworkType.Illust => LiteralIllust(),
-                ArtworkType.Manga => LiteralManga(),
-                ArtworkType.Ugoira => LiteralUgoira(),
-                ArtworkType.None or _ => LiteralNone(),
+                ArtworkType.Illust => "illust"u8,
+                ArtworkType.Manga => "manga"u8,
+                ArtworkType.Ugoira => "ugoira"u8,
+                ArtworkType.None or _ => "none"u8,
             });
 
-            writer.WriteString(LiteralExtension(), value.Extension switch
+            writer.WriteString("extension"u8, value.Extension switch
             {
-                FileExtensionKind.Jpg => LiteralJpg(),
-                FileExtensionKind.Png => LiteralPng(),
-                FileExtensionKind.Zip => LiteralZip(),
-                FileExtensionKind.Gif => LiteralGif(),
-                FileExtensionKind.None or _ => LiteralNone(),
+                FileExtensionKind.Jpg => "jpg"u8,
+                FileExtensionKind.Png => "png"u8,
+                FileExtensionKind.Zip => "zip"u8,
+                FileExtensionKind.Gif => "gif"u8,
+                FileExtensionKind.None or _ => "none"u8,
             });
 
-            writer.WriteBoolean(LiteralIsOfficiallyRemoved(), value.IsOfficiallyRemoved);
-            writer.WriteBoolean(LiteralIsXRestricted(), value.IsXRestricted);
-            writer.WriteBoolean(LiteralIsBookmarked(), value.IsBookmarked);
-            writer.WriteBoolean(LiteralIsVisible(), value.IsVisible);
-            writer.WriteBoolean(LiteralIsMuted(), value.IsMuted);
+            writer.WriteBoolean("officially-removed"u8, value.IsOfficiallyRemoved);
+            writer.WriteBoolean("r18"u8, value.IsXRestricted);
+            writer.WriteBoolean("bookmarked"u8, value.IsBookmarked);
+            writer.WriteBoolean("visible"u8, value.IsVisible);
+            writer.WriteBoolean("muted"u8, value.IsMuted);
 
             if (value.ExtraHideReason != HideReason.NotHidden)
             {
-                writer.WriteString(LiteralHideReason(), GetLiteral(value.ExtraHideReason));
+                writer.WriteString("hide-reason"u8, GetLiteral(value.ExtraHideReason));
             }
 
             if (value.ExtraPageHideReasonDictionary is { Count: > 0 } dictionary)
             {
-                writer.WriteStartObject(LiteralExtraPageHideReasonDictionary());
+                writer.WriteStartObject("page-hide-reason-dictionary"u8);
                 using var builder = ZString.CreateUtf8StringBuilder();
                 foreach (var (page, reason) in dictionary)
                 {
@@ -770,11 +716,11 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
             {
                 if (value.UgoiraFrames is null)
                 {
-                    writer.WriteNull(LiteralUgoiraFrames());
+                    writer.WriteNull("ugoira-frames"u8);
                 }
                 else
                 {
-                    writer.WriteStartArray(LiteralUgoiraFrames());
+                    writer.WriteStartArray("ugoira-frames"u8);
                     foreach (var frame in value.UgoiraFrames)
                     {
                         writer.WriteNumberValue(frame);
@@ -787,7 +733,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
             {
                 if (value.StringifiedTags is { } tags)
                 {
-                    writer.WriteStartArray(LiteralTags());
+                    writer.WriteStartArray("tags"u8);
                     foreach (var tag in tags)
                     {
                         writer.WriteStringValue(tag);
@@ -797,7 +743,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
                 if (value.StringifiedTools is { } tools)
                 {
-                    writer.WriteStartArray(LiteralTools());
+                    writer.WriteStartArray("tools"u8);
                     foreach (var tool in tools)
                     {
                         writer.WriteStringValue(tool);
@@ -809,7 +755,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
             {
                 if (value.Tags is { Length: > 0 } tags)
                 {
-                    writer.WriteStartArray(LiteralTags());
+                    writer.WriteStartArray("tags"u8);
                     foreach (var tag in tags)
                     {
                         writer.WriteNumberValue(tag);
@@ -819,7 +765,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
                 if (value.ExtraTags is { Length: > 0 } extraTags)
                 {
-                    writer.WriteStartArray(LiteralExtraTags());
+                    writer.WriteStartArray("extra-tags"u8);
                     foreach (var tag in extraTags)
                     {
                         writer.WriteNumberValue(tag);
@@ -829,7 +775,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
                 if (value.ExtraFakeTags is { Length: > 0 } extraFakeTags)
                 {
-                    writer.WriteStartArray(LiteralFakeTags());
+                    writer.WriteStartArray("fake-tags"u8);
                     foreach (var tag in extraFakeTags)
                     {
                         writer.WriteNumberValue(tag);
@@ -839,7 +785,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
                 if (value.Tools is { Length: > 0 } tools)
                 {
-                    writer.WriteStartArray(LiteralTools());
+                    writer.WriteStartArray("tools"u8);
                     foreach (var tool in tools)
                     {
                         writer.WriteNumberValue(tool);
@@ -848,11 +794,11 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
                 }
             }
 
-            writer.WriteString(LiteralCaption(), value.Caption);
+            writer.WriteString("caption"u8, value.Caption);
 
             if (!string.IsNullOrWhiteSpace(value.ExtraMemo))
             {
-                writer.WriteString(LiteralExtraMemo(), value.ExtraMemo);
+                writer.WriteString("memo"u8, value.ExtraMemo);
             }
 
             writer.WriteEndObject();

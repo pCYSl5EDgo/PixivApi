@@ -17,9 +17,6 @@ internal sealed partial class Database
     private sqlite3_stmt? deleteToolsOfArtworkStatement;
     private sqlite3_stmt? insertOrIgnoreIntoUserTagCrossTableStatement;
 
-    [StringLiteral.Utf8("SELECT \"Value\" FROM \"TagTable\" WHERE \"Id\" = ?")] private static partial ReadOnlySpan<byte> Literal_SelectValueFromTagTableWhereId();
-    [StringLiteral.Utf8("SELECT \"Value\" FROM \"ToolTable\" WHERE \"Id\" = ?")] private static partial ReadOnlySpan<byte> Literal_SelectValueFromToolTableWhereId();
-
     private async ValueTask<string?> GetTagOrToolAsync(sqlite3_stmt statement, uint id, CancellationToken token)
     {
         Bind(statement, 1, id);
@@ -46,7 +43,7 @@ internal sealed partial class Database
     {
         if (getTagStatement is null)
         {
-            getTagStatement = Prepare(Literal_SelectValueFromTagTableWhereId(), true, out _);
+            getTagStatement = Prepare("SELECT \"Value\" FROM \"TagTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -60,7 +57,7 @@ internal sealed partial class Database
     {
         if (getToolStatement is null)
         {
-            getToolStatement = Prepare(Literal_SelectValueFromToolTableWhereId(), true, out _);
+            getToolStatement = Prepare("SELECT \"Value\" FROM \"ToolTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -98,8 +95,6 @@ internal sealed partial class Database
         } while (true);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"TagTable\" (\"Value\") VALUES (?) RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoTagTableReturningId();
-
     public async ValueTask<uint> RegisterTagAsync(string value, CancellationToken token)
     {
         var id = await FindTagAsync(value, token).ConfigureAwait(false);
@@ -110,7 +105,7 @@ internal sealed partial class Database
 
         if (registerTagStatement is null)
         {
-            var statement = Prepare(Literal_InsertIntoTagTableReturningId(), true, out _);
+            var statement = Prepare("INSERT INTO \"TagTable\" (\"Value\") VALUES (?) RETURNING \"Id\""u8, true, out _);
             if (Interlocked.CompareExchange(ref registerTagStatement, statement, null) != null)
             {
                 statement.manual_close();
@@ -124,8 +119,6 @@ internal sealed partial class Database
         return await RegisterTagOrToolAsync(registerTagStatement, value, token).ConfigureAwait(false);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"ToolTable\" (\"Value\") VALUES (?) RETURNING \"Id\"")] private static partial ReadOnlySpan<byte> Literal_InsertIntoToolTableReturningId();
-
     public async ValueTask<uint> RegisterToolAsync(string value, CancellationToken token)
     {
         var id = await FindToolAsync(value, token).ConfigureAwait(false);
@@ -136,7 +129,7 @@ internal sealed partial class Database
 
         if (registerToolStatement is null)
         {
-            var statement = Prepare(Literal_InsertIntoToolTableReturningId(), true, out _);
+            var statement = Prepare("INSERT INTO \"ToolTable\" (\"Value\") VALUES (?) RETURNING \"Id\""u8, true, out _);
             if (Interlocked.CompareExchange(ref registerToolStatement, statement, null) != null)
             {
                 statement.manual_close();
@@ -149,12 +142,6 @@ internal sealed partial class Database
 
         return await RegisterTagOrToolAsync(registerToolStatement, value, token).ConfigureAwait(false);
     }
-
-    [StringLiteral.Utf8("SELECT \"Value\", \"Id\" FROM \"TagTable\"")]
-    private static partial ReadOnlySpan<byte> Literal_SelectValueId_FromTagTable();
-
-    [StringLiteral.Utf8("SELECT \"Value\", \"Id\" FROM \"ToolTable\"")]
-    private static partial ReadOnlySpan<byte> Literal_SelectValueId_FromToolTable();
 
     private async IAsyncEnumerable<(string, uint)> EnumerateTagToolAsync(sqlite3_stmt statement, [EnumeratorCancellation] CancellationToken token)
     {
@@ -186,7 +173,7 @@ internal sealed partial class Database
     {
         if (enumerateTagStatement is null)
         {
-            enumerateTagStatement = Prepare(Literal_SelectValueId_FromTagTable(), true, out _);
+            enumerateTagStatement = Prepare("SELECT \"Value\", \"Id\" FROM \"TagTable\""u8, true, out _);
         }
         else
         {
@@ -200,7 +187,7 @@ internal sealed partial class Database
     {
         if (enumerateToolStatement is null)
         {
-            enumerateToolStatement = Prepare(Literal_SelectValueId_FromToolTable(), true, out _);
+            enumerateToolStatement = Prepare("SELECT \"Value\", \"Id\" FROM \"ToolTable\""u8, true, out _);
         }
         else
         {
@@ -209,12 +196,6 @@ internal sealed partial class Database
 
         return EnumerateTagToolAsync(enumerateToolStatement, token);
     }
-
-    [StringLiteral.Utf8("SELECT \"rowid\" FROM \"TagTextTable\" (?)")]
-    private static partial ReadOnlySpan<byte> Literal_SelectId_FromTagTextTable_Match();
-
-    [StringLiteral.Utf8("SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" LIKE ('%' || ? || '%')")]
-    private static partial ReadOnlySpan<byte> Literal_SelectId_FromTagTable_Like();
 
     public async IAsyncEnumerable<uint> EnumeratePartialMatchTagAsync(string key, [EnumeratorCancellation] CancellationToken token)
     {
@@ -228,7 +209,7 @@ internal sealed partial class Database
         {
             if (selectIdFromTagTextTableMatch is null)
             {
-                selectIdFromTagTextTableMatch = Prepare(Literal_SelectId_FromTagTextTable_Match(), true, out _);
+                selectIdFromTagTextTableMatch = Prepare("SELECT \"rowid\" FROM \"TagTextTable\" (?)"u8, true, out _);
             }
             else
             {
@@ -241,7 +222,7 @@ internal sealed partial class Database
         {
             if (selectIdFromTagTextTableLike is null)
             {
-                selectIdFromTagTextTableLike = Prepare(Literal_SelectId_FromTagTable_Like(), true, out _);
+                selectIdFromTagTextTableLike = Prepare("SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" LIKE ('%' || ? || '%')"u8, true, out _);
             }
             else
             {
@@ -275,10 +256,6 @@ internal sealed partial class Database
         } while (true);
     }
 
-    [StringLiteral.Utf8("SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" = ?")] private static partial ReadOnlySpan<byte> Literal_FindTag();
-
-    [StringLiteral.Utf8("SELECT \"Id\" FROM \"ToolTable\" WHERE \"Value\" = ?")] private static partial ReadOnlySpan<byte> Literal_FindTool();
-
     private async ValueTask<uint?> FindTagOrToolAsync(sqlite3_stmt statement, string key, CancellationToken token)
     {
         Bind(statement, 1, key);
@@ -304,7 +281,7 @@ internal sealed partial class Database
     {
         if (findTagStatement is null)
         {
-            findTagStatement = Prepare(Literal_FindTag(), true, out _);
+            findTagStatement = Prepare("SELECT \"Id\" FROM \"TagTable\" WHERE \"Value\" = ?"u8, true, out _);
         }
         else
         {
@@ -318,7 +295,7 @@ internal sealed partial class Database
     {
         if (findToolStatement is null)
         {
-            findToolStatement = Prepare(Literal_FindTool(), true, out _);
+            findToolStatement = Prepare("SELECT \"Id\" FROM \"ToolTable\" WHERE \"Value\" = ?"u8, true, out _);
         }
         else
         {
@@ -328,23 +305,11 @@ internal sealed partial class Database
         return FindTagOrToolAsync(findToolStatement, key, token);
     }
 
-    [StringLiteral.Utf8("DELETE FROM \"ArtworkTagCrossTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_Delete_From_ArtworkTagCrossTable();
-
-    [StringLiteral.Utf8("DELETE FROM \"ArtworkTagCrossTable\" WHERE \"Id\" = ? AND \"ValueKind\" = 1")]
-    private static partial ReadOnlySpan<byte> Literal_Delete_From_ArtworkTagCrossTable_Where_ValueKind_Equals_1();
-
-    [StringLiteral.Utf8("DELETE FROM \"UserTagCrossTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_Delete_From_UserTagCrossTable();
-
-    [StringLiteral.Utf8("DELETE FROM \"ArtworkToolCrossTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_Delete_From_ArtworkToolCrossTable();
-
     private ValueTask DeleteTagsOfArtworkStatementAsync(ulong id, CancellationToken token)
     {
         if (deleteTagsOfArtworkStatement is null)
         {
-            deleteTagsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkTagCrossTable(), true, out _);
+            deleteTagsOfArtworkStatement = Prepare("DELETE FROM \"ArtworkTagCrossTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -361,7 +326,7 @@ internal sealed partial class Database
         logger.LogTrace("Delete Tags");
         if (deleteTagsOfArtworkStatement is null)
         {
-            deleteTagsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkTagCrossTable_Where_ValueKind_Equals_1(), true, out _);
+            deleteTagsOfArtworkStatement = Prepare("DELETE FROM \"ArtworkTagCrossTable\" WHERE \"Id\" = ? AND \"ValueKind\" = 1"u8, true, out _);
         }
         else
         {
@@ -377,7 +342,7 @@ internal sealed partial class Database
     {
         if (deleteTagsOfUserStatement is null)
         {
-            deleteTagsOfUserStatement = Prepare(Literal_Delete_From_UserTagCrossTable(), true, out _);
+            deleteTagsOfUserStatement = Prepare("DELETE FROM \"UserTagCrossTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -394,7 +359,7 @@ internal sealed partial class Database
         logger.LogTrace("Delete Tools");
         if (deleteToolsOfArtworkStatement is null)
         {
-            deleteToolsOfArtworkStatement = Prepare(Literal_Delete_From_ArtworkToolCrossTable(), true, out _);
+            deleteToolsOfArtworkStatement = Prepare("DELETE FROM \"ArtworkToolCrossTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -406,9 +371,6 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"UserTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2)")]
-    private static partial ReadOnlySpan<byte> Literal_InsertOrIgnoreIntoUserTagCrossTable();
-
     public ValueTask AddTagToUser(ulong id, uint tagId, CancellationToken token)
     {
         if (id == 0 || tagId == 0)
@@ -418,7 +380,7 @@ internal sealed partial class Database
 
         if (insertOrIgnoreIntoUserTagCrossTableStatement is null)
         {
-            insertOrIgnoreIntoUserTagCrossTableStatement = Prepare(Literal_InsertOrIgnoreIntoUserTagCrossTable(), true, out _);
+            insertOrIgnoreIntoUserTagCrossTableStatement = Prepare("INSERT OR IGNORE INTO \"UserTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2)"u8, true, out _);
         }
         else
         {

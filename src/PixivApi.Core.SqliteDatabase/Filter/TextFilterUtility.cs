@@ -2,9 +2,6 @@
 
 internal static partial class FilterUtility
 {
-    [StringLiteral.Utf8("))")]
-    private static partial ReadOnlySpan<byte> Literal_RRParen();
-
     private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TextFilter? filter)
     {
         if (filter is null)
@@ -15,20 +12,18 @@ internal static partial class FilterUtility
         if (filter.Partials is { Length: > 0 })
         {
             builder.And(ref and);
-            builder.AppendLiteral(Literal_ExistsTextTableRowId());
+            builder.AppendLiteral("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = "u8);
             builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_And());
+            builder.AppendLiteral(".\"Id\" AND "u8);
             builder.AppendAscii('(');
             builder.TextPartial(filter.Partials, filter.PartialOr);
-            builder.AppendLiteral(Literal_RRParen());
+            builder.AppendLiteral("))"u8);
 
             if (filter.IgnorePartials is { Length: > 0 })
             {
-                builder.AppendLiteral(Literal_And());
-                builder.AppendLiteral(Literal_NotLeftParen());
+                builder.AppendLiteral(" AND  NOT ("u8);
                 builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
-                builder.AppendLiteral(Literal_RRParen());
+                builder.AppendLiteral("))"u8);
             }
         }
         else
@@ -36,13 +31,11 @@ internal static partial class FilterUtility
             if (filter.IgnorePartials is { Length: > 0 })
             {
                 builder.And(ref and);
-                builder.AppendLiteral(Literal_ExistsTextTableRowId());
+                builder.AppendLiteral("EXISTS (SELECT * FROM \"ArtworkTextTable\" AS \"TextTable\" WHERE \"TextTable\".\"rowid\" = "u8);
                 builder.AppendLiteral(origin);
-                builder.AppendLiteral(Literal_DotId());
-                builder.AppendLiteral(Literal_And());
-                builder.AppendLiteral(Literal_NotLeftParen());
+                builder.AppendLiteral(".\"Id\" AND  NOT ("u8);
                 builder.TextPartial(filter.IgnorePartials, filter.IgnorePartialOr);
-                builder.AppendLiteral(Literal_RRParen());
+                builder.AppendLiteral("))"u8);
             }
         }
 
@@ -57,7 +50,7 @@ internal static partial class FilterUtility
         if (filter.IgnoreExact is { Length: > 0 })
         {
             builder.And(ref and);
-            builder.AppendLiteral(Literal_NotLeftParen());
+            builder.AppendLiteral(" NOT ("u8);
             builder.TextExact(origin, filter.IgnoreExact);
             builder.AppendAscii(')');
         }
@@ -66,18 +59,15 @@ internal static partial class FilterUtility
     private static void TextExact(ref this Utf8ValueStringBuilder builder, ReadOnlySpan<byte> origin, string text)
     {
         builder.AppendLiteral(origin);
-        builder.AppendLiteral(Literal_DotTitle());
-        builder.AppendLiteral(Literal_Equal());
+        builder.AppendLiteral(".\"Title\" = "u8);
         builder.AddSingleQuoteText(text);
-        builder.AppendLiteral(Literal_Or());
+        builder.AppendLiteral(" OR "u8);
         builder.AppendLiteral(origin);
-        builder.AppendLiteral(Literal_DotCaption());
-        builder.AppendLiteral(Literal_Equal());
+        builder.AppendLiteral(".\"Caption\" = "u8);
         builder.AddSingleQuoteText(text);
-        builder.AppendLiteral(Literal_Or());
+        builder.AppendLiteral(" OR "u8);
         builder.AppendLiteral(origin);
-        builder.AppendLiteral(Literal_DotMemo());
-        builder.AppendLiteral(Literal_Equal());
+        builder.AppendLiteral(".\"Memo\" = "u8);
         builder.AddSingleQuoteText(text);
     }
 
@@ -90,7 +80,7 @@ internal static partial class FilterUtility
 
             if (oneOrTwo is not null)
             {
-                builder.AppendLiteral(or ? Literal_Or() : Literal_And());
+                builder.AppendLiteral(or ? " OR "u8 : " AND "u8);
                 builder.TextLike(or, oneOrTwo.AsSpan(0, oneOrTwoCount));
                 ArrayPool<string>.Shared.Return(oneOrTwo);
                 ArrayPool<string>.Shared.Return(threeOrMore);
@@ -108,52 +98,34 @@ internal static partial class FilterUtility
         builder.TextLike(or, span[0]);
         foreach (var item in span[1..])
         {
-            builder.AppendLiteral(Literal_Or());
+            builder.AppendLiteral(" OR "u8);
             builder.TextLike(or, item);
         }
 
         builder.AppendAscii(')');
     }
 
-    [StringLiteral.Utf8(" LIKE '%")]
-    private static partial ReadOnlySpan<byte> Literal_LikeQuotePercent();
-
-    [StringLiteral.Utf8("%'")]
-    private static partial ReadOnlySpan<byte> Literal_PercentQuote();
-
     private static void TextLike(ref this Utf8ValueStringBuilder builder, bool or, string first)
     {
         builder.AppendAscii('(');
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_DotTitle());
-        builder.AppendLiteral(Literal_LikeQuotePercent());
+        builder.AppendLiteral("\"TextTable\".\"Title\" LIKE '%"u8);
         builder.AddSingleQuoteTextWithoutQuote(first);
 
-        builder.AppendLiteral(Literal_PercentQuote());
-        builder.AppendLiteral(or ? Literal_Or() : Literal_And());
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_DotCaption());
-        builder.AppendLiteral(Literal_LikeQuotePercent());
+        builder.AppendLiteral("%'"u8);
+        builder.AppendLiteral(or ? " OR "u8 : " AND \"TextTable\".\"Caption\" LIKE '%"u8);
 
         builder.AddSingleQuoteTextWithoutQuote(first);
-        builder.AppendLiteral(Literal_PercentQuote());
-        builder.AppendLiteral(or ? Literal_Or() : Literal_And());
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_DotMemo());
-        builder.AppendLiteral(Literal_LikeQuotePercent());
+        builder.AppendLiteral("%'"u8);
+        builder.AppendLiteral(or ? " OR "u8 : " AND \"TextTable\".\"Memo\" LIKE '%"u8);
 
         builder.AddSingleQuoteTextWithoutQuote(first);
-        builder.AppendLiteral(Literal_PercentQuote());
+        builder.AppendLiteral("%'"u8);
     }
-
-    [StringLiteral.Utf8(" MATCH ")]
-    private static partial ReadOnlySpan<byte> Literal_Match();
 
     private static void TextMatch(ref this Utf8ValueStringBuilder builder, bool or, ReadOnlySpan<string> span)
     {
         builder.AppendAscii('(');
-        builder.AppendLiteral(Literal_TextTable());
-        builder.AppendLiteral(Literal_Match());
+        builder.AppendLiteral("\"TextTable\" MATCH "u8);
         if (span.Length == 1)
         {
             builder.AddSingleQuoteText(span[0]);
@@ -162,7 +134,7 @@ internal static partial class FilterUtility
         {
             builder.AppendAscii('\'');
             builder.AddDoubleQuoteText(span[0]);
-            var orOrAnd = or ? Literal_Or() : Literal_And();
+            var orOrAnd = or ? " OR "u8 : " AND "u8;
             foreach (var item in span[1..])
             {
                 builder.AppendLiteral(orOrAnd);

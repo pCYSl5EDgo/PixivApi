@@ -1,8 +1,8 @@
 <Project>
 	<PropertyGroup>
-		<TargetFramework>net6.0</TargetFramework>
+		<TargetFramework>net7.0</TargetFramework>
 		<EnablePreviewFeatures>True</EnablePreviewFeatures>
-		<LangVersion>preview</LangVersion>
+		<LangVersion>11</LangVersion>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>

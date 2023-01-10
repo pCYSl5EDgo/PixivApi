@@ -8,17 +8,12 @@ internal sealed partial class Database
     private sqlite3_stmt? enumerateUserStatement;
     private sqlite3_stmt? officiallyRemoveUserStatement;
 
-    [StringLiteral.Utf8("SELECT \"Name\", \"Account\", \"IsFollowed\", \"IsMuted\", \"IsOfficiallyRemoved\", \"HideReason\", \"ImageUrls\", \"Comment\", \"Memo\", \"HasDetail\" FROM \"UserTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_SelectUser_FromUserTable_WhereId();
-
-    [StringLiteral.Utf8("SELECT \"TagId\" FROM \"UserTagCrossTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_SelectTagId_FromUserTagCrossTable_WhereId();
-
     public async ValueTask<User?> GetUserAsync(ulong id, CancellationToken token)
     {
         if (getUserStatement is null)
         {
-            getUserStatement = Prepare(Literal_SelectUser_FromUserTable_WhereId(), true, out _);
+            getUserStatement = Prepare("SELECT \"Name\", \"Account\", \"IsFollowed\", \"IsMuted\", \"IsOfficiallyRemoved\", \"HideReason\", \"ImageUrls\", \"Comment\", \"Memo\", \"HasDetail\""u8 +
+                " FROM \"UserTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -62,7 +57,7 @@ internal sealed partial class Database
     {
         if (getTagsOfUserStatement is null)
         {
-            getTagsOfUserStatement = Prepare(Literal_SelectTagId_FromUserTagCrossTable_WhereId(), true, out _);
+            getTagsOfUserStatement = Prepare("SELECT \"TagId\" FROM \"UserTagCrossTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -88,23 +83,20 @@ internal sealed partial class Database
         return CBool(statement, offset);
     }
 
-    [StringLiteral.Utf8("SELECT \"Profile_Webpage\", \"Profile_Gender\", \"Profile_Birth\", \"Profile_BirthYear\"," +
-            "\"Profile_BirthDay\", \"Profile_Region\", \"Profile_AddressId\", \"Profile_CountryCode\", \"Profile_Job\", \"Profile_JobId\"," +
-            "\"Profile_TotalFollowUsers\", \"Profile_TotalIllusts\", \"Profile_TotalManga\", \"Profile_TotalNovels\"," +
-            "\"Profile_TotalIllustBookmarksPublic\", \"Profile_TotalIllustSeries\", \"Profile_TotalNovelSeries\", \"Profile_BackgroundImageUrl\"," +
-            "\"Profile_TwitterAccount\", \"Profile_TwitterUrl\", \"Profile_PawooUrl\", \"Profile_IsPremium\", \"Profile_IsUsingCustomProfileImage\"," +
-            "\"ProfilePublicity_Gender\", \"ProfilePublicity_Region\", \"ProfilePublicity_BirthDay\", \"ProfilePublicity_BirthYear\"," +
-            "\"ProfilePublicity_Job\", \"ProfilePublicity_Pawoo\", \"Workspace_Pc\", \"Workspace_Monitor\", \"Workspace_Tool\"," +
-            "\"Workspace_Scanner\", \"Workspace_Tablet\", \"Workspace_Mouse\", \"Workspace_Printer\", \"Workspace_Desktop\"," +
-            "\"Workspace_Music\", \"Workspace_Desk\", \"Workspace_Chair\", \"Workspace_Comment\", \"Workspace_WorkspaceImageUrl\" " +
-            "FROM \"UserDetailTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_GetUserDetail();
-
     private async ValueTask ColumnUserDetailAsync(User user, CancellationToken token)
     {
         if (getUserDetailStatement is null)
         {
-            getUserDetailStatement = Prepare(Literal_GetUserDetail(), true, out _);
+            getUserDetailStatement = Prepare("SELECT \"Profile_Webpage\", \"Profile_Gender\", \"Profile_Birth\", \"Profile_BirthYear\","u8 +
+                "\"Profile_BirthDay\", \"Profile_Region\", \"Profile_AddressId\", \"Profile_CountryCode\", \"Profile_Job\", \"Profile_JobId\","u8 +
+                "\"Profile_TotalFollowUsers\", \"Profile_TotalIllusts\", \"Profile_TotalManga\", \"Profile_TotalNovels\","u8 +
+                "\"Profile_TotalIllustBookmarksPublic\", \"Profile_TotalIllustSeries\", \"Profile_TotalNovelSeries\", \"Profile_BackgroundImageUrl\","u8 +
+                "\"Profile_TwitterAccount\", \"Profile_TwitterUrl\", \"Profile_PawooUrl\", \"Profile_IsPremium\", \"Profile_IsUsingCustomProfileImage\","u8 +
+                "\"ProfilePublicity_Gender\", \"ProfilePublicity_Region\", \"ProfilePublicity_BirthDay\", \"ProfilePublicity_BirthYear\","u8 +
+                "\"ProfilePublicity_Job\", \"ProfilePublicity_Pawoo\", \"Workspace_Pc\", \"Workspace_Monitor\", \"Workspace_Tool\","u8 +
+                "\"Workspace_Scanner\", \"Workspace_Tablet\", \"Workspace_Mouse\", \"Workspace_Printer\", \"Workspace_Desktop\","u8 +
+                "\"Workspace_Music\", \"Workspace_Desk\", \"Workspace_Chair\", \"Workspace_Comment\", \"Workspace_WorkspaceImageUrl\" "u8 +
+                "FROM \"UserDetailTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -185,19 +177,14 @@ internal sealed partial class Database
         }
     }
 
-    private const string EnumerateUserQuery = "SELECT \"Origin\".\"Id\", \"Origin\".\"Name\", \"Origin\".\"Account\"," +
-        "\"Origin\".\"IsFollowed\", \"Origin\".\"IsMuted\", \"Origin\".\"IsOfficiallyRemoved\"," +
-        "\"Origin\".\"HideReason\", \"Origin\".\"ImageUrls\", \"Origin\".\"Comment\", \"Origin\".\"Memo\"," +
-        "\"Origin\".\"HasDetail\" FROM \"UserTable\" AS \"Origin\"";
-
-    [StringLiteral.Utf8(EnumerateUserQuery)]
-    private static partial ReadOnlySpan<byte> Literal_EnumerateUser();
-
     public async IAsyncEnumerable<User> EnumerateUserAsync([EnumeratorCancellation] CancellationToken token)
     {
         if (enumerateUserStatement is null)
         {
-            enumerateUserStatement = Prepare(Literal_EnumerateUser(), true, out _);
+            enumerateUserStatement = Prepare("SELECT \"Origin\".\"Id\", \"Origin\".\"Name\", \"Origin\".\"Account\","u8 +
+                "\"Origin\".\"IsFollowed\", \"Origin\".\"IsMuted\", \"Origin\".\"IsOfficiallyRemoved\","u8 +
+                "\"Origin\".\"HideReason\", \"Origin\".\"ImageUrls\", \"Origin\".\"Comment\", \"Origin\".\"Memo\","u8 +
+                "\"Origin\".\"HasDetail\" FROM \"UserTable\" AS \"Origin\""u8, true, out _);
         }
         else
         {
@@ -245,14 +232,11 @@ internal sealed partial class Database
         } while (true);
     }
 
-    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"UserRemoveTable\" VALUES (?)")]
-    private static partial ReadOnlySpan<byte> Literal_Remove_User();
-
     public async ValueTask OfficiallyRemoveUser(ulong id, CancellationToken token)
     {
         if (officiallyRemoveUserStatement is null)
         {
-            officiallyRemoveUserStatement = Prepare(Literal_Remove_User(), true, out _);
+            officiallyRemoveUserStatement = Prepare("INSERT OR IGNORE INTO \"UserRemoveTable\" VALUES (?)"u8, true, out _);
         }
         else
         {
@@ -286,8 +270,10 @@ internal sealed partial class Database
             var first = true;
             int intersect = -1, except = -1;
             FilterUtility.Preprocess(ref builder, filter, ref first, ref intersect, ref except);
-            builder.AppendLiteral(Literal_EnumerateUser());
-            builder.AppendLiteral(Literal_Where());
+            builder.AppendLiteral("SELECT \"Origin\".\"Id\", \"Origin\".\"Name\", \"Origin\".\"Account\","u8 +
+                "\"Origin\".\"IsFollowed\", \"Origin\".\"IsMuted\", \"Origin\".\"IsOfficiallyRemoved\","u8 +
+                "\"Origin\".\"HideReason\", \"Origin\".\"ImageUrls\", \"Origin\".\"Comment\", \"Origin\".\"Memo\","u8 +
+                "\"Origin\".\"HasDetail\" FROM \"UserTable\" AS \"Origin\" WHERE "u8);
             var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger, intersect, except);
             builder.Dispose();
             return statement;

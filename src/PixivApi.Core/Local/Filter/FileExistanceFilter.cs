@@ -174,10 +174,6 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
 {
     public static readonly FileExistanceInnerFilterConverter Instance = new();
 
-    [StringLiteral.Utf8("max")] private static partial ReadOnlySpan<byte> LiteralMax();
-    [StringLiteral.Utf8("min")] private static partial ReadOnlySpan<byte> LiteralMin();
-    [StringLiteral.Utf8("all")] private static partial ReadOnlySpan<byte> LiteralAll();
-
     public override FileExistanceFilter.InnerFilter? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
     LOOP:
@@ -217,7 +213,7 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                 throw new JsonException();
             }
 
-            if (reader.ValueTextEquals(LiteralMax()))
+            if (reader.ValueTextEquals("max"u8))
             {
                 any = true;
                 maxSelected = true;
@@ -226,7 +222,7 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                     throw new JsonException();
                 }
             }
-            else if (reader.ValueTextEquals(LiteralMin()))
+            else if (reader.ValueTextEquals("min"u8))
             {
                 any = true;
                 if (!reader.Read())
@@ -234,7 +230,7 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
                     throw new JsonException();
                 }
 
-                if (reader.TokenType == JsonTokenType.String && reader.ValueTextEquals(LiteralAll()))
+                if (reader.TokenType == JsonTokenType.String && reader.ValueTextEquals("all"u8))
                 {
                     isAllMin = true;
                 }
@@ -269,16 +265,16 @@ public sealed partial class FileExistanceInnerFilterConverter : JsonConverter<Fi
 
         if (value.Max.HasValue)
         {
-            writer.WriteNumber(LiteralMax(), value.Max.Value);
+            writer.WriteNumber("max"u8, value.Max.Value);
         }
 
         if (value.IsAllMin)
         {
-            writer.WriteString(LiteralMin(), LiteralAll());
+            writer.WriteString("min"u8, "all"u8);
         }
         else if (value.Min != 0)
         {
-            writer.WriteNumber(LiteralMin(), value.Min);
+            writer.WriteNumber("min"u8, value.Min);
         }
 
         writer.WriteEndObject();
@@ -289,19 +285,6 @@ public sealed partial class FileExistanceRelationConverter : JsonConverter<FileE
 {
     public static readonly FileExistanceRelationConverter Instance = new();
 
-    [StringLiteral.Utf8("and")] private static partial ReadOnlySpan<byte> Literal_AndText();
-    [StringLiteral.Utf8("or")] private static partial ReadOnlySpan<byte> Literal_OrText();
-    [StringLiteral.Utf8("&")] private static partial ReadOnlySpan<byte> Literal_And();
-    [StringLiteral.Utf8("|")] private static partial ReadOnlySpan<byte> Literal_Or();
-    [StringLiteral.Utf8("o&t&u")] private static partial ReadOnlySpan<byte> Literal_OaTaU();
-    [StringLiteral.Utf8("o|t|u")] private static partial ReadOnlySpan<byte> Literal_OoToU();
-    [StringLiteral.Utf8("o&t|u")] private static partial ReadOnlySpan<byte> Literal_OaToU();
-    [StringLiteral.Utf8("o|t&u")] private static partial ReadOnlySpan<byte> Literal_OoTaU();
-    [StringLiteral.Utf8("o|u&t")] private static partial ReadOnlySpan<byte> Literal_OoUaT();
-    [StringLiteral.Utf8("o&u|t")] private static partial ReadOnlySpan<byte> Literal_OaUoT();
-    [StringLiteral.Utf8("t&u|o")] private static partial ReadOnlySpan<byte> Literal_TaUoO();
-    [StringLiteral.Utf8("t|u&o")] private static partial ReadOnlySpan<byte> Literal_ToUaO();
-
     public override FileExistanceFilter.Relation Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
         while (reader.TokenType == JsonTokenType.Comment)
@@ -311,42 +294,42 @@ public sealed partial class FileExistanceRelationConverter : JsonConverter<FileE
 
         if (reader.TokenType == JsonTokenType.String)
         {
-            if (reader.ValueTextEquals(Literal_And()) || reader.ValueTextEquals(Literal_AndText()) || reader.ValueTextEquals(Literal_OaTaU()))
+            if (reader.ValueTextEquals("&"u8) || reader.ValueTextEquals("and"u8) || reader.ValueTextEquals("o&t&u"u8))
             {
                 return new(true, true, 0);
             }
 
-            if (reader.ValueTextEquals(Literal_Or()) || reader.ValueTextEquals(Literal_OrText()) || reader.ValueTextEquals(Literal_OoToU()))
+            if (reader.ValueTextEquals("|"u8) || reader.ValueTextEquals("or"u8) || reader.ValueTextEquals("o|t|u"u8))
             {
                 return new();
             }
 
-            if (reader.ValueTextEquals(Literal_OaToU()))
+            if (reader.ValueTextEquals("o&t|u"u8))
             {
                 return new(true, false, 0);
             }
 
-            if (reader.ValueTextEquals(Literal_OoTaU()))
+            if (reader.ValueTextEquals("o|t&u"u8))
             {
                 return new(false, true, 0);
             }
 
-            if (reader.ValueTextEquals(Literal_OoUaT()))
+            if (reader.ValueTextEquals("o|u&t"u8))
             {
                 return new(false, true, 1);
             }
 
-            if (reader.ValueTextEquals(Literal_OaUoT()))
+            if (reader.ValueTextEquals("o&u|t"u8))
             {
                 return new(true, false, 1);
             }
 
-            if (reader.ValueTextEquals(Literal_TaUoO()))
+            if (reader.ValueTextEquals("t&u|o"u8))
             {
                 return new(true, false, 2);
             }
 
-            if (reader.ValueTextEquals(Literal_ToUaO()))
+            if (reader.ValueTextEquals("t|u&o"u8))
             {
                 return new(false, true, 2);
             }
@@ -368,14 +351,14 @@ public sealed partial class FileExistanceRelationConverter : JsonConverter<FileE
                     }
                     else
                     {
-                        writer.WriteStringValue(Literal_OaToU());
+                        writer.WriteStringValue("o&t|u"u8);
                     }
                 }
                 else
                 {
                     if (value.IsSecondOperatorAnd)
                     {
-                        writer.WriteStringValue(Literal_OoTaU());
+                        writer.WriteStringValue("o|t&u"u8);
                     }
                     else
                     {
@@ -392,14 +375,14 @@ public sealed partial class FileExistanceRelationConverter : JsonConverter<FileE
                     }
                     else
                     {
-                        writer.WriteStringValue(Literal_OaUoT());
+                        writer.WriteStringValue("o&u|t"u8);
                     }
                 }
                 else
                 {
                     if (value.IsSecondOperatorAnd)
                     {
-                        writer.WriteStringValue(Literal_OoUaT());
+                        writer.WriteStringValue("o|u&t"u8);
                     }
                     else
                     {
@@ -416,14 +399,14 @@ public sealed partial class FileExistanceRelationConverter : JsonConverter<FileE
                     }
                     else
                     {
-                        writer.WriteStringValue(Literal_TaUoO());
+                        writer.WriteStringValue("t&u|o"u8);
                     }
                 }
                 else
                 {
                     if (value.IsSecondOperatorAnd)
                     {
-                        writer.WriteStringValue(Literal_ToUaO());
+                        writer.WriteStringValue("t|u&o"u8);
                     }
                     else
                     {
@@ -435,10 +418,10 @@ public sealed partial class FileExistanceRelationConverter : JsonConverter<FileE
 
         return;
     All_And:
-        writer.WriteStringValue(Literal_AndText());
+        writer.WriteStringValue("and"u8);
         return;
     All_Or:
-        writer.WriteStringValue(Literal_OrText());
+        writer.WriteStringValue("or"u8);
         return;
     }
 }

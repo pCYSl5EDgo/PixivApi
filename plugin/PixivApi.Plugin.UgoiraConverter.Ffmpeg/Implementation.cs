@@ -34,16 +34,16 @@ public sealed record class Implementation(string ExePath, ConfigSettings ConfigS
         return new(GetMp4Path(id));
     }
 
-    public async ValueTask<bool> TryConvertAsync(FileInfo file, ILogger? logger, CancellationToken cancellationToken)
+    public ValueTask<bool> TryConvertAsync(FileInfo file, ILogger? logger, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var name = file.Name;
         if (!name.EndsWith(".zip"))
         {
-            return false;
+            return new(false);
         }
 
-        return true;
+        return new(true);
     }
 
     //    public async ValueTask<bool> TryConvertAsync(Artwork artwork, ILogger? logger, CancellationToken cancellationToken)

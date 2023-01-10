@@ -35,17 +35,11 @@ internal static partial class FilterUtility
         builder.AppendLiteral(name);
     }
 
-    [StringLiteral.Utf8(" AND ")]
-    private static partial ReadOnlySpan<byte> Literal_And();
-
-    [StringLiteral.Utf8(" OR ")]
-    private static partial ReadOnlySpan<byte> Literal_Or();
-
     private static void And(ref this Utf8ValueStringBuilder builder, ref bool and)
     {
         if (and)
         {
-            builder.AppendLiteral(Literal_And());
+            builder.AppendLiteral(" AND "u8);
         }
         else
         {
@@ -53,45 +47,13 @@ internal static partial class FilterUtility
         }
     }
 
-    [StringLiteral.Utf8("), (")]
-    private static partial ReadOnlySpan<byte> Literal_ParenCommaParen();
-
-    [StringLiteral.Utf8(".\"Id\"")]
-    private static partial ReadOnlySpan<byte> Literal_DotId();
-
-    [StringLiteral.Utf8(" IN ")]
-    private static partial ReadOnlySpan<byte> Literal_In();
-
-    [StringLiteral.Utf8(" NOT ")]
-    private static partial ReadOnlySpan<byte> Literal_Not();
-
-    [StringLiteral.Utf8(" NOT IN ")]
-    private static partial ReadOnlySpan<byte> Literal_NotIn();
-
-    [StringLiteral.Utf8(" = ")]
-    private static partial ReadOnlySpan<byte> Literal_Equal();
-
-    private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, TagFilter? filter, ReadOnlySpan<byte> table)
-    {
-        if (filter is null)
-        {
-            return;
-        }
-
-        throw new NotImplementedException();
-    }
-
-    [StringLiteral.Utf8(".\"HideReason\"")]
-    private static partial ReadOnlySpan<byte> Literal_DotHideReason();
-
     private static void Filter(ref this Utf8ValueStringBuilder builder, ref bool and, ReadOnlySpan<byte> origin, HideFilter? filter)
     {
         if (filter is null)
         {
             builder.And(ref and);
             builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotHideReason());
-            builder.AppendLiteral(Literal_Equal());
+            builder.AppendLiteral(".\"HideReason\" = "u8);
             builder.AppendAscii('0');
         }
         else
@@ -100,8 +62,7 @@ internal static partial class FilterUtility
             {
                 builder.And(ref and);
                 builder.AppendLiteral(origin);
-                builder.AppendLiteral(Literal_DotHideReason());
-                builder.AppendLiteral(Literal_In());
+                builder.AppendLiteral(".\"HideReason\" IN "u8);
                 builder.AppendAscii('(');
                 using var enumerator = allow.GetEnumerator();
                 if (enumerator.MoveNext())
@@ -120,8 +81,7 @@ internal static partial class FilterUtility
             {
                 builder.And(ref and);
                 builder.AppendLiteral(origin);
-                builder.AppendLiteral(Literal_DotHideReason());
-                builder.AppendLiteral(Literal_NotIn());
+                builder.AppendLiteral(".\"HideReason\" NOT IN "u8);
                 builder.AppendAscii('(');
                 using var enumerator = disallow.GetEnumerator();
                 if (enumerator.MoveNext())
@@ -148,7 +108,7 @@ internal static partial class FilterUtility
 
         builder.And(ref and);
         builder.AddName(origin, name);
-        builder.AppendLiteral(Literal_Equal());
+        builder.AppendLiteral(" = "u8);
         builder.AppendAscii(value.Value ? '1' : '0');
     }
 
@@ -163,16 +123,14 @@ internal static partial class FilterUtility
 
             builder.And(ref and);
             builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_NotIn());
+            builder.AppendLiteral(".\"Id\" NOT IN "u8);
             builder.Add(aliasExcept, except);
         }
         else
         {
             builder.And(ref and);
             builder.AppendLiteral(origin);
-            builder.AppendLiteral(Literal_DotId());
-            builder.AppendLiteral(Literal_In());
+            builder.AppendLiteral(".\"Id\" IN "u8);
             builder.Add(aliasIntersect, intersect);
         }
     }

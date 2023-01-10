@@ -8,16 +8,6 @@ internal sealed partial class Database
     private sqlite3_stmt? insertUserDetailStatement;
     private sqlite3_stmt?[]? insertTagsOfUserStatementArray;
 
-    [StringLiteral.Utf8("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) ON CONFLICT (\"Id\") DO UPDATE SET " +
-        "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\"," +
-        "\"IsMuted\" = \"excluded\".\"IsMuted\", \"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"HideReason\" = \"excluded\".\"HideReason\"," +
-        "\"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\", \"Memo\" = \"excluded\".\"Memo\", \"HasDetail\" = \"excluded\".\"HasDetail\"")]
-    private static partial ReadOnlySpan<byte> Literal_InsertUser();
-
-    [StringLiteral.Utf8("INSERT OR REPLACE INTO \"UserDetailTable\" VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19," +
-        "?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42, ?43)")]
-    private static partial ReadOnlySpan<byte> Literal_InsertUserDetail();
-
     private async ValueTask InsertOrUpdateAsync(User user, CancellationToken token)
     {
         await InsertOrUpdateUserAsync(user, token).ConfigureAwait(false);
@@ -25,12 +15,6 @@ internal sealed partial class Database
         await DeleteTagsOfUserStatementAsync(user.Id, token).ConfigureAwait(false);
         await InsertTagsOfUserAsync(user.Id, user.ExtraTags, token).ConfigureAwait(false);
     }
-
-    [StringLiteral.Utf8("INSERT INTO \"UserTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
-    private static partial ReadOnlySpan<byte> Literal_Insert_TagsOfUser_Parts_0();
-
-    [StringLiteral.Utf8(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1 END")]
-    private static partial ReadOnlySpan<byte> Literal_Insert_TagsOfUser_Parts_1();
 
     private ValueTask InsertTagsOfUserAsync(ulong id, ReadOnlySpan<uint> tags, CancellationToken token)
     {
@@ -43,14 +27,14 @@ internal sealed partial class Database
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_Insert_TagsOfUser_Parts_0());
+            builder.AppendLiteral("INSERT INTO \"UserTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2"u8);
             for (var i = 1; i < tags.Length; i++)
             {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
+                builder.AppendLiteral("), (?1, ?"u8);
                 builder.Append(i + 2);
             }
 
-            builder.AppendLiteral(Literal_Insert_TagsOfUser_Parts_1());
+            builder.AppendLiteral(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1 END"u8);
             statement = Prepare(ref builder, true, out _);
             builder.Dispose();
         }
@@ -72,7 +56,10 @@ internal sealed partial class Database
     {
         if (insertUserStatement is null)
         {
-            insertUserStatement = Prepare(Literal_InsertUser(), true, out _);
+            insertUserStatement = Prepare("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11) ON CONFLICT (\"Id\") DO UPDATE SET "u8 +
+                "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\","u8 +
+                "\"IsMuted\" = \"excluded\".\"IsMuted\", \"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"HideReason\" = \"excluded\".\"HideReason\","u8 +
+                "\"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\", \"Memo\" = \"excluded\".\"Memo\", \"HasDetail\" = \"excluded\".\"HasDetail\""u8, true, out _);
         }
         else
         {
@@ -104,7 +91,8 @@ internal sealed partial class Database
 
         if (insertUserDetailStatement is null)
         {
-            insertUserDetailStatement = Prepare(Literal_InsertUserDetail(), true, out _);
+            insertUserDetailStatement = Prepare("INSERT OR REPLACE INTO \"UserDetailTable\" VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19,"u8 +
+                "?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42, ?43)"u8, true, out _);
         }
         else
         {
@@ -116,18 +104,15 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, 0, 0, 0, ?5, ?6, NULL, 1) ON CONFLICT (\"Id\") DO UPDATE SET " +
-        "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\"," +
-        "\"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\", \"HasDetail\" = 1")]
-    private static partial ReadOnlySpan<byte> Literal_InsertUser_UserResponse_HasDetail();
-
     private ValueTask InsertOrUpdateUserAsync(in UserDetailResponseData user, CancellationToken token) => InsertOrUpdateUserAsync(user.User, token);
 
     private ValueTask InsertOrUpdateUserAsync(in UserResponse user, CancellationToken token)
     {
         if (insertUser_UserResponse_Statement is null)
         {
-            insertUser_UserResponse_Statement = Prepare(Literal_InsertUser_UserResponse_HasDetail(), true, out _);
+            insertUser_UserResponse_Statement = Prepare("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, 0, 0, 0, ?5, ?6, NULL, 1) ON CONFLICT (\"Id\") DO UPDATE SET "u8 +
+                "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\","u8 +
+                "\"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\", \"HasDetail\" = 1"u8, true, out _);
         }
         else
         {
@@ -144,16 +129,13 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, ?5, 0, 0, ?6, ?7, NULL, 0) ON CONFLICT (\"Id\") DO UPDATE SET " +
-        "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\"," +
-        "\"IsMuted\" = \"excluded\".\"IsMuted\", \"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\"")]
-    private static partial ReadOnlySpan<byte> Literal_InsertUser_UserPreviewResponse();
-
     private ValueTask InsertOrUpdateUserAsync(in UserPreviewResponseContent user, CancellationToken token)
     {
         if (insertUser_UserPreviewResponse_Statement is null)
         {
-            insertUser_UserPreviewResponse_Statement = Prepare(Literal_InsertUser_UserPreviewResponse(), true, out _);
+            insertUser_UserPreviewResponse_Statement = Prepare("INSERT INTO \"UserTable\" VALUES (?1, ?2, ?3, ?4, ?5, 0, 0, ?6, ?7, NULL, 0) ON CONFLICT (\"Id\") DO UPDATE SET "u8 +
+                "\"Id\" = \"excluded\".\"Id\", \"Name\" = \"excluded\".\"Name\", \"Account\" = \"excluded\".\"Account\", \"IsFollowed\" = \"excluded\".\"IsFollowed\","u8 +
+                "\"IsMuted\" = \"excluded\".\"IsMuted\", \"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"ImageUrls\" = \"excluded\".\"ImageUrls\", \"Comment\" = \"excluded\".\"Comment\""u8, true, out _);
         }
         else
         {
@@ -183,7 +165,8 @@ internal sealed partial class Database
     {
         if (insertUserDetailStatement is null)
         {
-            insertUserDetailStatement = Prepare(Literal_InsertUserDetail(), true, out _);
+            insertUserDetailStatement = Prepare("INSERT OR REPLACE INTO \"UserDetailTable\" VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19,"u8 +
+                "?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29, ?30, ?31, ?32, ?33, ?34, ?35, ?36, ?37, ?38, ?39, ?40, ?41, ?42, ?43)"u8, true, out _);
         }
         else
         {

@@ -29,14 +29,11 @@ internal sealed partial class Database
         }
     }
 
-    [StringLiteral.Utf8("SELECT \"Id\" FROM \"ArtworkTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_ExistsArtwork();
-
     private async ValueTask<bool> ExistsArtworkAsync(ulong id, CancellationToken token)
     {
         if (existsArtworkStatement is null)
         {
-            existsArtworkStatement = Prepare(Literal_ExistsArtwork(), true, out _);
+            existsArtworkStatement = Prepare("SELECT \"Id\" FROM \"ArtworkTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -128,22 +125,18 @@ internal sealed partial class Database
         }
     }
 
-
-    [StringLiteral.Utf8("INSERT INTO \"UgoiraFrameTable\" VALUES (?1, ?2, ?3")]
-    private static partial ReadOnlySpan<byte> Literal_InsertUgoiraFrames_Parts_0();
-
     private ValueTask InsertUgoiraFramesAsync(ulong id, ushort[] frames, CancellationToken token)
     {
         ref var statement = ref At(ref insertUgoiraFramesStatementArray, frames.Length);
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_InsertUgoiraFrames_Parts_0());
+            builder.AppendLiteral("INSERT INTO \"UgoiraFrameTable\" VALUES (?1, ?2, ?3"u8);
             for (int i = 1, index = 3; i < frames.Length; i++)
             {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
+                builder.AppendLiteral("), (?1, ?"u8);
                 builder.Append(++index);
-                builder.AppendLiteral(Literal_Comma_Question());
+                builder.AppendLiteral(", ?"u8);
                 builder.Append(++index);
             }
 
@@ -167,10 +160,6 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-
-    [StringLiteral.Utf8("INSERT INTO \"HidePageTable\" VALUES (?1, ?2, ?3")]
-    private static partial ReadOnlySpan<byte> Literal_InsertHides_Parts_0();
-
     private ValueTask InsertHidesAsync(ulong id, Dictionary<uint, HideReason>? dictionary, CancellationToken token)
     {
         if (dictionary is not { Count: > 0 })
@@ -183,12 +172,12 @@ internal sealed partial class Database
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_InsertHides_Parts_0());
+            builder.AppendLiteral("INSERT INTO \"HidePageTable\" VALUES (?1, ?2, ?3"u8);
             for (int i = 1, length = dictionary.Count, index = 3; i < length; i++)
             {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
+                builder.AppendLiteral("), (?1, ?"u8);
                 builder.Append(++index);
-                builder.AppendLiteral(Literal_Comma_Question());
+                builder.AppendLiteral(", ?"u8);
                 builder.Append(++index);
             }
 
@@ -212,14 +201,11 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("DELETE FROM \"HidePageTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_DeleteHides();
-
     private ValueTask DeleteHidesAsync(ulong id, CancellationToken token)
     {
         if (deleteHidesStatement is null)
         {
-            deleteHidesStatement = Prepare(Literal_DeleteHides(), true, out _);
+            deleteHidesStatement = Prepare("DELETE FROM \"HidePageTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -238,10 +224,10 @@ internal sealed partial class Database
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral(Literal_Update_Tool_Parts_0());
+            builder.AppendLiteral("INSERT OR IGNORE INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2"u8);
             for (int i = 1, index = 2; i < length; i++)
             {
-                builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
+                builder.AppendLiteral("), (?1, ?"u8);
                 builder.Append(++index);
             }
 
@@ -281,12 +267,6 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkTagCrossTable\" VALUES (?1, ?2, ?3")]
-    private static partial ReadOnlySpan<byte> Literal_Insert_TagsOfArtwork_Parts_0();
-
-    [StringLiteral.Utf8("), (?1, ?")]
-    private static partial ReadOnlySpan<byte> Literal_Insert_TagOrTool_Parts_1();
-
     private async ValueTask InsertTagsOfArtworkAsync(ulong id, Dictionary<uint, uint> dictionary, CancellationToken token)
     {
         logger.LogTrace("Insert Tags");
@@ -301,12 +281,12 @@ internal sealed partial class Database
             if (statement is null)
             {
                 var builder = ZString.CreateUtf8StringBuilder();
-                builder.AppendLiteral(Literal_Insert_TagsOfArtwork_Parts_0());
+                builder.AppendLiteral("INSERT INTO \"ArtworkTagCrossTable\" VALUES (?1, ?2, ?3"u8);
                 for (int i = 1, length = dictionary.Count, index = 3; i < length; i++)
                 {
-                    builder.AppendLiteral(Literal_Insert_TagOrTool_Parts_1());
+                    builder.AppendLiteral("), (?1, ?"u8);
                     builder.Append(++index);
-                    builder.AppendLiteral(Literal_Comma_Question());
+                    builder.AppendLiteral(", ?"u8);
                     builder.Append(++index);
                 }
 
@@ -334,20 +314,17 @@ internal sealed partial class Database
         await ExecuteAsync(statement, token).ConfigureAwait(false);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkTable\"" +
-        " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20) " +
-        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\", " +
-            "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\"," +
-            "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\", \"HideReason\" = \"excluded\".\"HideReason\", " +
-            "\"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Title\" = \"excluded\".\"Title\"," +
-            "\"Caption\" = \"excluded\".\"Caption\", \"Memo\" = \"excluded\".\"Memo\"")]
-    private static partial ReadOnlySpan<byte> Literal_InsertArtwork_Parts_0();
-
     private ValueTask InsertArtworkAsync(Artwork answer, CancellationToken token)
     {
         if (insertArtworkStatement is null)
         {
-            insertArtworkStatement = Prepare(Literal_InsertArtwork_Parts_0(), true, out _);
+            insertArtworkStatement = Prepare("INSERT INTO \"ArtworkTable\""u8 +
+                " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20) "u8 +
+                "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\", "u8 +
+                "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\","u8 +
+                "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\", \"HideReason\" = \"excluded\".\"HideReason\", "u8 +
+                "\"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Title\" = \"excluded\".\"Title\","u8 +
+                "\"Caption\" = \"excluded\".\"Caption\", \"Memo\" = \"excluded\".\"Memo\""u8, true, out _);
         }
         else
         {
@@ -378,17 +355,14 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("UPDATE OR IGNORE \"ArtworkTable\" SET " +
-        "(\"IsVisible\", \"IsMuted\", \"CreateDate\", \"FileDate\", \"TotalView\", \"TotalBookmarks\", \"HideReason\", \"IsOfficiallyRemoved\", \"IsBookmarked\", \"Title\", \"Caption\", \"Memo\") = " +
-        "(?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13) " +
-        "WHERE \"Id\" = ?1")]
-    private static partial ReadOnlySpan<byte> Literal_Update_Artwowrk();
-
     private ValueTask UpdateArtworkAsync(Artwork answer, CancellationToken token)
     {
         if (updateArtworkStatement is null)
         {
-            updateArtworkStatement = Prepare(Literal_Update_Artwowrk(), true, out _);
+            updateArtworkStatement = Prepare("UPDATE OR IGNORE \"ArtworkTable\" SET "u8 +
+                "(\"IsVisible\", \"IsMuted\", \"CreateDate\", \"FileDate\", \"TotalView\", \"TotalBookmarks\", \"HideReason\", \"IsOfficiallyRemoved\", \"IsBookmarked\", \"Title\", \"Caption\", \"Memo\") = "u8 +
+                "(?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13) "u8 +
+                "WHERE \"Id\" = ?1"u8, true, out _);
         }
         else
         {
@@ -412,18 +386,6 @@ internal sealed partial class Database
         return ExecuteAsync(statement, token);
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2")]
-    private static partial ReadOnlySpan<byte> Literal_Update_Tag_Parts_0();
-
-    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkToolCrossTable\" VALUES (?1, ?2")]
-    private static partial ReadOnlySpan<byte> Literal_Update_Tool_Parts_0();
-
-    [StringLiteral.Utf8("), (?1, ?")]
-    private static partial ReadOnlySpan<byte> Literal_Update_TagOrTool_Parts_0();
-
-    [StringLiteral.Utf8(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1 END")]
-    private static partial ReadOnlySpan<byte> Literal_OnConflictIdTagId();
-
     public async ValueTask<bool> ArtworkAddOrUpdateAsync(ArtworkResponseContent answer, CancellationToken token)
     {
         await InsertOrUpdateUserAsync(answer.User, token).ConfigureAwait(false);
@@ -441,14 +403,14 @@ internal sealed partial class Database
                 if (statement is null)
                 {
                     var builder = ZString.CreateUtf8StringBuilder();
-                    builder.AppendLiteral(Literal_Update_Tag_Parts_0());
+                    builder.AppendLiteral("INSERT INTO \"ArtworkTagCrossTable\" (\"Id\", \"TagId\") VALUES (?1, ?2"u8);
                     for (var i = 1; i < length; i++)
                     {
-                        builder.AppendLiteral(Literal_Update_TagOrTool_Parts_0());
+                        builder.AppendLiteral("), (?1, ?"u8);
                         builder.Append(i + 2);
                     }
 
-                    builder.AppendLiteral(Literal_OnConflictIdTagId());
+                    builder.AppendLiteral(") ON CONFLICT (\"Id\", \"TagId\") DO UPDATE SET \"ValueKind\" = CASE WHEN \"ValueKind\" = 0 THEN 0 ELSE 1 END"u8);
                     statement = Prepare(ref builder, true, out _);
                     builder.Dispose();
                 }
@@ -503,23 +465,20 @@ internal sealed partial class Database
         return rowId == answer.Id;
     }
 
-    [StringLiteral.Utf8("INSERT INTO \"ArtworkTable\" VALUES " +
-        "(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 0, ?16, ?17, ?18, NULL) " +
-        "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\"," +
-            "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\"," +
-            "\"TotalView\" = \"excluded\".\"TotalView\"," +
-            "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\"," +
-            "\"IsOfficiallyRemoved\" = 0, \"Type\" = \"excluded\".\"Type\"," +
-            "\"HideReason\" = CASE WHEN \"HideReason\" = 0 THEN \"excluded\".\"HideReason\" ELSE \"HideReason\" END," +
-            "\"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Extension\" = \"excluded\".\"Extension\"," +
-            "\"Title\" = \"excluded\".\"Title\", \"Caption\" = \"excluded\".\"Caption\"")]
-    private static partial ReadOnlySpan<byte> Literal_Update_Artwowrk_ArtworkResponseContent();
-
     private ValueTask InsertOrUpdateArtworkAsync(ArtworkResponseContent answer, CancellationToken token)
     {
         if (insertOrUpdateArtwork_ArtworkResponseContent_Statement is null)
         {
-            insertOrUpdateArtwork_ArtworkResponseContent_Statement = Prepare(Literal_Update_Artwowrk_ArtworkResponseContent(), true, out _);
+            insertOrUpdateArtwork_ArtworkResponseContent_Statement = Prepare("INSERT INTO \"ArtworkTable\" VALUES "u8 +
+                "(?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 0, ?16, ?17, ?18, NULL) "u8 +
+                "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\","u8 +
+                "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\","u8 +
+                "\"TotalView\" = \"excluded\".\"TotalView\","u8 +
+                "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\","u8 +
+                "\"IsOfficiallyRemoved\" = 0, \"Type\" = \"excluded\".\"Type\","u8 +
+                "\"HideReason\" = CASE WHEN \"HideReason\" = 0 THEN \"excluded\".\"HideReason\" ELSE \"HideReason\" END,"u8 +
+                "\"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Extension\" = \"excluded\".\"Extension\","u8 +
+                "\"Title\" = \"excluded\".\"Title\", \"Caption\" = \"excluded\".\"Caption\""u8, true, out _);
         }
         else
         {

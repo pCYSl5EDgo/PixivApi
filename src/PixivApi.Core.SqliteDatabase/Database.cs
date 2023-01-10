@@ -612,9 +612,6 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
     }
 
     #region Version
-    [StringLiteral.Utf8("SELECT \"Major\", \"Minor\" FROM \"InfoTable\" ORDER BY \"Major\" DESC, \"Minor\" DESC LIMIT 1")]
-    private static partial ReadOnlySpan<byte> Literal_Select_Version();
-
     private Version? version;
 
     public Version Version
@@ -627,7 +624,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
                 sqlite3_stmt? statement = null;
                 try
                 {
-                    statement = Prepare(Literal_Select_Version(), false, out _);
+                    statement = Prepare("SELECT \"Major\", \"Minor\" FROM \"InfoTable\" ORDER BY \"Major\" DESC, \"Minor\" DESC LIMIT 1"u8, false, out _);
                     var code = Step(statement);
                     if (code == SQLITE_OK)
                     {

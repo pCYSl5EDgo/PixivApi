@@ -4,13 +4,6 @@ public sealed partial class HideReasonConverter : JsonConverter<HideReason>
 {
     public static readonly HideReasonConverter Instance = new();
 
-    [StringLiteral.Utf8("not-hidden")] private static partial ReadOnlySpan<byte> LiteralNotHidden();
-    [StringLiteral.Utf8("low-quality")] private static partial ReadOnlySpan<byte> LiteralLowQuality();
-    [StringLiteral.Utf8("irrelevant")] private static partial ReadOnlySpan<byte> LiteralIrrelevant();
-    [StringLiteral.Utf8("external-link")] private static partial ReadOnlySpan<byte> LiteralExternalLink();
-    [StringLiteral.Utf8("dislike")] private static partial ReadOnlySpan<byte> LiteralDislike();
-    [StringLiteral.Utf8("crop")] private static partial ReadOnlySpan<byte> LiteralCrop();
-
     public static bool TryParse(ReadOnlySpan<char> text, out HideReason value)
     {
         if (text.SequenceEqual("not-hidden"))
@@ -55,27 +48,27 @@ public sealed partial class HideReasonConverter : JsonConverter<HideReason>
 
     public override HideReason Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        if (reader.ValueTextEquals(LiteralNotHidden()))
+        if (reader.ValueTextEquals("not-hidden"u8))
         {
             return HideReason.NotHidden;
         }
-        else if (reader.ValueTextEquals(LiteralLowQuality()))
+        else if (reader.ValueTextEquals("low-quality"u8))
         {
             return HideReason.LowQuality;
         }
-        else if (reader.ValueTextEquals(LiteralIrrelevant()))
+        else if (reader.ValueTextEquals("irrelevant"u8))
         {
             return HideReason.Irrelevant;
         }
-        else if (reader.ValueTextEquals(LiteralExternalLink()))
+        else if (reader.ValueTextEquals("external-link"u8))
         {
             return HideReason.ExternalLink;
         }
-        else if (reader.ValueTextEquals(LiteralDislike()))
+        else if (reader.ValueTextEquals("dislike"u8))
         {
             return HideReason.Dislike;
         }
-        else if (reader.ValueTextEquals(LiteralCrop()))
+        else if (reader.ValueTextEquals("crop"u8))
         {
             return HideReason.Crop;
         }
@@ -87,12 +80,12 @@ public sealed partial class HideReasonConverter : JsonConverter<HideReason>
 
     public override void Write(Utf8JsonWriter writer, HideReason value, JsonSerializerOptions options) => writer.WriteStringValue(value switch
     {
-        HideReason.NotHidden => LiteralNotHidden(),
-        HideReason.LowQuality => LiteralLowQuality(),
-        HideReason.Irrelevant => LiteralIrrelevant(),
-        HideReason.ExternalLink => LiteralExternalLink(),
-        HideReason.Dislike => LiteralDislike(),
-        HideReason.Crop => LiteralCrop(),
+        HideReason.NotHidden => "not-hidden"u8,
+        HideReason.LowQuality => "low-quality"u8,
+        HideReason.Irrelevant => "irrelevant"u8,
+        HideReason.ExternalLink => "external-link"u8,
+        HideReason.Dislike => "dislike"u8,
+        HideReason.Crop => "crop"u8,
         _ => throw new JsonException(),
     });
 }

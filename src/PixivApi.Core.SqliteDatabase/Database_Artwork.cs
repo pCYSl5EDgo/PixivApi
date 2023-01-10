@@ -13,25 +13,12 @@ internal sealed partial class Database
     private sqlite3_stmt? officiallyRemoveArtworkStatement;
     private sqlite3_stmt? selectHidePagesStatement;
 
-    [StringLiteral.Utf8("SELECT \"UserId\", \"PageCount\", \"Width\", \"Height\", " +
-        "\"Type\", \"Extension\", \"IsXRestricted\", \"IsVisible\", \"IsMuted\"," +
-        "\"CreateDate\", \"FileDate\", \"TotalView\", \"TotalBookmarks\", \"HideReason\"," +
-        "\"IsOfficiallyRemoved\", \"IsBookmarked\", \"Title\", \"Caption\", \"Memo\"" +
-        "FROM \"ArtworkTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_SelectArtwork_FromArtworkTable_WhereId();
-
-    [StringLiteral.Utf8("SELECT \"TagId\", \"ValueKind\" FROM \"ArtworkTagCrossTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_SelectTagId_FromArtworkTagCrossTable_WhereId();
-
-    [StringLiteral.Utf8("SELECT \"ToolId\" FROM \"ArtworkToolCrossTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_SelectToolId_FromArtworkToolCrossTable_WhereId();
-
     private async ValueTask ColumnTagsAsync(Artwork artwork, CancellationToken token)
     {
         logger.LogTrace("Column Tags");
         if (getTagsOfArtworkStatement is null)
         {
-            getTagsOfArtworkStatement = Prepare(Literal_SelectTagId_FromArtworkTagCrossTable_WhereId(), true, out _);
+            getTagsOfArtworkStatement = Prepare("SELECT \"TagId\", \"ValueKind\" FROM \"ArtworkTagCrossTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -87,7 +74,7 @@ internal sealed partial class Database
         logger.LogTrace("Column Tools");
         if (getToolsOfArtworkStatement is null)
         {
-            getToolsOfArtworkStatement = Prepare(Literal_SelectToolId_FromArtworkToolCrossTable_WhereId(), true, out _);
+            getToolsOfArtworkStatement = Prepare("SELECT \"ToolId\" FROM \"ArtworkToolCrossTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -109,7 +96,11 @@ internal sealed partial class Database
 
         if (getArtworkStatement is null)
         {
-            getArtworkStatement = Prepare(Literal_SelectArtwork_FromArtworkTable_WhereId(), true, out _);
+            getArtworkStatement = Prepare("SELECT \"UserId\", \"PageCount\", \"Width\", \"Height\", "u8 +
+                "\"Type\", \"Extension\", \"IsXRestricted\", \"IsVisible\", \"IsMuted\","u8 +
+                "\"CreateDate\", \"FileDate\", \"TotalView\", \"TotalBookmarks\", \"HideReason\","u8 +
+                "\"IsOfficiallyRemoved\", \"IsBookmarked\", \"Title\", \"Caption\", \"Memo\""u8 +
+                "FROM \"ArtworkTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -199,15 +190,12 @@ internal sealed partial class Database
         answer.ExtraMemo = CStr(statement, offset++);
     }
 
-    [StringLiteral.Utf8("SELECT \"Delay\" FROM \"UgoiraFrameTable\" WHERE \"Id\" = ? ORDER BY \"Index\" ASC")]
-    private static partial ReadOnlySpan<byte> Literal_SelectUgoiraFrames();
-
     private async ValueTask ColumnUgoiraFramesAsync(Artwork answer, CancellationToken token)
     {
         logger.LogTrace("Column Ugoira Frames");
         if (getUgoiraFramesStatement is null)
         {
-            getUgoiraFramesStatement = Prepare(Literal_SelectUgoiraFrames(), true, out _);
+            getUgoiraFramesStatement = Prepare("SELECT \"Delay\" FROM \"UgoiraFrameTable\" WHERE \"Id\" = ? ORDER BY \"Index\" ASC"u8, true, out _);
         }
         else
         {
@@ -223,15 +211,12 @@ internal sealed partial class Database
         }
     }
 
-    [StringLiteral.Utf8("SELECT \"Index\", \"HideReason\" FROM \"HidePageTable\" WHERE \"Id\" = ?")]
-    private static partial ReadOnlySpan<byte> Literal_SelectHideReasons();
-
     private async ValueTask<Dictionary<uint, HideReason>> ColumnHideReasonsAsync(ulong id, CancellationToken token)
     {
         logger.LogTrace("Column Hide Reasons");
         if (getHideReasonsStatement is null)
         {
-            getHideReasonsStatement = Prepare(Literal_SelectHideReasons(), true, out _);
+            getHideReasonsStatement = Prepare("SELECT \"Index\", \"HideReason\" FROM \"HidePageTable\" WHERE \"Id\" = ?"u8, true, out _);
         }
         else
         {
@@ -263,16 +248,15 @@ internal sealed partial class Database
         return answer;
     }
 
-    private const string EnumerateArtworkQuery = "SELECT \"Origin\".\"Id\", \"Origin\".\"UserId\", \"Origin\".\"PageCount\", \"Origin\".\"Width\", \"Origin\".\"Height\", \"Origin\".\"Type\", \"Origin\".\"Extension\", \"Origin\".\"IsXRestricted\", \"Origin\".\"IsVisible\", \"Origin\".\"IsMuted\", \"Origin\".\"CreateDate\", \"Origin\".\"FileDate\", \"Origin\".\"TotalView\", \"Origin\".\"TotalBookmarks\", \"Origin\".\"HideReason\", \"Origin\".\"IsOfficiallyRemoved\", \"Origin\".\"IsBookmarked\", \"Origin\".\"Title\", \"Origin\".\"Caption\", \"Origin\".\"Memo\" FROM \"ArtworkTable\" AS \"Origin\"";
-
-    [StringLiteral.Utf8(EnumerateArtworkQuery)]
-    private static partial ReadOnlySpan<byte> Literal_EnumerateArtwork();
-
     public async IAsyncEnumerable<Artwork> EnumerateArtworkAsync([EnumeratorCancellation] CancellationToken token)
     {
         if (enumerateArtworkStatement is null)
         {
-            enumerateArtworkStatement = Prepare(Literal_EnumerateArtwork(), true, out _);
+            enumerateArtworkStatement = Prepare("SELECT \"Origin\".\"Id\", \"Origin\".\"UserId\", \"Origin\".\"PageCount\", \"Origin\".\"Width\","u8 +
+                " \"Origin\".\"Height\", \"Origin\".\"Type\", \"Origin\".\"Extension\", \"Origin\".\"IsXRestricted\", \"Origin\".\"IsVisible\","u8 +
+                " \"Origin\".\"IsMuted\", \"Origin\".\"CreateDate\", \"Origin\".\"FileDate\", \"Origin\".\"TotalView\", \"Origin\".\"TotalBookmarks\","u8 +
+                " \"Origin\".\"HideReason\", \"Origin\".\"IsOfficiallyRemoved\", \"Origin\".\"IsBookmarked\", \"Origin\".\"Title\", \"Origin\".\"Caption\","u8 +
+                " \"Origin\".\"Memo\" FROM \"ArtworkTable\" AS \"Origin\""u8, true, out _);
         }
         else
         {
@@ -310,15 +294,12 @@ internal sealed partial class Database
         }
     }
 
-    [StringLiteral.Utf8("INSERT OR IGNORE INTO \"ArtworkRemoveTable\" VALUES (?)")]
-    private static partial ReadOnlySpan<byte> Literal_Remove_Artwork();
-
     public async ValueTask OfficiallyRemoveArtwork(ulong id, CancellationToken token)
     {
         logger.LogTrace("Remove Officially");
         if (officiallyRemoveArtworkStatement is null)
         {
-            officiallyRemoveArtworkStatement = Prepare(Literal_Remove_Artwork(), true, out _);
+            officiallyRemoveArtworkStatement = Prepare("INSERT OR IGNORE INTO \"ArtworkRemoveTable\" VALUES (?)"u8, true, out _);
         }
         else
         {
@@ -339,12 +320,6 @@ internal sealed partial class Database
         } while (!token.IsCancellationRequested);
     }
 
-    [StringLiteral.Utf8(" WHERE ")]
-    private static partial ReadOnlySpan<byte> Literal_Where();
-
-    [StringLiteral.Utf8("SELECT \"Origin\".\"Id\", \"Origin\".\"PageCount\", \"Origin\".\"Type\", \"Origin\".\"Extension\" FROM \"ArtworkTable\" AS \"Origin\"")]
-    private static partial ReadOnlySpan<byte> Literal_EnumerateArtworkForFileExistance();
-
     /// <summary>
     /// When FileExistanceFilter exists, ignore Offset, Count and FileExistanceFilter
     /// </summary>
@@ -364,8 +339,7 @@ internal sealed partial class Database
             var first = true;
             int intersectArtwork = -1, exceptArtwork = -1, intersectUser = -1, exceptUser = -1;
             FilterUtility.Preprocess(ref builder, filter, ref first, ref intersectArtwork, ref exceptArtwork, ref intersectUser, ref exceptUser);
-            builder.AppendLiteral(Literal_EnumerateArtworkForFileExistance());
-            builder.AppendLiteral(Literal_Where());
+            builder.AppendLiteral("SELECT \"Origin\".\"Id\", \"Origin\".\"PageCount\", \"Origin\".\"Type\", \"Origin\".\"Extension\" FROM \"ArtworkTable\" AS \"Origin\" WHERE "u8);
             var statement = FilterUtility.CreateStatement(database, ref builder, filter, logger, intersectArtwork, exceptArtwork, intersectUser, exceptUser);
             builder.Dispose();
             return statement;
