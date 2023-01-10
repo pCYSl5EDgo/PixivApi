@@ -12,6 +12,12 @@ public sealed partial class HideReasonConverter : JsonConverter<HideReason>
             return true;
         }
 
+        if (text.SequenceEqual("temporary-hidden"))
+        {
+            value = HideReason.TemporaryHidden;
+            return true;
+        }
+
         if (text.SequenceEqual("low-quality"))
         {
             value = HideReason.LowQuality;
@@ -52,6 +58,10 @@ public sealed partial class HideReasonConverter : JsonConverter<HideReason>
         {
             return HideReason.NotHidden;
         }
+        else if (reader.ValueTextEquals("temporary-hidden"u8))
+        {
+            return HideReason.TemporaryHidden;
+        }
         else if (reader.ValueTextEquals("low-quality"u8))
         {
             return HideReason.LowQuality;
@@ -81,6 +91,7 @@ public sealed partial class HideReasonConverter : JsonConverter<HideReason>
     public override void Write(Utf8JsonWriter writer, HideReason value, JsonSerializerOptions options) => writer.WriteStringValue(value switch
     {
         HideReason.NotHidden => "not-hidden"u8,
+        HideReason.TemporaryHidden => "temporary-hidden"u8,
         HideReason.LowQuality => "low-quality"u8,
         HideReason.Irrelevant => "irrelevant"u8,
         HideReason.ExternalLink => "external-link"u8,

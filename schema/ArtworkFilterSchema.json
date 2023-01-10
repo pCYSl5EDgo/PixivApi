@@ -98,6 +98,7 @@
           "items": {
             "enum": [
               "not-hidden",
+              "temporary-hidden",
               "low-quality",
               "irrelevant",
               "external-link",
