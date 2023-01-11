@@ -21,7 +21,7 @@ public partial class NetworkClient : ConsoleAppBase
     }
 
     [Command("http-post")]
-    public async ValueTask PostAsync([Option(0)] string url, [Option(1)] string content, bool isJson = false)
+    public async ValueTask PostAsync([Option(0, "Url Path Name")] string url, [Option(1, "Content")] string content, bool isJson = false)
     {
         var token = Context.CancellationToken;
         var authentication = await holder.GetAsync(token).ConfigureAwait(false);
