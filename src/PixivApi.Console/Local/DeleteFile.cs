@@ -16,6 +16,7 @@ public partial class LocalClient
             System.Console.Error.Write($"{VirtualCodes.DeleteLine1}Load database.");
         }
 
+        var sizeInBytes = 0UL;
         try
         {
             var artworkFilter = string.IsNullOrWhiteSpace(filter) ? null : await filterFactory.CreateAsync(database, new FileInfo(filter), token).ConfigureAwait(false);
@@ -30,8 +31,6 @@ public partial class LocalClient
                 return;
             }
 
-            
-
             if (token.IsCancellationRequested)
             {
                 return;
@@ -44,6 +43,18 @@ public partial class LocalClient
             }
 
             var count = 0UL;
+            static ulong Delete(FileInfo file)
+            {
+                if (!file.Exists)
+                {
+                    return 0;
+                }
+
+                var answer = (ulong)file.Length;
+                file.Delete();
+                return answer;
+            }
+
             await foreach (var artwork in database.FilterAsync(artworkFilter, token).ConfigureAwait(false))
             {
                 if (errorNotRedirected)
@@ -60,8 +71,9 @@ public partial class LocalClient
                             {
                                 break;
                             }
-                            finder.IllustOriginalFinder.Find(artwork.Id, artwork.Extension, index).Delete();
-                            finder.IllustThumbnailFinder.Find(artwork.Id, artwork.Extension, index).Delete();
+
+                            sizeInBytes += Delete(finder.IllustOriginalFinder.Find(artwork.Id, artwork.Extension, index));
+                            sizeInBytes += Delete(finder.IllustThumbnailFinder.Find(artwork.Id, artwork.Extension, index));
                         }
                         break;
                     case ArtworkType.Manga:
@@ -71,14 +83,15 @@ public partial class LocalClient
                             {
                                 break;
                             }
-                            finder.IllustOriginalFinder.Find(artwork.Id, artwork.Extension, index).Delete();
-                            finder.IllustThumbnailFinder.Find(artwork.Id, artwork.Extension, index).Delete();
+
+                            sizeInBytes += Delete(finder.IllustOriginalFinder.Find(artwork.Id, artwork.Extension, index));
+                            sizeInBytes += Delete(finder.IllustThumbnailFinder.Find(artwork.Id, artwork.Extension, index));
                         }
                         break;
                     case ArtworkType.Ugoira:
-                        finder.UgoiraOriginalFinder.Find(artwork.Id, artwork.Extension).Delete();
-                        finder.UgoiraThumbnailFinder.Find(artwork.Id, artwork.Extension).Delete();
-                        finder.UgoiraZipFinder.Find(artwork.Id, artwork.Extension).Delete();
+                        sizeInBytes += Delete(finder.UgoiraOriginalFinder.Find(artwork.Id, artwork.Extension));
+                        sizeInBytes += Delete(finder.UgoiraThumbnailFinder.Find(artwork.Id, artwork.Extension));
+                        sizeInBytes += Delete(finder.UgoiraZipFinder.Find(artwork.Id, artwork.Extension));
                         break;
                     default:
                         continue;
@@ -87,6 +100,7 @@ public partial class LocalClient
         }
         finally
         {
+            System.Console.WriteLine($"Delete Byte Amount: {ByteAmountUtility.ToDisplayable(sizeInBytes)}");
             databaseFactory.Return(ref database);
         }
     }
