@@ -100,7 +100,7 @@ public partial class LocalClient
         }
         finally
         {
-            System.Console.WriteLine($"Delete Byte Amount: {ByteAmountUtility.ToDisplayable(sizeInBytes)}");
+            System.Console.WriteLine($"\nDelete Byte Amount: {ByteAmountUtility.ToDisplayable(sizeInBytes)}");
             databaseFactory.Return(ref database);
         }
     }
