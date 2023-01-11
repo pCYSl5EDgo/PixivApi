@@ -55,48 +55,36 @@ internal static partial class FilterUtility
             builder.AppendLiteral(origin);
             builder.AppendLiteral(".\"HideReason\" = "u8);
             builder.AppendAscii('0');
+            return;
         }
-        else
+
+        if (filter.AllowedReason is { Length: > 0 } allow)
         {
-            if (filter.AllowedReason is { Count: > 0 } allow)
+            builder.And(ref and);
+            builder.AppendLiteral(origin);
+            builder.AppendLiteral(".\"HideReason\" IN ("u8);
+            builder.Append((byte)allow[0]);
+            foreach (var item in MemoryMarshal.Cast<HideReason, byte>(allow.AsSpan(1)))
             {
-                builder.And(ref and);
-                builder.AppendLiteral(origin);
-                builder.AppendLiteral(".\"HideReason\" IN "u8);
-                builder.AppendAscii('(');
-                using var enumerator = allow.GetEnumerator();
-                if (enumerator.MoveNext())
-                {
-                    builder.Append((byte)enumerator.Current);
-                    while (enumerator.MoveNext())
-                    {
-                        builder.AppendAscii(',');
-                        builder.Append((byte)enumerator.Current);
-                    }
-                }
-
-                builder.AppendAscii(')');
+                builder.AppendAscii(',');
+                builder.Append(item);
             }
-            
-            if (filter.DisallowedReason is { Count: > 0 } disallow)
+
+            builder.AppendAscii(')');
+        }
+
+        if (filter.DisallowedReason is { Length: > 0 } disallow)
+        {
+            builder.And(ref and);
+            builder.AppendLiteral(origin);
+            builder.AppendLiteral(".\"HideReason\" NOT IN ("u8);
+            builder.Append((byte)disallow[0]);
+            foreach (var item in MemoryMarshal.Cast<HideReason, byte>(disallow.AsSpan(1)))
             {
-                builder.And(ref and);
-                builder.AppendLiteral(origin);
-                builder.AppendLiteral(".\"HideReason\" NOT IN "u8);
-                builder.AppendAscii('(');
-                using var enumerator = disallow.GetEnumerator();
-                if (enumerator.MoveNext())
-                {
-                    builder.Append((byte)enumerator.Current);
-                    while (enumerator.MoveNext())
-                    {
-                        builder.AppendAscii(',');
-                        builder.Append((byte)enumerator.Current);
-                    }
-                }
-
-                builder.AppendAscii(')');
+                builder.AppendAscii(',');
+                builder.Append(item);
             }
+            builder.AppendAscii(')');
         }
     }
 

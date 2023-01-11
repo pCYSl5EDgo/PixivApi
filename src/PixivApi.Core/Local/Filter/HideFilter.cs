@@ -2,18 +2,18 @@
 
 public sealed partial class HideFilter
 {
-    [JsonPropertyName("allow")] public readonly HashSet<HideReason>? AllowedReason;
-    [JsonPropertyName("disallow")] public readonly HashSet<HideReason>? DisallowedReason;
+    [JsonPropertyName("allow")] public HideReason[]? AllowedReason;
+    [JsonPropertyName("disallow")] public HideReason[]? DisallowedReason;
 
     public bool Filter(HideReason reason)
     {
-        if (AllowedReason is { Count: > 0 })
+        if (AllowedReason is { Length: > 0 })
         {
-            return AllowedReason.Contains(reason);
+            return MemoryMarshal.Cast<HideReason, byte>(AllowedReason.AsSpan()).Contains((byte)reason);
         }
-        else if (DisallowedReason is { Count: > 0 })
+        else if (DisallowedReason is { Length: > 0 })
         {
-            return !DisallowedReason.Contains(reason);
+            return !MemoryMarshal.Cast<HideReason, byte>(DisallowedReason.AsSpan()).Contains((byte)reason);
         }
         else
         {
