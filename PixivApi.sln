@@ -16,13 +16,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core.Test", "test\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.ChromeDriverManager", "src\PixivApi.ChromeDriverManager\PixivApi.ChromeDriverManager.csproj", "{500D2178-ACC6-4048-A769-07997C750817}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.UgoiraConverter.Ffmpeg", "plugin\PixivApi.Plugin.UgoiraConverter.Ffmpeg\PixivApi.Plugin.UgoiraConverter.Ffmpeg.csproj", "{04812EFA-FA42-4CB9-89C2-427D2757ED0F}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Plugin.JpegXl", "plugin\PixivApi.Plugin.JpegXl\PixivApi.Plugin.JpegXl.csproj", "{2FE42246-504C-49D6-AB3C-A55734651AB5}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Console.Utility", "src\PixivApi.Console.Utility\PixivApi.Console.Utility.csproj", "{31346F46-A479-4E77-927C-D05627B8CC51}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core.DatbaseFile", "src\PixivApi.Core.DatbaseFile\PixivApi.Core.DatbaseFile.csproj", "{7E155E3F-0411-4B16-A11E-275985FC6942}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PixivApi.Core.SqliteDatabase", "src\PixivApi.Core.SqliteDatabase\PixivApi.Core.SqliteDatabase.csproj", "{AF24AAB0-4213-42EC-B27A-652B92E68CDD}"
 EndProject
@@ -48,10 +44,6 @@ Global
 		{500D2178-ACC6-4048-A769-07997C750817}.Debug|x64.Build.0 = Debug|Any CPU
 		{500D2178-ACC6-4048-A769-07997C750817}.Release|x64.ActiveCfg = Release|Any CPU
 		{500D2178-ACC6-4048-A769-07997C750817}.Release|x64.Build.0 = Release|Any CPU
-		{04812EFA-FA42-4CB9-89C2-427D2757ED0F}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{04812EFA-FA42-4CB9-89C2-427D2757ED0F}.Debug|x64.Build.0 = Debug|Any CPU
-		{04812EFA-FA42-4CB9-89C2-427D2757ED0F}.Release|x64.ActiveCfg = Release|Any CPU
-		{04812EFA-FA42-4CB9-89C2-427D2757ED0F}.Release|x64.Build.0 = Release|Any CPU
 		{2FE42246-504C-49D6-AB3C-A55734651AB5}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{2FE42246-504C-49D6-AB3C-A55734651AB5}.Debug|x64.Build.0 = Debug|Any CPU
 		{2FE42246-504C-49D6-AB3C-A55734651AB5}.Release|x64.ActiveCfg = Release|Any CPU
@@ -60,10 +52,6 @@ Global
 		{31346F46-A479-4E77-927C-D05627B8CC51}.Debug|x64.Build.0 = Debug|Any CPU
 		{31346F46-A479-4E77-927C-D05627B8CC51}.Release|x64.ActiveCfg = Release|Any CPU
 		{31346F46-A479-4E77-927C-D05627B8CC51}.Release|x64.Build.0 = Release|Any CPU
-		{7E155E3F-0411-4B16-A11E-275985FC6942}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{7E155E3F-0411-4B16-A11E-275985FC6942}.Debug|x64.Build.0 = Debug|Any CPU
-		{7E155E3F-0411-4B16-A11E-275985FC6942}.Release|x64.ActiveCfg = Release|Any CPU
-		{7E155E3F-0411-4B16-A11E-275985FC6942}.Release|x64.Build.0 = Release|Any CPU
 		{AF24AAB0-4213-42EC-B27A-652B92E68CDD}.Debug|x64.ActiveCfg = Debug|Any CPU
 		{AF24AAB0-4213-42EC-B27A-652B92E68CDD}.Debug|x64.Build.0 = Debug|Any CPU
 		{AF24AAB0-4213-42EC-B27A-652B92E68CDD}.Release|x64.ActiveCfg = Release|Any CPU
