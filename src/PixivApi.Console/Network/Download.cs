@@ -90,11 +90,6 @@ public partial class NetworkClient
                 {
                     logger.LogInformation($"Item: {downloadItemCount}, File: {machine.DownloadFileCount}, Already: {alreadyCount}, Transfer: {ByteAmountUtility.ToDisplayable(machine.DownloadByteCount)}");
                 }
-
-                if (alreadyCount != 0)
-                {
-                    await LocalClient.ClearAsync(logger, configSettings, maskPowerOf2, Context.CancellationToken).ConfigureAwait(false);
-                }
             }
         }
         catch (Exception e) when (transactional is not null && e is not TaskCanceledException && e is not OperationCanceledException)

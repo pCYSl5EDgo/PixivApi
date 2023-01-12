@@ -13,7 +13,7 @@ internal static partial class FilterUtility
     public static sqlite3_stmt CreateStatement(sqlite3 database, ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ILogger logger, int intersectArtwork, int exceptArtwork, int intersectUser, int exceptUser)
     {
         var and = false;
-        builder.Filter(filter, ref and, "\"Origin\""u8, intersectArtwork, exceptArtwork, intersectUser, exceptUser);
+        Filter(ref builder, filter, ref and, "\"Origin\""u8, intersectArtwork, exceptArtwork, intersectUser, exceptUser);
         sqlite3_prepare_v3(database, builder.AsSpan(), 0, out var answer);
         if (logger.IsEnabled(LogLevel.Debug))
         {
@@ -25,7 +25,7 @@ internal static partial class FilterUtility
         return answer;
     }
 
-    private static void Filter(this ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool and, ReadOnlySpan<byte> origin, int intersectArtwork, int exceptArtwork, int intersectUser, int exceptUser)
+    public static void Filter(ref Utf8ValueStringBuilder builder, ArtworkFilter filter, ref bool and, ReadOnlySpan<byte> origin, int intersectArtwork, int exceptArtwork, int intersectUser, int exceptUser)
     {
         builder.FilterInOrNotIn(ref and, origin, I, E, intersectArtwork, exceptArtwork);
         builder.Filter(ref and, origin, filter.HideFilter);

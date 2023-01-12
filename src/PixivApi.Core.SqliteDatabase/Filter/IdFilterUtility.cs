@@ -51,8 +51,7 @@ internal static partial class FilterUtility
         {
             builder.WithOrComma(ref first);
             builder.Add(intersectAlias, ++intersect);
-            builder.AppendLiteral(" (\"Id\") AS (VALUES "u8);
-            builder.AppendAscii('(');
+            builder.AppendLiteral(" (\"Id\") AS (VALUES ("u8);
             builder.Append(intersects[0]);
             for (var i = 1; i < intersects.Length; i++)
             {
@@ -68,7 +67,7 @@ internal static partial class FilterUtility
                 builder.Add(exceptAlias, except);
             }
 
-            builder.AppendAscii(')');
+            builder.AppendLiteral(") "u8);
         }
 
         if (filter.IgnoreIds is { Length: > 0 } excepts)
@@ -77,8 +76,7 @@ internal static partial class FilterUtility
             {
                 builder.WithOrComma(ref first);
                 builder.Add(exceptAlias, ++except);
-                builder.AppendLiteral(" (\"Id\") AS (VALUES "u8);
-                builder.AppendAscii('(');
+                builder.AppendLiteral(" (\"Id\") AS (VALUES ("u8);
                 builder.Append(excepts[0]);
                 for (var i = 1; i < excepts.Length; i++)
                 {
@@ -86,7 +84,7 @@ internal static partial class FilterUtility
                     builder.Append(excepts[i]);
                 }
 
-                builder.AppendLiteral("))"u8);
+                builder.AppendLiteral(")) "u8);
             }
             else
             {
@@ -94,8 +92,7 @@ internal static partial class FilterUtility
                 builder.Add(intersectAlias, ++intersect);
                 builder.AppendLiteral(" (\"Id\") AS ("u8);
                 builder.Add(intersectAlias, intersect - 1);
-                builder.AppendLiteral(" EXCEPT VALUES "u8);
-                builder.AppendAscii('(');
+                builder.AppendLiteral(" EXCEPT VALUES ("u8);
                 builder.Append(excepts[0]);
                 for (var i = 1; i < excepts.Length; i++)
                 {
@@ -103,7 +100,7 @@ internal static partial class FilterUtility
                     builder.Append(excepts[i]);
                 }
 
-                builder.AppendLiteral("))"u8);
+                builder.AppendLiteral(")) "u8);
             }
         }
     }

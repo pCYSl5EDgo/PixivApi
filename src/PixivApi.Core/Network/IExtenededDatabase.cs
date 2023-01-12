@@ -66,4 +66,6 @@ public interface IExtenededDatabase : IDatabase
     ValueTask AddTagToUser(ulong id, uint tagId, CancellationToken token);
 
     IAsyncEnumerable<HiddenPageValueTuple> EnumerateHiddenPagesAsync(CancellationToken token);
+
+    IAsyncEnumerable<ulong> DeleteBookmarksAsync(ArtworkFilter filter, CancellationToken token);
 }

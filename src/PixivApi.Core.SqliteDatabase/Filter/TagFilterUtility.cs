@@ -106,7 +106,7 @@ internal static partial class FilterUtility
             builder.Add(intersectAlias, intersect - 1);
             builder.AppendLiteral(" EXCEPT SELECT \"Id\" FROM "u8);
             builder.Add(exceptAlias, except);
-            builder.AppendAscii(')');
+            builder.AppendLiteral(") "u8);
         }
 
         if (intersect == -1)
