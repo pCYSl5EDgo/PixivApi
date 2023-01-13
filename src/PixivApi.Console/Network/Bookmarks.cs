@@ -1,4 +1,6 @@
-﻿namespace PixivApi.Console;
+﻿using System.Text;
+
+namespace PixivApi.Console;
 
 public partial class NetworkClient
 {
@@ -26,6 +28,70 @@ public partial class NetworkClient
         return DownloadArtworkResponses(addBehaviour, download, url, Context.CancellationToken);
     }
 
+    [Command("delete-bookmark")]
+    public async ValueTask<int> DeleteBookmarkAsync(
+        [Option(0)] ulong id
+    )
+    {
+        var db = await databaseFactory.RentAsync(Context.CancellationToken).ConfigureAwait(false);
+        try
+        {
+            var filter = new ArtworkFilter()
+            {
+                IdFilter = new()
+                {
+                    Ids = new[] { id }
+                },
+                IsBookmark = true,
+                HideFilter = new()
+                {
+                    DisallowedReason = Array.Empty<HideReason>(),
+                }
+            };
+
+            if (db is not IExtenededDatabase database)
+            {
+                return 1;
+            }
+            
+            AuthenticationHeaderValue? authentication = null;
+            var printDebug = Context.Logger.IsEnabled(LogLevel.Debug);
+            var printTrace = Context.Logger.IsEnabled(LogLevel.Trace);
+            await foreach (var _id in database.DeleteBookmarksAsync(filter, Context.CancellationToken))
+            {
+                if (Context.CancellationToken.IsCancellationRequested)
+                {
+                    return 0;
+                }
+
+                authentication ??= await holder.GetAsync(Context.CancellationToken).ConfigureAwait(false);
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"https://{ApiHost}/v1/illust/bookmark/delete");
+                request.Headers.Authorization = authentication;
+                if (!request.TryAddToHeader(configSettings.HashSecret, ApiHost))
+                {
+                    throw new InvalidOperationException();
+                }
+
+                request.Content = new StringContent($"get_secure_url=1&illust_id={id}", Encoding.ASCII, "application/x-www-form-urlencoded");
+                if (printDebug)
+                {
+                    Context.Logger.LogDebug(id.ToString());
+                }
+
+                using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, Context.CancellationToken).ConfigureAwait(false);
+                if (printTrace)
+                {
+                    Context.Logger.LogTrace(await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false));
+                }
+            }
+        }
+        finally
+        {
+            databaseFactory.Return(ref db);
+        }
+        return 1;
+    }
+
     [Command("delete-bookmarks")]
     public async ValueTask<int> DeleteBookmarksAsync()
     {
@@ -34,8 +100,7 @@ public partial class NetworkClient
             return 0;
         }
 
-        var token = Context.CancellationToken;
-        if (await databaseFactory.RentAsync(token).ConfigureAwait(false) is not IExtenededDatabase database)
+        if (await databaseFactory.RentAsync(Context.CancellationToken).ConfigureAwait(false) is not IExtenededDatabase database)
         {
             return 1;
         }
@@ -43,8 +108,8 @@ public partial class NetworkClient
         ulong totalCount = 0;
         try
         {
-            var filter = await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath!), token).ConfigureAwait(false);
-            if (filter is null || token.IsCancellationRequested)
+            var filter = await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath!), Context.CancellationToken).ConfigureAwait(false);
+            if (filter is null || Context.CancellationToken.IsCancellationRequested)
             {
                 return 0;
             }
@@ -52,17 +117,15 @@ public partial class NetworkClient
             AuthenticationHeaderValue? authentication = null;
             var printDebug = Context.Logger.IsEnabled(LogLevel.Debug);
             var printTrace = Context.Logger.IsEnabled(LogLevel.Trace);
-            var requestSender = Context.ServiceProvider.GetRequiredService<RequestSender>();
-            var encoding = new System.Text.UTF8Encoding(false);
-            await foreach (var id in database.DeleteBookmarksAsync(filter, token))
+            await foreach (var id in database.DeleteBookmarksAsync(filter, Context.CancellationToken))
             {
-                if (token.IsCancellationRequested)
+                if (Context.CancellationToken.IsCancellationRequested)
                 {
                     return 0;
                 }
 
                 totalCount++;
-                authentication ??= await holder.GetAsync(token).ConfigureAwait(false);
+                authentication ??= await holder.GetAsync(Context.CancellationToken).ConfigureAwait(false);
 
                 using var request = new HttpRequestMessage(HttpMethod.Post, $"https://{ApiHost}/v1/illust/bookmark/delete");
                 request.Headers.Authorization = authentication;
@@ -71,13 +134,13 @@ public partial class NetworkClient
                     throw new InvalidOperationException();
                 }
 
-                request.Content = new StringContent($"get_secure_url=1&illust_id={id}", encoding, "application/x-www-form-urlencoded");
+                request.Content = new StringContent($"get_secure_url=1&illust_id={id}", Encoding.ASCII, "application/x-www-form-urlencoded");
                 if (printDebug)
                 {
                     Context.Logger.LogDebug(id.ToString());
                 }
 
-                using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+                using var responseMessage = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, Context.CancellationToken).ConfigureAwait(false);
                 if (printTrace)
                 {
                     Context.Logger.LogTrace(await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false));
