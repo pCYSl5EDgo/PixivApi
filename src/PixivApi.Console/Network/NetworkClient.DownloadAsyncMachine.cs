@@ -125,7 +125,7 @@ public partial class NetworkClient
                 response.Dispose();
             }
 
-            if (converter is not null && await converter.TryConvertAsync(file, logger, token).ConfigureAwait(false))
+            if (converter is not null && await converter.TryConvertAsync(file, logger.IsEnabled(LogLevel.Debug) ? logger : null, token).ConfigureAwait(false))
             {
                 file.Delete();
             }
