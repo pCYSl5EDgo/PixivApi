@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <SelfContained>true</SelfContained>
@@ -23,7 +23,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="..\PixivApi.Core\Utility\ArtworkType.cs" Base="PixivApi.Plugin.JpegXl.SqliteExtension" />
+    <Compile Include="../PixivApi.Core/Utility/ArtworkType.cs" />
   </ItemGroup>
 
 </Project>
