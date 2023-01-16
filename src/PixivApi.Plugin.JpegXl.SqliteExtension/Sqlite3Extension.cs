@@ -1,6 +1,4 @@
-﻿namespace PixivApi.Plugin.JpegXl.SqliteExtension;
-#pragma warning disable IDE1006
-
+﻿#pragma warning disable IDE1006
 public struct sqlite3_context
 {
 }

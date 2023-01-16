@@ -4,8 +4,6 @@ using System.Text;
 
 using PixivApi.Core;
 
-namespace PixivApi.Plugin.JpegXl.SqliteExtension;
-
 public static unsafe class Extension
 {
     private static sqlite3_api_routines* ApiRoutines;
