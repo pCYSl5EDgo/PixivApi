@@ -30,6 +30,7 @@ public partial class NetworkClient
                 ArtworkResponseContent artwork;
                 do
                 {
+                    token.ThrowIfCancellationRequested();
                     using var response = await GetArtworkDetailAsync(requestSender, item.Id, token).ConfigureAwait(false);
                     if (response.IsSuccessStatusCode)
                     {
@@ -54,6 +55,7 @@ public partial class NetworkClient
                     goto REMOVED;
                 }
 
+                token.ThrowIfCancellationRequested();
                 ++update;
                 if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                 {
