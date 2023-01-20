@@ -1,11 +1,11 @@
 <Project>
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
-		<EnablePreviewFeatures>True</EnablePreviewFeatures>
 		<LangVersion>11</LangVersion>
 		<Nullable>enable</Nullable>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Deterministic>true</Deterministic>
+        <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 	</PropertyGroup>
 </Project>
