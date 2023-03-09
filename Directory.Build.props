@@ -3,6 +3,7 @@
 		<TargetFramework>net7.0</TargetFramework>
 		<LangVersion>11</LangVersion>
 		<Nullable>enable</Nullable>
+		<EnablePreviewFeatures>true</EnablePreviewFeatures>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Deterministic>true</Deterministic>
