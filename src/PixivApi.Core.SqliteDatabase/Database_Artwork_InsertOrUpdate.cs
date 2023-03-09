@@ -131,7 +131,7 @@ internal sealed partial class Database
         if (statement is null)
         {
             var builder = ZString.CreateUtf8StringBuilder();
-            builder.AppendLiteral("INSERT INTO \"UgoiraFrameTable\" VALUES (?1, ?2, ?3"u8);
+            builder.AppendLiteral("INSERT OR IGNORE INTO \"UgoiraFrameTable\" VALUES (?1, ?2, ?3"u8);
             for (int i = 1, index = 3; i < frames.Length; i++)
             {
                 builder.AppendLiteral("), (?1, ?"u8);
