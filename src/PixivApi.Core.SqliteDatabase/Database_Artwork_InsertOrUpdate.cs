@@ -320,7 +320,7 @@ internal sealed partial class Database
         {
             insertArtworkStatement = Prepare("INSERT INTO \"ArtworkTable\""u8 +
                 " VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20) "u8 +
-                "ON CONFLICT (\"Id\") DO UPDATE SET \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\", "u8 +
+                "ON CONFLICT (\"Id\") DO UPDATE SET \"PageCount\" = \"excluded\".\"PageCount\", \"IsVisible\" = \"excluded\".\"IsVisible\", \"IsMuted\" = \"excluded\".\"IsMuted\", "u8 +
                 "\"CreateDate\" = \"excluded\".\"CreateDate\", \"FileDate\" = \"excluded\".\"FileDate\", \"TotalView\" = \"excluded\".\"TotalView\","u8 +
                 "\"TotalBookmarks\" = \"excluded\".\"TotalBookmarks\", \"HideReason\" = \"excluded\".\"HideReason\", "u8 +
                 "\"IsOfficiallyRemoved\" = \"excluded\".\"IsOfficiallyRemoved\", \"IsBookmarked\" = \"excluded\".\"IsBookmarked\", \"Title\" = \"excluded\".\"Title\","u8 +
