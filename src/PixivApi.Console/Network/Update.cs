@@ -21,6 +21,7 @@ public partial class NetworkClient
             await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
         }
 
+        List<Artwork> artworks = new();
         try
         {
             var artworkFilter = await filterFactory.CreateAsync(database, new(configSettings.ArtworkFilterFilePath), token).ConfigureAwait(false) ?? throw new NullReferenceException();
@@ -71,6 +72,7 @@ public partial class NetworkClient
                 }
 
                 await LocalNetworkConverter.OverwriteAsync(item, artwork, database, database, database, token).ConfigureAwait(false);
+                artworks.Add(item);
                 if (System.Console.IsOutputRedirected)
                 {
                     logger.LogInformation($"{item.Id}");
@@ -98,6 +100,13 @@ public partial class NetworkClient
         }
         finally
         {
+            if (artworks.Count != 0)
+            {
+                await foreach (var _ in database.AddOrUpdateAsync(artworks, CancellationToken.None).ConfigureAwait(false))
+                {
+                }
+            }
+
             if (!System.Console.IsOutputRedirected)
             {
                 var artworkCount = await database.CountArtworkAsync(CancellationToken.None).ConfigureAwait(false);
