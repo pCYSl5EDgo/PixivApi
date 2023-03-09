@@ -30,7 +30,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         var transactional = database as ITransactionalDatabase;
         if (transactional is not null)
         {
-            await transactional.BeginExclusiveTransactionAsync(token).ConfigureAwait(false);
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
         }
 
         try

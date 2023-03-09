@@ -43,7 +43,7 @@ public partial class NetworkClient
         var transactional = database as ITransactionalDatabase;
         if (transactional is not null)
         {
-            await transactional.BeginExclusiveTransactionAsync(token).ConfigureAwait(false);
+            await transactional.BeginTransactionAsync(token).ConfigureAwait(false);
         }
 
         ulong add = 0UL, update = 0UL;
