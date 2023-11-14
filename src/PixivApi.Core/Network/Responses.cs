@@ -16,6 +16,7 @@ public struct ArtworkResponseContent
     [JsonPropertyName("height")] public uint Height;
     [JsonPropertyName("sanity_level")] public uint SanityLevel;
     [JsonPropertyName("x_restrict")] public uint XRestrict;
+    [JsonPropertyName("restrict")] public uint Restrict;
     [JsonPropertyName("meta_single_page")] public InnerMetaSinglePage MetaSinglePage;
     [JsonPropertyName("meta_pages")] public InnerMetaPage[]? MetaPages;
     [JsonPropertyName("total_view")] public ulong TotalView;

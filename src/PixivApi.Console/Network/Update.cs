@@ -58,7 +58,11 @@ public partial class NetworkClient
 
                 token.ThrowIfCancellationRequested();
                 ++update;
-                if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
+                if (artwork.Restrict == 2)
+                {
+                    item.ExtraHideReason = HideReason.TemporaryHidden;
+                }
+                else if (item.Type == ArtworkType.Ugoira && item.UgoiraFrames is null)
                 {
                     using var response = await GetArtworkUgoiraMetadataAsync(requestSender, artwork.Id, token).ConfigureAwait(false);
                     response.EnsureSuccessStatusCode();
