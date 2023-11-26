@@ -5,7 +5,6 @@ namespace PixivApi.Core.Local;
 public sealed class FileExistanceFilter
 {
     [JsonPropertyName("original"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public InnerFilter? Original;
-    [JsonPropertyName("thumbnail"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public InnerFilter? Thumbnail;
     [JsonPropertyName("ugoira")] public bool? Ugoira;
     [JsonPropertyName("relation")] public Relation Relationship = new();
 
@@ -17,59 +16,27 @@ public sealed class FileExistanceFilter
     {
         if (Original is null)
         {
-            if (Thumbnail is null)
+            if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
             {
-                if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
-                {
-                    return true;
-                }
-                else
-                {
-                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
-                    return ugoiraValue;
-                }
+                return true;
             }
             else
             {
-                var thumbnailValue = PrivateFilter(artwork, Thumbnail, finder.IllustThumbnailFinder, finder.MangaThumbnailFinder, finder.UgoiraThumbnailFinder);
-                if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
-                {
-                    return thumbnailValue;
-                }
-                else
-                {
-                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
-                    return Relationship.Calc_Thumbnail_Ugoira(thumbnailValue, ugoiraValue);
-                }
+                var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
+                return ugoiraValue;
             }
         }
         else
         {
             var originalValue = PrivateFilter(artwork, Original, finder.IllustOriginalFinder, finder.MangaOriginalFinder, finder.UgoiraOriginalFinder);
-            if (Thumbnail is null)
+            if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
             {
-                if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
-                {
-                    return originalValue;
-                }
-                else
-                {
-                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
-                    return Relationship.Calc_Ogirinal_Ugoira(originalValue, ugoiraValue);
-                }
+                return originalValue;
             }
             else
             {
-                var thumbnailValue = PrivateFilter(artwork, Thumbnail, finder.IllustThumbnailFinder, finder.MangaThumbnailFinder, finder.UgoiraThumbnailFinder);
-                if (artwork.Type != ArtworkType.Ugoira || Ugoira is null)
-                {
-                    return Relationship.Calc_Original_Thumbnail(originalValue, thumbnailValue);
-                }
-                else
-                {
-                    var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
-                    return Relationship.Calc_Original_Thumbnail_Ugoira(originalValue, thumbnailValue, ugoiraValue);
-                }
+                var ugoiraValue = Ugoira.HasValue && finder.UgoiraZipFinder.Exists(artwork) == Ugoira.Value;
+                return Relationship.Calc_Ogirinal_Ugoira(originalValue, ugoiraValue);
             }
         }
     }
@@ -150,23 +117,8 @@ public sealed class FileExistanceFilter
         public readonly bool IsFirstOperatorAnd;
         public readonly bool IsSecondOperatorAnd;
         public readonly int Order;
-
-        public bool Calc_Original_Thumbnail(bool original, bool thumbnail) => IsFirstOperatorAnd ? original & thumbnail : original | thumbnail;
-
+        
         public bool Calc_Ogirinal_Ugoira(bool original, bool ugoira) => IsFirstOperatorAnd ? original & ugoira : original | ugoira;
-
-        public bool Calc_Thumbnail_Ugoira(bool thumbnail, bool ugoira) => IsFirstOperatorAnd ? thumbnail & ugoira : thumbnail | ugoira;
-
-        public bool Calc_Original_Thumbnail_Ugoira(bool original, bool thumbnail, bool ugoira)
-        {
-            var (first_second, third) = Order switch
-            {
-                0 => (IsFirstOperatorAnd ? original & thumbnail : original | thumbnail, ugoira),
-                1 => (IsFirstOperatorAnd ? original & ugoira : original | ugoira, thumbnail),
-                _ => (IsFirstOperatorAnd ? thumbnail & ugoira : thumbnail | ugoira, original),
-            };
-            return IsSecondOperatorAnd ? first_second & third : first_second | third;
-        }
     }
 }
 

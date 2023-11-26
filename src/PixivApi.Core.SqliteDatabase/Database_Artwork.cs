@@ -398,59 +398,27 @@ internal sealed partial class Database
     {
         if (filter.Original is null)
         {
-            if (filter.Thumbnail is null)
+            if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
             {
-                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
-                {
-                    return true;
-                }
-                else
-                {
-                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
-                    return ugoiraValue;
-                }
+                return true;
             }
             else
             {
-                var thumbnailValue = await PrivateFilter(id, pageCount, artworkType, extensionKind, filter.Thumbnail, filter.finder.IllustThumbnailFinder, filter.finder.MangaThumbnailFinder, filter.finder.UgoiraThumbnailFinder, token).ConfigureAwait(false);
-                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
-                {
-                    return thumbnailValue;
-                }
-                else
-                {
-                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
-                    return filter.Relationship.Calc_Thumbnail_Ugoira(thumbnailValue, ugoiraValue);
-                }
+                var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
+                return ugoiraValue;
             }
         }
         else
         {
             var originalValue = await PrivateFilter(id, pageCount, artworkType, extensionKind, filter.Original, filter.finder.IllustOriginalFinder, filter.finder.MangaOriginalFinder, filter.finder.UgoiraOriginalFinder, token).ConfigureAwait(false);
-            if (filter.Thumbnail is null)
+            if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
             {
-                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
-                {
-                    return originalValue;
-                }
-                else
-                {
-                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
-                    return filter.Relationship.Calc_Ogirinal_Ugoira(originalValue, ugoiraValue);
-                }
+                return originalValue;
             }
             else
             {
-                var thumbnailValue = await PrivateFilter(id, pageCount, artworkType, extensionKind, filter.Thumbnail, filter.finder.IllustThumbnailFinder, filter.finder.MangaThumbnailFinder, filter.finder.UgoiraThumbnailFinder, token).ConfigureAwait(false);
-                if (artworkType != ArtworkType.Ugoira || filter.Ugoira is null)
-                {
-                    return filter.Relationship.Calc_Original_Thumbnail(originalValue, thumbnailValue);
-                }
-                else
-                {
-                    var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
-                    return filter.Relationship.Calc_Original_Thumbnail_Ugoira(originalValue, thumbnailValue, ugoiraValue);
-                }
+                var ugoiraValue = filter.Ugoira.HasValue && filter.finder.UgoiraZipFinder.Find(id, extensionKind).Exists == filter.Ugoira.Value;
+                return filter.Relationship.Calc_Ogirinal_Ugoira(originalValue, ugoiraValue);
             }
         }
     }

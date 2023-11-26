@@ -40,7 +40,7 @@ public partial class NetworkClient
             {
                 IdFilter = new()
                 {
-                    Ids = new[] { id }
+                    Ids = [id]
                 },
                 IsBookmark = true,
                 HideFilter = new()

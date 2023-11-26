@@ -235,7 +235,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         ulong add = 0UL, update = 0UL;
-        if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Thumbnail: null, Ugoira: null })
+        if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Ugoira: null })
         {
             (add, update) = await PrivateDownloadNewArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
             return (add, update, 0, 0);
@@ -249,7 +249,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         var machine = new DownloadAsyncMachine(this, database, token);
         var shouldDownloadOriginal = fileFilter.Original is not null;
-        var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
         var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
         var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
         var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
@@ -297,11 +296,11 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     {
                         if (artwork.Type == ArtworkType.Ugoira)
                         {
-                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false);
+                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false);
                         }
                         else
                         {
-                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, finder, converter, token).ConfigureAwait(false);
                         }
                     }
 
@@ -345,7 +344,7 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
         }
 
         ulong add = 0UL, update = 0UL;
-        if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Thumbnail: null, Ugoira: null })
+        if (filter is not { FileExistanceFilter: { } fileFilter } || fileFilter is { Original: null, Ugoira: null })
         {
             (add, update) = await PrivateDownloadNewArtworkResponses(url, logger, database, requestSender, token).ConfigureAwait(false);
             return (add, update, 0, 0);
@@ -359,7 +358,6 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
 
         var machine = new DownloadAsyncMachine(this, database, token);
         var shouldDownloadOriginal = fileFilter.Original is not null;
-        var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
         var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
         var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
         var finder = Context.ServiceProvider.GetRequiredService<FinderFacade>();
@@ -407,11 +405,11 @@ public sealed partial class NetworkClient : ConsoleAppBase, IDisposable
                     {
                         if (artwork.Type == ArtworkType.Ugoira)
                         {
-                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false);
+                            await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false);
                         }
                         else
                         {
-                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                            await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, finder, converter, token).ConfigureAwait(false);
                         }
                     }
 

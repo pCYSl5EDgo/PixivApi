@@ -5,27 +5,21 @@ public partial class LocalClient
     [Command("encode", "")]
     public async ValueTask EncodeAsync(
         [Option("o")] bool original = false,
-        [Option("t")] bool thumbnail = false,
         [Option("u")] bool ugoira = false,
         [Option("d")] bool delete = false
     )
     {
-        if (!original && !thumbnail && !ugoira)
+        if (!original && !ugoira)
         {
             return;
         }
 
         var token = Context.CancellationToken;
         var converter = Context.ServiceProvider.GetRequiredService<ConverterFacade>();
-        ulong originalCount = 0UL, thumbnailCount = 0UL, ugoiraCount = 0UL;
+        ulong originalCount = 0UL, ugoiraCount = 0UL;
         if (original && converter.OriginalConverter is { } originalConverter)
         {
             originalCount = await EncodeConvertAsync(originalConverter, configSettings.OriginalFolder, delete, token).ConfigureAwait(false);
-        }
-
-        if (thumbnail && converter.ThumbnailConverter is { } thumbnailConverter)
-        {
-            thumbnailCount = await EncodeConvertAsync(thumbnailConverter, configSettings.ThumbnailFolder, delete, token).ConfigureAwait(false);
         }
 
         if (ugoira && converter.UgoiraZipConverter is { } ugoiraConverter)
@@ -33,7 +27,7 @@ public partial class LocalClient
             ugoiraCount = await EncodeConvertAsync(ugoiraConverter, configSettings.UgoiraFolder, delete, token).ConfigureAwait(false);
         }
 
-        logger.LogInformation($"Original: {originalCount} Thumbnail: {thumbnailCount} Ugoira: {ugoiraCount}");
+        logger.LogInformation($"Original: {originalCount} Ugoira: {ugoiraCount}");
     }
 
     private async ValueTask<ulong> EncodeConvertAsync(IConverter converter, string folder, bool delete, CancellationToken token)

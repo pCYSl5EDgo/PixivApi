@@ -16,22 +16,17 @@ public sealed class ConfigSettings
     public string? UserFilterFilePath { get; set; }
 
     public string OriginalFolder { get; set; } = "Original";
-    public string ThumbnailFolder { get; set; } = "Thumbnail";
     public string UgoiraFolder { get; set; } = "Ugoira";
     public ulong UserId { get; set; }
 
     public string? DatabasePlugin { get; set; }
 
     public string? UgoiraZipFinderPlugin { get; set; }
-    public string? UgoiraThumbnailFinderPlugin { get; set; }
     public string? UgoiraOriginalFinderPlugin { get; set; }
-    public string? IllustThumbnailFinderPlugin { get; set; }
     public string? IllustOriginalFinderPlugin { get; set; }
-    public string? MangaThumbnailFinderPlugin { get; set; }
     public string? MangaOriginalFinderPlugin { get; set; }
 
     public string? UgoiraZipConverterPlugin { get; set; }
-    public string? ThumbnailConverterPlugin { get; set; }
     public string? OriginalConverterPlugin { get; set; }
 
     public double RetrySeconds { get; set; } = 300d;

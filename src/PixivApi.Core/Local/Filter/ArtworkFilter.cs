@@ -45,11 +45,6 @@ public sealed class ArtworkFilter : IFilter<Artwork>
                 return true;
             }
 
-            if (FileExistanceFilter.Thumbnail is not null)
-            {
-                return true;
-            }
-
             if (FileExistanceFilter.Ugoira is not null)
             {
                 return true;

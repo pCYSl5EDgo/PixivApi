@@ -61,8 +61,6 @@ public partial class LocalClient
 
         var (count, removed) = await DeleteAsync(configSettings.OriginalFolder).ConfigureAwait(false);
         logger.LogInformation($"Original: {removed} of {count} files removed.");
-        (count, removed) = await DeleteAsync(configSettings.ThumbnailFolder).ConfigureAwait(false);
-        logger.LogInformation($"Thumbnail: {removed} of {count} files removed.");
         (count, removed) = await DeleteAsync(configSettings.UgoiraFolder).ConfigureAwait(false);
         logger.LogInformation($"Ugoira: {removed} of {count} files removed.");
     }

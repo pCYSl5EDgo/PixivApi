@@ -39,9 +39,8 @@ public partial class NetworkClient
             }
 
             var shouldDownloadOriginal = fileFilter.Original is not null;
-            var shouldDownloadThumbnail = fileFilter.Thumbnail is not null;
             var shouldDownloadUgoira = fileFilter.Ugoira.HasValue;
-            if (!shouldDownloadOriginal && !shouldDownloadThumbnail && !shouldDownloadUgoira)
+            if (!shouldDownloadOriginal && !shouldDownloadUgoira)
             {
                 return;
             }
@@ -67,8 +66,8 @@ public partial class NetworkClient
                     }
 
                     var downloadResult = artwork.Type == ArtworkType.Ugoira ?
-                        await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
-                        await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadThumbnail, finder, converter, token).ConfigureAwait(false);
+                        await ProcessDownloadUgoiraAsync(machine, artwork, shouldDownloadOriginal, shouldDownloadUgoira, finder, converter, token).ConfigureAwait(false) :
+                        await ProcessDownloadNotUgoiraAsync(machine, artwork, shouldDownloadOriginal, finder, converter, token).ConfigureAwait(false);
                     if (downloadResult != DownloadResult.None)
                     {
                         await database.AddOrUpdateAsync(artwork, token).ConfigureAwait(false);
@@ -117,22 +116,18 @@ public partial class NetworkClient
         Update = 2,
     }
 
-    private static async ValueTask<DownloadResult> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
+    private static async ValueTask<DownloadResult> ProcessDownloadNotUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
     {
-        IFinderWithIndex finderWithIndexOriginal, finderWithIndexOriginalDefault, finderWithIndexThumbnail, finderWithIndexThumbnailDefault;
+        IFinderWithIndex finderWithIndexOriginal, finderWithIndexOriginalDefault;
         switch (artwork.Type)
         {
             case ArtworkType.Illust:
                 finderWithIndexOriginal = finder.IllustOriginalFinder;
                 finderWithIndexOriginalDefault = finder.DefaultIllustOriginalFinder;
-                finderWithIndexThumbnail = finder.IllustThumbnailFinder;
-                finderWithIndexThumbnailDefault = finder.DefaultIllustThumbnailFinder;
                 break;
             case ArtworkType.Manga:
                 finderWithIndexOriginal = finder.MangaOriginalFinder;
                 finderWithIndexOriginalDefault = finder.DefaultMangaOriginalFinder;
-                finderWithIndexThumbnail = finder.MangaThumbnailFinder;
-                finderWithIndexThumbnailDefault = finder.DefaultMangaThumbnailFinder;
                 break;
             default:
                 return DownloadResult.None;
@@ -176,43 +171,13 @@ public partial class NetworkClient
                     goto END;
                 }
             }
-
-            if (shouldDownloadThumbnail)
-            {
-                if (token.IsCancellationRequested)
-                {
-                    goto END;
-                }
-
-                if (finderWithIndexThumbnail.Exists(artwork, pageIndex))
-                {
-                    continue;
-                }
-
-                var dest = finderWithIndexThumbnailDefault.Find(artwork.Id, artwork.Extension, pageIndex);
-                var (Success, NoDetailDownload) = await machine.DownloadAsync(dest, artwork, noDetailDownload, converter?.ThumbnailConverter, artwork.GetNotUgoiraThumbnailUrl, pageIndex).ConfigureAwait(false);
-                noDetailDownload = NoDetailDownload;
-                downloadAny = true;
-                if (!Success)
-                {
-                    if (noDetailDownload)
-                    {
-                        artwork.IsOfficiallyRemoved = true;
-                    }
-                    else
-                    {
-                        artwork.ExtraHideReason = HideReason.TemporaryHidden;
-                    }
-                    goto END;
-                }
-            }
         }
 
     END:
         return CalculateDownloadResult(downloadAny, noDetailDownload);
     }
 
-    private static async ValueTask<DownloadResult> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadThumbnail, bool shouldDownloadUgoira, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
+    private static async ValueTask<DownloadResult> ProcessDownloadUgoiraAsync(DownloadAsyncMachine machine, Artwork artwork, bool shouldDownloadOriginal, bool shouldDownloadUgoira, FinderFacade finder, ConverterFacade? converter, CancellationToken token)
     {
         var downloadAny = false;
         var noDetailDownload = true;
@@ -265,32 +230,6 @@ public partial class NetworkClient
                 goto END;
             }
         }
-
-        if (shouldDownloadThumbnail && !finder.UgoiraThumbnailFinder.Exists(artwork))
-        {
-            if (token.IsCancellationRequested)
-            {
-                goto END;
-            }
-
-            var dest = finder.DefaultUgoiraThumbnailFinder.Find(artwork.Id, artwork.Extension);
-            var (Success, NoDetailDownload) = await machine.DownloadAsync(dest, artwork, noDetailDownload, converter?.ThumbnailConverter, artwork.GetUgoiraThumbnailUrl).ConfigureAwait(false);
-            noDetailDownload = NoDetailDownload;
-            downloadAny = true;
-            if (!Success)
-            {
-                if (noDetailDownload)
-                {
-                    artwork.IsOfficiallyRemoved = true;
-                }
-                else
-                {
-                    artwork.ExtraHideReason = HideReason.TemporaryHidden;
-                }
-                goto END;
-            }
-        }
-
     END:
         return CalculateDownloadResult(downloadAny, noDetailDownload);
     }

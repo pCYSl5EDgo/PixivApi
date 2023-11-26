@@ -160,29 +160,11 @@ public partial class LocalClient
                                 count += (ulong)file.Length;
                             }
                         }
-                        for (uint i = 0; i < artwork.PageCount; i++)
-                        {
-                            var file = facade.IllustThumbnailFinder.Find(artwork.Id, artwork.Extension, i);
-                            if (file.Exists)
-                            {
-                                add = true;
-                                count += (ulong)file.Length;
-                            }
-                        }
                         break;
                     case ArtworkType.Manga:
                         for (uint i = 0; i < artwork.PageCount; i++)
                         {
                             var file = facade.MangaOriginalFinder.Find(artwork.Id, artwork.Extension, i);
-                            if (file.Exists)
-                            {
-                                add = true;
-                                count += (ulong)file.Length;
-                            }
-                        }
-                        for (uint i = 0; i < artwork.PageCount; i++)
-                        {
-                            var file = facade.MangaThumbnailFinder.Find(artwork.Id, artwork.Extension, i);
                             if (file.Exists)
                             {
                                 add = true;
@@ -198,19 +180,11 @@ public partial class LocalClient
                                 add = true;
                                 count += (ulong)zip.Length;
                             }
-
                             var original = facade.UgoiraOriginalFinder.Find(artwork.Id, artwork.Extension);
                             if (original.Exists)
                             {
                                 add = true;
                                 count += (ulong)original.Length;
-                            }
-
-                            var thumbnail = facade.UgoiraThumbnailFinder.Find(artwork.Id, artwork.Extension);
-                            if (thumbnail.Exists)
-                            {
-                                add = true;
-                                count += (ulong)thumbnail.Length;
                             }
                         }
                         break;

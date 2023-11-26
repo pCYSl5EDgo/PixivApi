@@ -73,7 +73,6 @@ public partial class LocalClient
                             }
 
                             sizeInBytes += Delete(finder.IllustOriginalFinder.Find(artwork.Id, artwork.Extension, index));
-                            sizeInBytes += Delete(finder.IllustThumbnailFinder.Find(artwork.Id, artwork.Extension, index));
                         }
                         break;
                     case ArtworkType.Manga:
@@ -85,12 +84,10 @@ public partial class LocalClient
                             }
 
                             sizeInBytes += Delete(finder.IllustOriginalFinder.Find(artwork.Id, artwork.Extension, index));
-                            sizeInBytes += Delete(finder.IllustThumbnailFinder.Find(artwork.Id, artwork.Extension, index));
                         }
                         break;
                     case ArtworkType.Ugoira:
                         sizeInBytes += Delete(finder.UgoiraOriginalFinder.Find(artwork.Id, artwork.Extension));
-                        sizeInBytes += Delete(finder.UgoiraThumbnailFinder.Find(artwork.Id, artwork.Extension));
                         sizeInBytes += Delete(finder.UgoiraZipFinder.Find(artwork.Id, artwork.Extension));
                         break;
                     default:

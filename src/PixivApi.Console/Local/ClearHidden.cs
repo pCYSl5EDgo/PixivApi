@@ -47,15 +47,12 @@ public partial class LocalClient
                 switch (tuple.Type)
                 {
                     case ArtworkType.Illust:
-                        length += DeleteFileWithIndex(tuple, finderFacade.IllustThumbnailFinder, tmpLogger);
                         length += DeleteFileWithIndex(tuple, finderFacade.IllustOriginalFinder, tmpLogger);
                         break;
                     case ArtworkType.Manga:
-                        length += DeleteFileWithIndex(tuple, finderFacade.MangaThumbnailFinder, tmpLogger);
                         length += DeleteFileWithIndex(tuple, finderFacade.MangaOriginalFinder, tmpLogger);
                         break;
                     case ArtworkType.Ugoira:
-                        length += DeleteFile(tuple, finderFacade.UgoiraThumbnailFinder, tmpLogger);
                         length += DeleteFile(tuple, finderFacade.UgoiraOriginalFinder, tmpLogger);
                         length += DeleteFile(tuple, finderFacade.UgoiraZipFinder, tmpLogger);
                         break;

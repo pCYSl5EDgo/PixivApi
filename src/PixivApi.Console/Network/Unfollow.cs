@@ -124,7 +124,7 @@ public partial class NetworkClient
                                 }
                                 else
                                 {
-                                    user.ExtraTags = new uint[1] { tagId };
+                                    user.ExtraTags = [tagId];
                                 }
                             }
 
@@ -147,7 +147,7 @@ public partial class NetworkClient
                                 }
                                 else
                                 {
-                                    user.ExtraTags = new uint[1] { tagId };
+                                    user.ExtraTags = [tagId];
                                 }
                             }
 
