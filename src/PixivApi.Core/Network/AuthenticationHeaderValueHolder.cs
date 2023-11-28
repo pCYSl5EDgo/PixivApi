@@ -16,7 +16,7 @@ public sealed class AuthenticationHeaderValueHolder : IDisposable
     ConfigSettings = configSettings;
     HttpClient = httpClient;
     LoopInterval = loopInterval;
-    values = ConfigSettings.RefreshTokens.Length == 0 ? Array.Empty<AuthenticationHeaderValue?>() : new AuthenticationHeaderValue?[ConfigSettings.RefreshTokens.Length];
+    values = ConfigSettings.RefreshTokens.Length == 0 ? [] : new AuthenticationHeaderValue?[ConfigSettings.RefreshTokens.Length];
     index = 0;
   }
 

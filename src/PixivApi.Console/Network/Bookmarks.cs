@@ -45,7 +45,7 @@ public partial class NetworkClient
         IsBookmark = true,
         HideFilter = new()
         {
-          DisallowedReason = Array.Empty<HideReason>(),
+          DisallowedReason = [],
         }
       };
 

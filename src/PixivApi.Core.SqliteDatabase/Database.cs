@@ -469,7 +469,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         {
           if (count == 0)
           {
-            return Array.Empty<ulong>();
+            return [];
           }
 
           var answer = new ulong[count];
@@ -515,7 +515,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         {
           if (count == 0)
           {
-            return Array.Empty<uint>();
+            return [];
           }
 
           var answer = new uint[count];
@@ -563,7 +563,7 @@ internal sealed partial class Database : IExtenededDatabase, ITransactionalDatab
         {
           if (count == 0)
           {
-            return Array.Empty<ushort>();
+            return [];
           }
 
           var answer = new ushort[count];

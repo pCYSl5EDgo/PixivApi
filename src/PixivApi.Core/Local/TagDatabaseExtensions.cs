@@ -8,7 +8,7 @@ public static class TagDatabaseExtensions
   {
     if (array is not { Length: > 0 })
     {
-      return Array.Empty<uint>();
+      return [];
     }
 
     var answer = new uint[array.Length];

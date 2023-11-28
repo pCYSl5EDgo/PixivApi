@@ -30,10 +30,10 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
   public DateTime CreateDate;
   public DateTime FileDate;
-  public uint[] Tags = Array.Empty<uint>();
+  public uint[] Tags = [];
   public uint[]? ExtraTags;
   public uint[]? ExtraFakeTags;
-  public uint[] Tools = Array.Empty<uint>();
+  public uint[] Tools = [];
   public string Title = string.Empty;
   public string Caption = string.Empty;
   public string? ExtraMemo;
@@ -284,7 +284,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
             answer.FileDate = reader.ReadDateTime();
             break;
           case 0x03:
-            answer.Tags = ReadUInt32Array(ref reader) ?? Array.Empty<uint>();
+            answer.Tags = ReadUInt32Array(ref reader) ?? [];
             break;
           case 0x04:
             answer.ExtraTags = ReadUInt32Array(ref reader);
@@ -293,7 +293,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
             answer.ExtraFakeTags = ReadUInt32Array(ref reader);
             break;
           case 0x06:
-            answer.Tools = ReadUInt32Array(ref reader) ?? Array.Empty<uint>();
+            answer.Tools = ReadUInt32Array(ref reader) ?? [];
             break;
           case 0x07:
             answer.Title = reader.ReadString() ?? string.Empty;
@@ -471,7 +471,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
       var length = sequence.Length >> 2;
       if (length == 0)
       {
-        return Array.Empty<uint>();
+        return [];
       }
 
       var answer = new uint[length];
@@ -492,7 +492,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         var mapHeader = reader.ReadMapHeader();
         if (mapHeader == 0)
         {
-          return Array.Empty<ushort>();
+          return [];
         }
 
         if (mapHeader == 1)
@@ -500,7 +500,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
           var count = reader.ReadInt32();
           if (count == 0)
           {
-            return Array.Empty<ushort>();
+            return [];
           }
 
           answer = new ushort[count];
@@ -518,7 +518,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
 
           if (sum == 0)
           {
-            return Array.Empty<ushort>();
+            return [];
           }
 
           answer = new ushort[sum];
@@ -542,7 +542,7 @@ public sealed partial class Artwork : IEquatable<Artwork>, IEnumerable<uint>
         var mapHeader = sequence.Length >> 1;
         if (mapHeader == 0)
         {
-          return Array.Empty<ushort>();
+          return [];
         }
 
         answer = new ushort[mapHeader];

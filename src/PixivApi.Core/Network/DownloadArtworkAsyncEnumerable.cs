@@ -53,7 +53,7 @@ public sealed class DownloadArtworkAsyncEnumerable : IAsyncEnumerable<Artworks>
       this.cancellationToken = cancellationToken;
     }
 
-    public Artworks Current => array ?? Array.Empty<ArtworkResponseContent>();
+    public Artworks Current => array ?? [];
 
     public ValueTask DisposeAsync()
     {
@@ -139,7 +139,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
       this.cancellationToken = cancellationToken;
     }
 
-    public Artworks Current => array ?? Array.Empty<ArtworkResponseContent>();
+    public Artworks Current => array ?? [];
 
     public ValueTask DisposeAsync()
     {
@@ -191,7 +191,7 @@ public sealed class SearchArtworkAsyncNewToOldEnumerable : IAsyncEnumerable<Artw
         }
         else
         {
-          array = dayIndex == 0 ? Array.Empty<ArtworkResponseContent>() : array[..dayIndex];
+          array = dayIndex == 0 ? [] : array[..dayIndex];
           url = SearchUrlUtility.CalculateNextEndDateUrl(url.AsSpan(0, partsIndex), date);
         }
 
@@ -239,7 +239,7 @@ public sealed class DownloadUserPreviewAsyncEnumerable : IAsyncEnumerable<Users>
       this.cancellationToken = cancellationToken;
     }
 
-    public Users Current => array ?? Array.Empty<UserPreviewResponseContent>();
+    public Users Current => array ?? [];
 
     public ValueTask DisposeAsync()
     {

@@ -2,7 +2,7 @@
 
 public sealed class ConfigSettings
 {
-  public string[] RefreshTokens { get; set; } = Array.Empty<string>();
+  public string[] RefreshTokens { get; set; } = [];
 
   public string AppOS { get; set; } = "ios";
   public string AppOSVersion { get; set; } = "14.6";

@@ -27,10 +27,10 @@ public sealed class TagFilter
     {
       AlwaysFailIntersect = false;
       AlwaysFailExcept = false;
-      IntersectArray = Array.Empty<uint>();
-      ExceptArray = Array.Empty<uint>();
-      IntersectArrayArray = Array.Empty<uint[]>();
-      ExceptArrayArray = Array.Empty<uint[]>();
+      IntersectArray = [];
+      ExceptArray = [];
+      IntersectArrayArray = [];
+      ExceptArrayArray = [];
     }
 
     public async ValueTask InitializeAsync(TagFilter filter, CancellationToken token)
@@ -101,7 +101,7 @@ public sealed class TagFilter
   {
     if (exacts is not { Length: > 0 } && partials is not { Length: > 0 })
     {
-      return Array.Empty<uint[]>();
+      return [];
     }
 
     var answer = new uint[1][];
@@ -139,7 +139,7 @@ public sealed class TagFilter
   {
     if (partials is not { Length: > 0 })
     {
-      return Array.Empty<uint[]>();
+      return [];
     }
 
     var answer = new uint[partials.Length][];

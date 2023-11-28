@@ -164,7 +164,7 @@ public partial class NetworkClient
         if (response.IsSuccessStatusCode)
         {
           var frames = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>(await response.Content.ReadAsByteArrayAsync(token)).Value.Frames;
-          artwork.UgoiraFrames = frames.Length == 0 ? Array.Empty<ushort>() : new ushort[frames.Length];
+          artwork.UgoiraFrames = frames.Length == 0 ? [] : new ushort[frames.Length];
           for (var i = 0; i < frames.Length; i++)
           {
             artwork.UgoiraFrames[i] = (ushort)frames[i].Delay;

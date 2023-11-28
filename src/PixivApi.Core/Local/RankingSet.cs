@@ -60,7 +60,7 @@ public sealed class RankingSet : ConcurrentDictionary<RankingSet.Pair, ulong[]>
         }
 
         var bytes = reader.ReadBytes() ?? default;
-        var ids = bytes.IsEmpty ? Array.Empty<ulong>() : new ulong[bytes.Length >> 3];
+        var ids = bytes.IsEmpty ? [] : new ulong[bytes.Length >> 3];
         if (ids.Length > 0)
         {
           bytes.CopyTo(MemoryMarshal.AsBytes(ids.AsSpan()));

@@ -68,7 +68,7 @@ public partial class NetworkClient
           response.EnsureSuccessStatusCode();
           var ugoira = IOUtility.JsonDeserialize<UgoiraMetadataResponseData>(await response.Content.ReadAsByteArrayAsync(token).ConfigureAwait(false));
           var frames = ugoira.Value.Frames;
-          item.UgoiraFrames = frames.Length == 0 ? Array.Empty<ushort>() : new ushort[frames.Length];
+          item.UgoiraFrames = frames.Length == 0 ? [] : new ushort[frames.Length];
           for (var i = 0; i < frames.Length; i++)
           {
             item.UgoiraFrames[i] = (ushort)frames[i].Delay;
