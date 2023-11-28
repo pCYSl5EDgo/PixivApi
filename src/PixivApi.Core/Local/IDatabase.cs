@@ -7,5 +7,5 @@ namespace PixivApi.Core.Local;
 
 public interface IDatabase : IArtworkDatabase, IUserDatabase, ITagDatabase, IToolDatabase, IRankingDatabase
 {
-    Version Version { get; }
+  Version Version { get; }
 }

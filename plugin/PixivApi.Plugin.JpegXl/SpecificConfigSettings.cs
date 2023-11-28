@@ -2,5 +2,5 @@
 
 public sealed class SpecificConfigSettings
 {
-    public bool DeleteWhenFailure { get; set; } = false;
+  public bool DeleteWhenFailure { get; set; } = false;
 }

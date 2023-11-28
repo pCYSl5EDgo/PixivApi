@@ -2,8 +2,8 @@
 
 public enum ArtworkType : byte
 {
-    None,
-    Illust,
-    Manga,
-    Ugoira,
+  None,
+  Illust,
+  Manga,
+  Ugoira,
 }

@@ -2,13 +2,13 @@
 
 public enum ArtworkOrderKind
 {
-    None,
-    Id,
-    ReverseId,
-    View,
-    ReverseView,
-    Bookmarks,
-    ReverseBookmarks,
-    UserId,
-    ReverseUserId,
+  None,
+  Id,
+  ReverseId,
+  View,
+  ReverseView,
+  Bookmarks,
+  ReverseBookmarks,
+  UserId,
+  ReverseUserId,
 }

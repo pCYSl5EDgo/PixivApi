@@ -2,7 +2,7 @@
 
 public interface IDatabaseFactory : IAsyncDisposable
 {
-    ValueTask<IDatabase> RentAsync(CancellationToken token);
+  ValueTask<IDatabase> RentAsync(CancellationToken token);
 
-    void Return([MaybeNull] ref IDatabase database) => database = null;
+  void Return([MaybeNull] ref IDatabase database) => database = null;
 }

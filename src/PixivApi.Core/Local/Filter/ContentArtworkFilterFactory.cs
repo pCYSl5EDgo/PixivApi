@@ -5,46 +5,46 @@ namespace PixivApi.Core.Local;
 
 public sealed class ContentArtworkFilterFactory : IArtworkFilterFactory<ReadOnlyMemory<byte>>, IArtworkFilterFactory<ReadOnlyMemory<char>>
 {
-    private readonly IServiceProvider provider;
+  private readonly IServiceProvider provider;
 
-    public ContentArtworkFilterFactory(IServiceProvider provider)
-    {
-        this.provider = provider;
-    }
+  public ContentArtworkFilterFactory(IServiceProvider provider)
+  {
+    this.provider = provider;
+  }
 
 #pragma warning disable CS1998
-    public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, ReadOnlyMemory<byte> source, CancellationToken token)
+  public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, ReadOnlyMemory<byte> source, CancellationToken token)
+  {
+    if (source.Length == 0)
     {
-        if (source.Length == 0)
-        {
-            return null;
-        }
-
-        var filter = IOUtility.JsonDeserialize<ArtworkFilter>(source.Span);
-        if (filter is null)
-        {
-            return null;
-        }
-
-        filter.Initialize(database, provider.GetRequiredService<FinderFacade>);
-        return filter;
+      return null;
     }
 
-    public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, ReadOnlyMemory<char> source, CancellationToken token)
+    var filter = IOUtility.JsonDeserialize<ArtworkFilter>(source.Span);
+    if (filter is null)
     {
-        if (source.Length == 0)
-        {
-            return null;
-        }
-
-        var filter = IOUtility.JsonDeserialize<ArtworkFilter>(source.Span);
-        if (filter is null)
-        {
-            return null;
-        }
-
-        filter.Initialize(database, provider.GetRequiredService<FinderFacade>);
-        return filter;
+      return null;
     }
+
+    filter.Initialize(database, provider.GetRequiredService<FinderFacade>);
+    return filter;
+  }
+
+  public async ValueTask<ArtworkFilter?> CreateAsync(IDatabase database, ReadOnlyMemory<char> source, CancellationToken token)
+  {
+    if (source.Length == 0)
+    {
+      return null;
+    }
+
+    var filter = IOUtility.JsonDeserialize<ArtworkFilter>(source.Span);
+    if (filter is null)
+    {
+      return null;
+    }
+
+    filter.Initialize(database, provider.GetRequiredService<FinderFacade>);
+    return filter;
+  }
 #pragma warning restore CS1998
 }

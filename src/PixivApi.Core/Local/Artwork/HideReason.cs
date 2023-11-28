@@ -2,11 +2,11 @@
 
 public enum HideReason : byte
 {
-    NotHidden,
-    TemporaryHidden,
-    LowQuality,
-    Irrelevant,
-    ExternalLink,
-    Dislike,
-    Crop,
+  NotHidden,
+  TemporaryHidden,
+  LowQuality,
+  Irrelevant,
+  ExternalLink,
+  Dislike,
+  Crop,
 }

@@ -4,27 +4,27 @@ namespace PixivApi.Plugin.JpegXl;
 
 public sealed record class NotUgoiraOriginalFinder(ConfigSettings ConfigSettings) : IFinderWithIndex
 {
-    public static Task<IPlugin?> CreateAsync(string _, ConfigSettings configSettings, IServiceProvider provider, CancellationToken cancellationToken)
+  public static Task<IPlugin?> CreateAsync(string _, ConfigSettings configSettings, IServiceProvider provider, CancellationToken cancellationToken)
+  {
+    if (cancellationToken.IsCancellationRequested)
     {
-        if (cancellationToken.IsCancellationRequested)
-        {
-            return Task.FromCanceled<IPlugin?>(cancellationToken);
-        }
-
-        return Task.FromResult<IPlugin?>(new NotUgoiraOriginalFinder(configSettings));
+      return Task.FromCanceled<IPlugin?>(cancellationToken);
     }
 
-    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    return Task.FromResult<IPlugin?>(new NotUgoiraOriginalFinder(configSettings));
+  }
 
-    public FileInfo Find(ulong id, FileExtensionKind extensionKind, uint index)
+  public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+
+  public FileInfo Find(ulong id, FileExtensionKind extensionKind, uint index)
+  {
+    var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(id));
+    var file = new FileInfo(Path.Combine(folder, ArtworkNameUtility.GetNotUgoiraOriginalFileName(id, extensionKind, index)));
+    if (file.Exists)
     {
-        var folder = Path.Combine(ConfigSettings.OriginalFolder, IOUtility.GetHashPath(id));
-        var file = new FileInfo(Path.Combine(folder, ArtworkNameUtility.GetNotUgoiraOriginalFileName(id, extensionKind, index)));
-        if (file.Exists)
-        {
-            return file;
-        }
-
-        return new(Path.Combine(folder, $"{id}_{index}.jxl"));
+      return file;
     }
+
+    return new(Path.Combine(folder, $"{id}_{index}.jxl"));
+  }
 }

@@ -2,11 +2,11 @@
 
 public interface ITransactionalDatabase : IDatabase
 {
-    ValueTask BeginExclusiveTransactionAsync(CancellationToken token);
-    
-    ValueTask BeginTransactionAsync(CancellationToken token);
+  ValueTask BeginExclusiveTransactionAsync(CancellationToken token);
 
-    ValueTask RollbackTransactionAsync(CancellationToken token);
+  ValueTask BeginTransactionAsync(CancellationToken token);
 
-    ValueTask EndTransactionAsync(CancellationToken token);
+  ValueTask RollbackTransactionAsync(CancellationToken token);
+
+  ValueTask EndTransactionAsync(CancellationToken token);
 }

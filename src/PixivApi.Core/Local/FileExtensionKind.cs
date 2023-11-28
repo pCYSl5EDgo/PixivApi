@@ -2,9 +2,9 @@
 
 public enum FileExtensionKind : byte
 {
-    None,
-    Jpg,
-    Png,
-    Zip,
-    Gif,
+  None,
+  Jpg,
+  Png,
+  Zip,
+  Gif,
 }

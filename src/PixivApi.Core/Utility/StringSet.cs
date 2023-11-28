@@ -5,122 +5,122 @@ namespace PixivApi.Core;
 [MessagePackFormatter(typeof(Formatter))]
 public sealed class StringSet
 {
-    public readonly ConcurrentDictionary<uint, string> Values;
-    public readonly ConcurrentDictionary<string, uint> Reverses;
-    private uint index;
+  public readonly ConcurrentDictionary<uint, string> Values;
+  public readonly ConcurrentDictionary<string, uint> Reverses;
+  private uint index;
 
-    public StringSet(int initialCapacity)
+  public StringSet(int initialCapacity)
+  {
+    Values = new(Environment.ProcessorCount, initialCapacity);
+    Reverses = new(Environment.ProcessorCount, initialCapacity);
+  }
+
+  public uint Register(string? text)
+  {
+    if (text is not { Length: > 0 })
     {
-        Values = new(Environment.ProcessorCount, initialCapacity);
-        Reverses = new(Environment.ProcessorCount, initialCapacity);
+      return 0;
     }
 
-    public uint Register(string? text)
+    return Reverses.GetOrAdd(text, p =>
     {
-        if (text is not { Length: > 0 })
-        {
-            return 0;
-        }
+      var incremented = Interlocked.Increment(ref index);
+      Values.TryAdd(incremented, text);
+      return incremented;
+    });
+  }
 
-        return Reverses.GetOrAdd(text, p =>
-        {
-            var incremented = Interlocked.Increment(ref index);
-            Values.TryAdd(incremented, text);
-            return incremented;
-        });
+  public (uint lackedNumber, uint valueNumber)[] Optimize()
+  {
+    var array = GetLackedNumbers().ToArray();
+    foreach (var (lackedNumber, valueNumber) in array)
+    {
+      Values.TryRemove(valueNumber, out var valueText);
+      if (string.IsNullOrEmpty(valueText))
+      {
+        throw new InvalidDataException();
+      }
+
+      Values.AddOrUpdate(lackedNumber, valueText, (_, _) => valueText);
+      Reverses.AddOrUpdate(valueText, lackedNumber, (_, _) => lackedNumber);
     }
 
-    public (uint lackedNumber, uint valueNumber)[] Optimize()
+    return array;
+  }
+
+  internal IEnumerable<(uint lackedNumber, uint valueNumber)> GetLackedNumbers()
+  {
+    if (Reverses.IsEmpty)
     {
-        var array = GetLackedNumbers().ToArray();
-        foreach (var (lackedNumber, valueNumber) in array)
-        {
-            Values.TryRemove(valueNumber, out var valueText);
-            if (string.IsNullOrEmpty(valueText))
-            {
-                throw new InvalidDataException();
-            }
-
-            Values.AddOrUpdate(lackedNumber, valueText, (_, _) => valueText);
-            Reverses.AddOrUpdate(valueText, lackedNumber, (_, _) => lackedNumber);
-        }
-
-        return array;
+      yield break;
     }
 
-    internal IEnumerable<(uint lackedNumber, uint valueNumber)> GetLackedNumbers()
+    uint index = 0;
+    var ascending = Reverses.Select(x => x.Value).ToArray();
+    Array.Sort(ascending);
+    for (uint ascendingIndex = 0, descendingIndex = (uint)ascending.Length - 1; ascendingIndex <= descendingIndex; ascendingIndex++)
     {
-        if (Reverses.IsEmpty)
+      var number = ascending[ascendingIndex];
+      while (++index != number && ascendingIndex <= descendingIndex)
+      {
+        yield return (index, ascending[descendingIndex--]);
+      }
+    }
+  }
+
+  public sealed class Formatter : IMessagePackFormatter<StringSet?>
+  {
+    public StringSet? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => DeserializeStatic(ref reader);
+
+    public static StringSet? DeserializeStatic(ref MessagePackReader reader)
+    {
+      var token = reader.CancellationToken;
+      token.ThrowIfCancellationRequested();
+      if (reader.TryReadNil())
+      {
+        return null;
+      }
+
+      var length = reader.ReadMapHeader();
+      var answer = new StringSet(length);
+      for (var i = 0; i < length; i++)
+      {
+        token.ThrowIfCancellationRequested();
+        var number = reader.ReadUInt32();
+        var text = reader.ReadString();
+        if (text is not { Length: > 0 } || number == 0)
         {
-            yield break;
+          continue;
         }
 
-        uint index = 0;
-        var ascending = Reverses.Select(x => x.Value).ToArray();
-        Array.Sort(ascending);
-        for (uint ascendingIndex = 0, descendingIndex = (uint)ascending.Length - 1; ascendingIndex <= descendingIndex; ascendingIndex++)
+        if (number > answer.index)
         {
-            var number = ascending[ascendingIndex];
-            while (++index != number && ascendingIndex <= descendingIndex)
-            {
-                yield return (index, ascending[descendingIndex--]);
-            }
+          answer.index = number;
         }
+
+        answer.Values.TryAdd(number, text);
+        answer.Reverses.TryAdd(text, number);
+      }
+
+      return answer;
     }
 
-    public sealed class Formatter : IMessagePackFormatter<StringSet?>
+    public void Serialize(ref MessagePackWriter writer, StringSet? value, MessagePackSerializerOptions options) => SerializeStatic(ref writer, value);
+
+    public static void SerializeStatic(ref MessagePackWriter writer, StringSet? value)
     {
-        public StringSet? Deserialize(ref MessagePackReader reader, MessagePackSerializerOptions options) => DeserializeStatic(ref reader);
+      if (value is null)
+      {
+        writer.WriteNil();
+        return;
+      }
 
-        public static StringSet? DeserializeStatic(ref MessagePackReader reader)
-        {
-            var token = reader.CancellationToken;
-            token.ThrowIfCancellationRequested();
-            if (reader.TryReadNil())
-            {
-                return null;
-            }
-
-            var length = reader.ReadMapHeader();
-            var answer = new StringSet(length);
-            for (var i = 0; i < length; i++)
-            {
-                token.ThrowIfCancellationRequested();
-                var number = reader.ReadUInt32();
-                var text = reader.ReadString();
-                if (text is not { Length: > 0 } || number == 0)
-                {
-                    continue;
-                }
-
-                if (number > answer.index)
-                {
-                    answer.index = number;
-                }
-
-                answer.Values.TryAdd(number, text);
-                answer.Reverses.TryAdd(text, number);
-            }
-
-            return answer;
-        }
-
-        public void Serialize(ref MessagePackWriter writer, StringSet? value, MessagePackSerializerOptions options) => SerializeStatic(ref writer, value);
-
-        public static void SerializeStatic(ref MessagePackWriter writer, StringSet? value)
-        {
-            if (value is null)
-            {
-                writer.WriteNil();
-                return;
-            }
-
-            writer.WriteMapHeader(value.Values.Count);
-            foreach (var (number, text) in value.Values)
-            {
-                writer.Write(number);
-                writer.Write(text);
-            }
-        }
+      writer.WriteMapHeader(value.Values.Count);
+      foreach (var (number, text) in value.Values)
+      {
+        writer.Write(number);
+        writer.Write(text);
+      }
     }
+  }
 }
